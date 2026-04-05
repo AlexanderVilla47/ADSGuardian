@@ -1,0 +1,959 @@
+{
+  "name": "AdsKiller - Contract Guard Daily KillSwitch (MVP)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "custom",
+              "cronExpression": "1 0 * * *"
+            }
+          ]
+        }
+      },
+      "id": "2f6c311a-2ce1-4a44-a3cb-d1e7aa42d2f0",
+      "name": "Cron Diario 00:01",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -1480,
+        140
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ea7259cc-0505-4b81-96d3-8f7c3d136f09",
+      "name": "Trigger Manual On-Demand",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1480,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { run_mode: 'scheduled' } }];"
+      },
+      "id": "d4fd7f98-88d0-4ec0-9f6b-f08ec6d76a6c",
+      "name": "Contexto Scheduled",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1260,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { run_mode: 'manual' } }];"
+      },
+      "id": "37e2443c-f47a-4657-b5dd-6ad18b4f25f9",
+      "name": "Contexto Manual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1260,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": "={{$env.GSHEET_CONTRATOS_ID}}",
+        "sheetName": "={{$env.GSHEET_CONTRATOS_TAB || 'Contratos'}}",
+        "options": {
+          "returnAll": true
+        }
+      },
+      "id": "4a4ca8d9-b66d-4dd9-9ce4-40a45294f4d4",
+      "name": "Sheets - Leer Contratos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -1020,
+        220
+      ],
+      "notes": "Fuente única de contratos. Se esperan columnas: Contrato_ID, Status_Contrato, Fecha_Fin (YYYY-MM-DD), Ad_ID, Ad_Name, Regex_Anuncio, Notificado_Previo."
+    },
+    {
+      "parameters": {
+        "jsCode": "const TZ = 'America/Argentina/Buenos_Aires';\n\nfunction parseYMD(value) {\n  if (!value || typeof value !== 'string') return null;\n  const m = value.trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (!m) return null;\n  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);\n}\n\nfunction nowInTimezone(timeZone) {\n  return new Date(new Date().toLocaleString('en-US', { timeZone }));\n}\n\nfunction startOfDay(d) {\n  const x = new Date(d);\n  x.setHours(0, 0, 0, 0);\n  return x;\n}\n\nfunction daysBetween(a, b) {\n  const ms = 24 * 60 * 60 * 1000;\n  return Math.floor((b.getTime() - a.getTime()) / ms);\n}\n\nfunction toBool(v) {\n  if (typeof v === 'boolean') return v;\n  if (typeof v === 'number') return v !== 0;\n  if (typeof v !== 'string') return false;\n  return ['true', '1', 'si', 'sí', 'yes', 'y', 'x'].includes(v.trim().toLowerCase());\n}\n\nfunction buildRegex(pattern, fallbackName) {\n  if (pattern && typeof pattern === 'string') {\n    try {\n      return new RegExp(pattern, 'i');\n    } catch (_) {}\n  }\n\n  const safe = String(fallbackName || '')\n    .trim()\n    .replace(/[.*+?^${}()|[\\]\\]/g, '\\\\$&')\n    .replace(/\\s+/g, '.*');\n\n  return safe ? new RegExp(safe, 'i') : null;\n}\n\nconst today = startOfDay(nowInTimezone(TZ));\nconst runMode = $input.first()?.json?.run_mode || 'scheduled';\nconst runCorrelation = `ak-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;\n\nconst actionable = [];\n\nfor (const item of items) {\n  const row = item.json;\n  const status = String(row.Status_Contrato || '').trim().toLowerCase();\n  const isActiveContract = ['activo', 'active', 'activa'].includes(status);\n  if (!isActiveContract) continue;\n\n  const endDate = parseYMD(row.Fecha_Fin);\n  if (!endDate) continue;\n\n  const diffDays = daysBetween(today, endDate);\n  const isExpired = diffDays < 0;\n  const isPreventiveWindow = diffDays >= 0 && diffDays <= 2;\n  const alreadyNotified = toBool(row.Notificado_Previo);\n\n  const adName = String(row.Ad_Name || row.Ad_Name_Meta || row.Nombre_Anuncio || '').trim();\n  const regex = buildRegex(row.Regex_Anuncio || row.Ad_Name_Regex, adName);\n  const regexMatchesSheetName = regex ? regex.test(adName) : false;\n\n  let controlType = null;\n  if (isExpired) controlType = 'expired';\n  if (isPreventiveWindow && !alreadyNotified) controlType = 'preventive';\n\n  if (!controlType) continue;\n\n  actionable.push({\n    json: {\n      ...row,\n      run_mode: runMode,\n      correlation_id: runCorrelation,\n      control_type: controlType,\n      days_to_end: diffDays,\n      timezone: TZ,\n      regex_pattern: regex ? regex.source : null,\n      regexMatchesSheetName\n    }\n  });\n}\n\nreturn actionable;"
+      },
+      "id": "7ad4afbf-426e-45d5-b237-0059aa5a80da",
+      "name": "Clasificar Contratos (Activo / 48h / Vencido)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$json.control_type}}",
+        "rules": {
+          "values": [
+            {
+              "operation": "equal",
+              "value2": "preventive"
+            },
+            {
+              "operation": "equal",
+              "value2": "expired"
+            }
+          ]
+        }
+      },
+      "id": "6bcbc57d-8f3e-45ea-a8e8-7746617f2920",
+      "name": "Rutear Tipo de Control",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -520,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4ff45eb3-589f-4d2e-9025-6dd2fca9d3b5",
+              "name": "alert_severity",
+              "value": "WARNING",
+              "type": "string"
+            },
+            {
+              "id": "31f6397b-4ca6-4385-8e55-b96685541595",
+              "name": "alert_type",
+              "value": "PREVENTIVE_48H",
+              "type": "string"
+            },
+            {
+              "id": "53ab40f3-74f1-4ff4-ac94-566acb4c3528",
+              "name": "message",
+              "value": "=Contrato {{$json.Contrato_ID}} entra en ventana preventiva de 48h para anuncio {{$json.Ad_ID}}.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a06ac8eb-0761-4232-8d80-a4a3fa35b6a3",
+      "name": "Payload Alerta Preventiva",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -250,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ALERT_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "254fa359-bccb-445c-9492-7bfeae29f53a",
+      "name": "Emitir Alerta Operativa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -20,
+        60
+      ],
+      "notes": "Canal único de alertas en MVP (sin fallback Slack/Telegram)."
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "={{$env.GSHEET_CONTRATOS_ID}}",
+        "sheetName": "={{$env.GSHEET_CONTRATOS_TAB || 'Contratos'}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Notificado_Previo": true,
+            "Fecha_Notificado_Previo": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}"
+          },
+          "matchingColumns": [
+            "Contrato_ID"
+          ]
+        },
+        "options": {}
+      },
+      "id": "d22e4d34-92bf-4ca2-a967-f9af4a2b702a",
+      "name": "Sheets - Marcar Notificado_Previo",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        250,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.regexMatchesSheetName}}",
+              "value2": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0446f245-2421-48be-8aa4-35f77e92d5ea",
+      "name": "Regex Coincide con Nombre (Sheet)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -250,
+        330
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "92e6e644-9bf2-4f5f-80f2-4cb932e78687",
+              "name": "precheck_attempt",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "f7edfd6e-15ab-4294-bf87-2df4eb8746ff",
+              "name": "precheck_max_attempts",
+              "value": 3,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c8b52102-24cb-4e88-a907-e077db47be8c",
+      "name": "Init Retry Precheck",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v20.0/{{$json.Ad_ID}}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,name,effective_status,status"
+            },
+            {
+              "name": "access_token",
+              "value": "={{$env.META_ACCESS_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "fullResponse": true,
+          "ignoreResponseCode": true,
+          "timeout": 30000
+        }
+      },
+      "id": "fa95f337-a440-46cc-821f-d9e4662d7a97",
+      "name": "Meta - Precheck Estado Ad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ],
+      "notes": "Pre-check: continuar solo si Meta devuelve ACTIVE y nombre matchea regex case-insensitive."
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json;\nconst row = $item(0).$node['Init Retry Precheck'].json;\n\nconst attempt = Number(row.precheck_attempt || 1);\nconst maxAttempts = Number(row.precheck_max_attempts || 3);\nconst statusCode = Number(response.statusCode || 0);\nconst body = response.body || {};\n\nconst retryable = [429, 500].includes(statusCode);\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      precheck_attempt: attempt + 1,\n      precheck_state: 'retry',\n      precheck_status_code: statusCode\n    }\n  }];\n}\n\nif (statusCode !== 200) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'failed',\n      precheck_status_code: statusCode,\n      precheck_reason: 'meta_precheck_non_200'\n    }\n  }];\n}\n\nconst adNameMeta = String(body.name || '').trim();\nconst regexPattern = row.regex_pattern;\nlet regexMatchesMetaName = false;\ntry {\n  regexMatchesMetaName = !!regexPattern && new RegExp(regexPattern, 'i').test(adNameMeta);\n} catch (_) {\n  regexMatchesMetaName = false;\n}\n\nconst status = String(body.status || body.effective_status || '').toUpperCase();\nconst isActive = status === 'ACTIVE';\n\nif (!isActive || !regexMatchesMetaName) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'not_actionable',\n      precheck_status_code: statusCode,\n      ad_status_meta: status || 'UNKNOWN',\n      regexMatchesMetaName,\n      ad_name_meta: adNameMeta\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    precheck_state: 'ready_to_pause',\n    precheck_status_code: statusCode,\n    ad_status_meta: status,\n    regexMatchesMetaName,\n    ad_name_meta: adNameMeta\n  }\n}];"
+      },
+      "id": "c6cf4f72-f995-45d1-98fd-c294f165811b",
+      "name": "Evaluar Precheck Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$json.precheck_state}}",
+        "rules": {
+          "values": [
+            {
+              "operation": "equal",
+              "value2": "ready_to_pause"
+            },
+            {
+              "operation": "equal",
+              "value2": "retry"
+            },
+            {
+              "operation": "equal",
+              "value2": "not_actionable"
+            }
+          ]
+        }
+      },
+      "id": "79bd5ba2-d6d6-466d-907d-a4626d72d605",
+      "name": "Rutear Estado Precheck",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "minutes"
+      },
+      "id": "2bb12d03-1dd6-491b-9237-1f2a95a96efc",
+      "name": "Wait 5m Precheck Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        950,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "36714951-a53f-4ef8-a2c1-98f84d620806",
+              "name": "pause_attempt",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "6a88e977-ed8a-4fcb-89ab-8f48416c712b",
+              "name": "pause_max_attempts",
+              "value": 3,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "78f71e38-8a5a-4769-b7ce-f5793f64e19a",
+      "name": "Init Retry Pausa",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{$json.Ad_ID}}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "PAUSED"
+            },
+            {
+              "name": "access_token",
+              "value": "={{$env.META_ACCESS_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "fullResponse": true,
+          "ignoreResponseCode": true,
+          "timeout": 30000
+        }
+      },
+      "id": "66bdafcc-b06e-4020-bfd3-b61c9e1d4d8c",
+      "name": "Meta - Pausar Ad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1190,
+        180
+      ],
+      "notes": "Kill-switch: pausa SOLO a nivel Ad."
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json;\nconst row = $item(0).$node['Init Retry Pausa'].json;\n\nconst attempt = Number(row.pause_attempt || 1);\nconst maxAttempts = Number(row.pause_max_attempts || 3);\nconst statusCode = Number(response.statusCode || 0);\n\nconst isSuccess = statusCode >= 200 && statusCode < 300;\nif (isSuccess) {\n  return [{\n    json: {\n      ...row,\n      pause_state: 'success',\n      pause_status_code: statusCode\n    }\n  }];\n}\n\nconst retryable = [429, 500].includes(statusCode);\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      pause_attempt: attempt + 1,\n      pause_state: 'retry',\n      pause_status_code: statusCode\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    pause_state: 'failed',\n    pause_status_code: statusCode,\n    pause_reason: retryable ? 'retry_exhausted' : 'non_retryable_meta_response'\n  }\n}];"
+      },
+      "id": "f5dad39f-e21e-4fdb-90f7-6aa4c80b8e8e",
+      "name": "Evaluar Pausa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1430,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$json.pause_state}}",
+        "rules": {
+          "values": [
+            {
+              "operation": "equal",
+              "value2": "success"
+            },
+            {
+              "operation": "equal",
+              "value2": "retry"
+            }
+          ]
+        }
+      },
+      "id": "5200ef9e-c1f6-437e-9d68-d65eb0f17c5f",
+      "name": "Rutear Resultado Pausa",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1670,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "minutes"
+      },
+      "id": "fbd1f96b-c4c9-4f57-9270-a1d2d6bf9f71",
+      "name": "Wait 5m Pausa Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1910,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "={{$env.GSHEET_CONTRATOS_ID}}",
+        "sheetName": "={{$env.GSHEET_CONTRATOS_TAB || 'Contratos'}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status_Contrato": "Finalizado",
+            "Fecha_Finalizacion": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}"
+          },
+          "matchingColumns": [
+            "Contrato_ID"
+          ]
+        },
+        "options": {}
+      },
+      "id": "81564216-afdf-4bbd-8b5a-c9075474f7bb",
+      "name": "Sheets - Marcar Finalizado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1910,
+        120
+      ],
+      "notes": "Regla de dominio: solo pasar a Finalizado si la pausa en Meta fue exitosa."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d196474d-a324-4c80-b061-6888b2f74703",
+              "name": "alert_severity",
+              "value": "CRITICAL",
+              "type": "string"
+            },
+            {
+              "id": "1fbc27de-85f5-4496-a55f-f98bd9933632",
+              "name": "alert_type",
+              "value": "EXPIRED_NOT_PAUSED_REGEX_MISMATCH",
+              "type": "string"
+            },
+            {
+              "id": "6985ff70-ed54-49c2-a27f-e1db822849c0",
+              "name": "message",
+              "value": "=Contrato {{$json.Contrato_ID}} vencido no elegible para pausa: regex no matchea nombre de anuncio en Sheet.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "86223e4a-cb48-45ce-a178-23ae17c3a0e6",
+      "name": "Alerta Crítica - Regex inválido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fbd8ed4b-2e5b-4917-8de6-e4ff34aa8fcb",
+              "name": "alert_severity",
+              "value": "CRITICAL",
+              "type": "string"
+            },
+            {
+              "id": "a318500e-8dcf-4f06-ae7b-e55358f91b89",
+              "name": "alert_type",
+              "value": "EXPIRED_NOT_PAUSED_PRECHECK_FAILED",
+              "type": "string"
+            },
+            {
+              "id": "7db057a5-852d-497b-ab95-ee238ad79ca6",
+              "name": "message",
+              "value": "=Contrato {{$json.Contrato_ID}} vencido sin pausa: precheck Meta falló tras {{$json.precheck_max_attempts}} intentos (último status {{$json.precheck_status_code}}).",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ce6d20e8-f52d-4119-a709-f6545320cc7d",
+      "name": "Alerta Crítica - Precheck fallido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5c7dbe49-c7df-4a82-8f55-bff7891e2d65",
+              "name": "alert_severity",
+              "value": "CRITICAL",
+              "type": "string"
+            },
+            {
+              "id": "c5ff70d7-ebea-4a84-a90d-8118f07ab9a0",
+              "name": "alert_type",
+              "value": "EXPIRED_NOT_PAUSED_RETRY_EXHAUSTED",
+              "type": "string"
+            },
+            {
+              "id": "11282ef7-7c77-4ee7-866e-5045f0fc4f96",
+              "name": "message",
+              "value": "=Contrato {{$json.Contrato_ID}} vencido sin pausa: Meta respondió {{$json.pause_status_code}} y se agotaron retries (3x cada 5m).",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "51543cf4-adf7-41e7-b88c-df1fc63d4435",
+      "name": "Alerta Crítica - Pausa fallida",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2150,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ALERT_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "48d727d8-1d92-4f78-9daa-8d11e2ec4e06",
+      "name": "Emitir Alerta Crítica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2390,
+        420
+      ],
+      "notes": "Canal único MVP para severidad CRITICAL."
+    },
+    {
+      "parameters": {
+        "errorMessage": "=AdsKiller CRITICAL: anuncio vencido no pausado. Contrato {{$json.Contrato_ID}}, Ad {{$json.Ad_ID}}, tipo {{$json.alert_type}}"
+      },
+      "id": "8cfa68d5-6a48-43af-8ec8-bf531967a16e",
+      "name": "Stop and Error - Escalar Incidente",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2620,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Cron Diario 00:01": {
+      "main": [
+        [
+          {
+            "node": "Contexto Scheduled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Manual On-Demand": {
+      "main": [
+        [
+          {
+            "node": "Contexto Manual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contexto Scheduled": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Leer Contratos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contexto Manual": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Leer Contratos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Leer Contratos": {
+      "main": [
+        [
+          {
+            "node": "Clasificar Contratos (Activo / 48h / Vencido)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar Contratos (Activo / 48h / Vencido)": {
+      "main": [
+        [
+          {
+            "node": "Rutear Tipo de Control",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rutear Tipo de Control": {
+      "main": [
+        [
+          {
+            "node": "Payload Alerta Preventiva",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Regex Coincide con Nombre (Sheet)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload Alerta Preventiva": {
+      "main": [
+        [
+          {
+            "node": "Emitir Alerta Operativa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emitir Alerta Operativa": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Marcar Notificado_Previo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Regex Coincide con Nombre (Sheet)": {
+      "main": [
+        [
+          {
+            "node": "Init Retry Precheck",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta Crítica - Regex inválido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Retry Precheck": {
+      "main": [
+        [
+          {
+            "node": "Meta - Precheck Estado Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta - Precheck Estado Ad": {
+      "main": [
+        [
+          {
+            "node": "Evaluar Precheck Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar Precheck Meta": {
+      "main": [
+        [
+          {
+            "node": "Rutear Estado Precheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5m Precheck Retry": {
+      "main": [
+        [
+          {
+            "node": "Meta - Precheck Estado Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Retry Pausa": {
+      "main": [
+        [
+          {
+            "node": "Meta - Pausar Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta - Pausar Ad": {
+      "main": [
+        [
+          {
+            "node": "Evaluar Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar Pausa": {
+      "main": [
+        [
+          {
+            "node": "Rutear Resultado Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rutear Resultado Pausa": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Marcar Finalizado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 5m Pausa Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta Crítica - Pausa fallida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5m Pausa Retry": {
+      "main": [
+        [
+          {
+            "node": "Meta - Pausar Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta Crítica - Regex inválido": {
+      "main": [
+        [
+          {
+            "node": "Emitir Alerta Crítica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta Crítica - Precheck fallido": {
+      "main": [
+        [
+          {
+            "node": "Emitir Alerta Crítica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta Crítica - Pausa fallida": {
+      "main": [
+        [
+          {
+            "node": "Emitir Alerta Crítica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emitir Alerta Crítica": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error - Escalar Incidente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rutear Estado Precheck": {
+      "main": [
+        [
+          {
+            "node": "Init Retry Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 5m Precheck Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Alerta Crítica - Precheck fallido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true
+  },
+  "pinData": {},
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "active": false,
+  "versionId": "bde4f271-9132-4a95-a2f8-ab998f6edaa5",
+  "id": "adskiller-contract-guard-daily-killswitch",
+  "tags": [
+    {
+      "name": "adskiller"
+    },
+    {
+      "name": "mvp"
+    },
+    {
+      "name": "killswitch"
+    }
+  ]
+}
