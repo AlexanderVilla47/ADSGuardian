@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0.0",
+  "event_type": "killswitch.execution.summary",
+  "event_timestamp": "2026-04-05T09:15:30-03:00",
+  "timezone": "America/Argentina/Buenos_Aires",
+  "environment": "staging",
+  "correlation_id": "f9c36db0-3715-4fd1-9f0c-d8857202b2d0",
+  "execution": {
+    "execution_id": "ks-20260405-001",
+    "run_type": "scheduled",
+    "trigger_source": "cron_daily",
+    "started_at": "2026-04-05T09:10:00-03:00",
+    "finished_at": "2026-04-05T09:15:30-03:00",
+    "duration_ms": 330000,
+    "status": "partial_failure"
+  },
+  "severity": "CRITICAL",
+  "metrics": {
+    "total_contracts_evaluated": 25,
+    "total_ads_matched": 18,
+    "total_ads_expired": 7,
+    "total_ads_active_prechecked": 6,
+    "total_ads_paused_success": 5,
+    "total_ads_pause_failed": 2,
+    "total_preventive_notifications": 3,
+    "retry_429_count": 2,
+    "retry_500_count": 1,
+    "manual_interventions_required": 1
+  },
+  "results": [
+    {
+      "contract_id": "CTR-0001",
+      "contract_status_before": "Vigente",
+      "contract_status_after": "Finalizado",
+      "ad_account_id": "act_123456789",
+      "ad_id": "120000000001",
+      "ad_name": "Promo Abril - Producto A",
+      "ad_status_before": "ACTIVE",
+      "ad_status_after": "PAUSED",
+      "date_expiration": "2026-04-04",
+      "action": "pause_ad",
+      "action_result": "success",
+      "attempts": 1,
+      "error_code": null,
+      "error_message": null
+    },
+    {
+      "contract_id": "CTR-0002",
+      "contract_status_before": "Vigente",
+      "contract_status_after": "Vigente",
+      "ad_account_id": "act_123456789",
+      "ad_id": "120000000002",
+      "ad_name": "Promo Abril - Producto B",
+      "ad_status_before": "ACTIVE",
+      "ad_status_after": "ACTIVE",
+      "date_expiration": "2026-04-04",
+      "action": "pause_ad",
+      "action_result": "failed",
+      "attempts": 3,
+      "error_code": "META_500_RETRY_EXHAUSTED",
+      "error_message": "Meta API 500 persisted after 3 attempts"
+    }
+  ],
+  "errors": [
+    {
+      "type": "integration",
+      "target": "meta_ads",
+      "code": "META_500_RETRY_EXHAUSTED",
+      "message": "Could not pause ad after retry policy",
+      "retryable": false,
+      "severity": "CRITICAL"
+    }
+  ],
+  "reporting": {
+    "should_alert": true,
+    "alert_reason": "expired_ad_not_paused",
+    "alert_severity": "CRITICAL"
+  }
+}
