@@ -61,8 +61,16 @@
     {
       "parameters": {
         "operation": "read",
-        "documentId": "={{$env.GSHEET_CONTRATOS_ID}}",
-        "sheetName": "={{$env.GSHEET_CONTRATOS_TAB || 'Contratos'}}",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_TAB || 'Contratos' }}",
+          "mode": "name"
+        },
         "options": {
           "returnAll": true
         }
@@ -70,7 +78,7 @@
       "id": "4a4ca8d9-b66d-4dd9-9ce4-40a45294f4d4",
       "name": "Sheets - Leer Contratos",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
+      "typeVersion": 4.5,
       "position": [
         -1020,
         220
@@ -175,8 +183,16 @@
     {
       "parameters": {
         "operation": "update",
-        "documentId": "={{$env.GSHEET_CONTRATOS_ID}}",
-        "sheetName": "={{$env.GSHEET_CONTRATOS_TAB || 'Contratos'}}",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_TAB || 'Contratos' }}",
+          "mode": "name"
+        },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
@@ -186,14 +202,17 @@
           },
           "matchingColumns": [
             "Contrato_ID"
-          ]
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
       "id": "d22e4d34-92bf-4ca2-a967-f9af4a2b702a",
       "name": "Sheets - Marcar Notificado_Previo",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
+      "typeVersion": 4.5,
       "position": [
         250,
         60
@@ -458,8 +477,16 @@
     {
       "parameters": {
         "operation": "update",
-        "documentId": "={{$env.GSHEET_CONTRATOS_ID}}",
-        "sheetName": "={{$env.GSHEET_CONTRATOS_TAB || 'Contratos'}}",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_TAB || 'Contratos' }}",
+          "mode": "name"
+        },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
@@ -469,14 +496,17 @@
           },
           "matchingColumns": [
             "Contrato_ID"
-          ]
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
       "id": "81564216-afdf-4bbd-8b5a-c9075474f7bb",
       "name": "Sheets - Marcar Finalizado",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
+      "typeVersion": 4.5,
       "position": [
         1910,
         120
