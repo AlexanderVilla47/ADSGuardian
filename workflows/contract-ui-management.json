@@ -33,7 +33,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $json;\nconst allowedActions = new Set(['alta', 'consulta', 'extension']);\n\nfunction isValidDateFormat(value) {\n  if (typeof value !== 'string') return false;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;\n  const [y, m, d] = value.split('-').map(Number);\n  const dt = new Date(Date.UTC(y, m - 1, d));\n  return dt.getUTCFullYear() === y && dt.getUTCMonth() === (m - 1) && dt.getUTCDate() === d;\n}\n\nfunction badRequest(message, details = {}) {\n  const err = new Error(message);\n  err.name = 'ValidationError';\n  err.details = details;\n  throw err;\n}\n\nif (!allowedActions.has(input.action)) {\n  badRequest('`action` inválida. Usar: alta | consulta | extension', { action: input.action });\n}\n\nif (input.action === 'alta') {\n  const required = ['ID_Contrato', 'Cliente', 'Anuncio_Regex', 'Fecha_Expiracion'];\n  const missing = required.filter((f) => !String(input[f] ?? '').trim());\n  if (missing.length) {\n    badRequest('Faltan campos obligatorios para alta', { missing });\n  }\n\n  if (!isValidDateFormat(input.Fecha_Expiracion)) {\n    badRequest('Fecha_Expiracion inválida. Formato requerido: YYYY-MM-DD');\n  }\n}\n\nif (input.action === 'extension') {\n  const required = ['ID_Contrato', 'Nueva_Fecha_Expiracion'];\n  const missing = required.filter((f) => !String(input[f] ?? '').trim());\n  if (missing.length) {\n    badRequest('Faltan campos obligatorios para extension', { missing });\n  }\n\n  if (!isValidDateFormat(input.Nueva_Fecha_Expiracion)) {\n    badRequest('Nueva_Fecha_Expiracion inválida. Formato requerido: YYYY-MM-DD');\n  }\n}\n\nif (input.action === 'consulta') {\n  const dias = Number(input.dias_proximos ?? 7);\n  if (!Number.isInteger(dias) || dias < 1 || dias > 60) {\n    badRequest('dias_proximos inválido. Debe ser entero entre 1 y 60');\n  }\n  input.dias_proximos = dias;\n}\n\nreturn [{ json: input }];"
+        "jsCode": "const input = $json;\nconst allowedActions = new Set(['alta', 'consulta', 'extension']);\n\nfunction isValidDateFormat(value) {\n  if (typeof value !== 'string') return false;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;\n  const [y, m, d] = value.split('-').map(Number);\n  const dt = new Date(Date.UTC(y, m - 1, d));\n  return dt.getUTCFullYear() === y && dt.getUTCMonth() === (m - 1) && dt.getUTCDate() === d;\n}\n\nfunction badRequest(message, details = {}) {\n  const err = new Error(message);\n  err.name = 'ValidationError';\n  err.details = details;\n  throw err;\n}\n\nif (!allowedActions.has(input.action)) {\n  badRequest('`action` inválida. Usar: alta | consulta | extension', { action: input.action });\n}\n\nif (input.action === 'alta') {\n  const required = ['Contrato_ID', 'Cliente', 'Regex_Anuncio', 'Fecha_Fin'];\n  const missing = required.filter((f) => !String(input[f] ?? '').trim());\n  if (missing.length) {\n    badRequest('Faltan campos obligatorios para alta', { missing });\n  }\n\n  if (!isValidDateFormat(input.Fecha_Fin)) {\n    badRequest('Fecha_Fin inválida. Formato requerido: YYYY-MM-DD');\n  }\n}\n\nif (input.action === 'extension') {\n  const required = ['Contrato_ID', 'Nueva_Fecha_Fin'];\n  const missing = required.filter((f) => !String(input[f] ?? '').trim());\n  if (missing.length) {\n    badRequest('Faltan campos obligatorios para extension', { missing });\n  }\n\n  if (!isValidDateFormat(input.Nueva_Fecha_Fin)) {\n    badRequest('Nueva_Fecha_Fin inválida. Formato requerido: YYYY-MM-DD');\n  }\n}\n\nif (input.action === 'consulta') {\n  const dias = Number(input.dias_proximos ?? 7);\n  if (!Number.isInteger(dias) || dias < 1 || dias > 60) {\n    badRequest('dias_proximos inválido. Debe ser entero entre 1 y 60');\n  }\n  input.dias_proximos = dias;\n}\n\nreturn [{ json: input }];"
       },
       "id": "3",
       "name": "Validate Input",
@@ -123,7 +123,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{\n  json: {\n    ID_Contrato: String($json.ID_Contrato).trim(),\n    Cliente: String($json.Cliente).trim(),\n    Anuncio_Regex: String($json.Anuncio_Regex).trim(),\n    Fecha_Alta: String($json.Fecha_Alta ?? $json.today_tz),\n    Fecha_Expiracion: String($json.Fecha_Expiracion),\n    Status_Contrato: String($json.Status_Contrato ?? 'Activo'),\n    Notificado_Previo: false,\n    Ad_ID: String($json.Ad_ID ?? ''),\n    Updated_At: $json.request_ts,\n  },\n}];"
+        "jsCode": "return [{\n  json: {\n    Contrato_ID: String($json.Contrato_ID).trim(),\n    Cliente: String($json.Cliente).trim(),\n    Regex_Anuncio: String($json.Regex_Anuncio).trim(),\n    Fecha_Alta: String($json.Fecha_Alta ?? $json.today_tz),\n    Fecha_Fin: String($json.Fecha_Fin),\n    Status_Contrato: String($json.Status_Contrato ?? 'Activo'),\n    Notificado_Previo: false,\n    Ad_ID: String($json.Ad_ID ?? ''),\n    Updated_At: $json.request_ts,\n  },\n}];"
       },
       "id": "5",
       "name": "Prepare Alta Row",
@@ -223,7 +223,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const trigger = $items('Validate Input', 0, 0)[0].json;\nconst dias = Number(trigger.dias_proximos ?? 7);\n\nfunction parseYmd(ymd) {\n  const [y, m, d] = String(ymd).split('-').map(Number);\n  return new Date(Date.UTC(y, m - 1, d));\n}\n\nconst today = parseYmd(trigger.today_tz);\nconst maxDate = new Date(today.getTime() + dias * 24 * 60 * 60 * 1000);\n\nconst out = [];\nfor (const item of items) {\n  const row = item.json;\n  const exp = String(row.Fecha_Expiracion ?? '').trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(exp)) continue;\n\n  const expDate = parseYmd(exp);\n  if (row.Status_Contrato === 'Finalizado') continue;\n\n  if (expDate >= today && expDate <= maxDate) {\n    out.push({ json: row });\n  }\n}\n\nout.sort((a, b) => String(a.json.Fecha_Expiracion).localeCompare(String(b.json.Fecha_Expiracion)));\nreturn out;"
+        "jsCode": "const trigger = $items('Validate Input', 0, 0)[0].json;\nconst dias = Number(trigger.dias_proximos ?? 7);\n\nfunction parseYmd(ymd) {\n  const [y, m, d] = String(ymd).split('-').map(Number);\n  return new Date(Date.UTC(y, m - 1, d));\n}\n\nconst today = parseYmd(trigger.today_tz);\nconst maxDate = new Date(today.getTime() + dias * 24 * 60 * 60 * 1000);\n\nconst out = [];\nfor (const item of items) {\n  const row = item.json;\n  const exp = String(row.Fecha_Fin ?? '').trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(exp)) continue;\n\n  const expDate = parseYmd(exp);\n  if (row.Status_Contrato === 'Finalizado') continue;\n\n  if (expDate >= today && expDate <= maxDate) {\n    out.push({ json: row });\n  }\n}\n\nout.sort((a, b) => String(a.json.Fecha_Fin).localeCompare(String(b.json.Fecha_Fin)));\nreturn out;"
       },
       "id": "9",
       "name": "Filter Proximos Vencer",
@@ -285,7 +285,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.ID_Contrato).trim();\nconst found = items.find((i) => String(i.json.ID_Contrato ?? '').trim() === idContrato);\n\nif (!found) {\n  const err = new Error('Contrato no encontrado para extension');\n  err.name = 'NotFoundError';\n  err.details = { ID_Contrato: idContrato };\n  throw err;\n}\n\nreturn [{\n  json: {\n    ...found.json,\n    ID_Contrato: idContrato,\n    Fecha_Expiracion: String(req.Nueva_Fecha_Expiracion),\n    Notificado_Previo: false,\n    Updated_At: req.request_ts,\n  },\n}];"
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\n\nif (!found) {\n  const err = new Error('Contrato no encontrado para extension');\n  err.name = 'NotFoundError';\n  err.details = { Contrato_ID: idContrato };\n  throw err;\n}\n\nreturn [{\n  json: {\n    ...found.json,\n    Contrato_ID: idContrato,\n    Fecha_Fin: String(req.Nueva_Fecha_Fin),\n    Notificado_Previo: false,\n    Updated_At: req.request_ts,\n  },\n}];"
       },
       "id": "12",
       "name": "Prepare Extension Row",
@@ -313,7 +313,7 @@
           "mappingMode": "autoMapInputData",
           "value": {},
           "matchingColumns": [
-            "ID_Contrato"
+            "Contrato_ID"
           ],
           "schema": [],
           "attemptToConvertTypes": false,

@@ -16,7 +16,7 @@ Todos los escenarios respetan timezone `America/Argentina/Buenos_Aires` y fechas
 
 > Fecha de referencia sugerida para ejecución QA: `2026-04-05`.
 
-| contract_id | cliente | ad_account_id | alias_regex_ci | fecha_inicio | fecha_fin | status_inicial | preventiva_48h | escenario objetivo |
+| contract_id | cliente | ad_account_id | Regex_Anuncio | fecha_inicio | fecha_fin | status_inicial | preventiva_48h | escenario objetivo |
 |---|---|---|---|---|---|---|---|---|
 | CTR-0001 | Cliente A | act_123456789 | `(?i).*promo.*abril.*a.*` | 2026-03-01 | 2026-04-04 | Vigente | false | Vencido pausable (happy path) |
 | CTR-0002 | Cliente B | act_123456789 | `(?i).*promo.*abril.*b.*` | 2026-03-10 | 2026-04-04 | Vigente | false | Vencido con 500 persistente |
@@ -103,7 +103,7 @@ Todos los escenarios respetan timezone `America/Argentina/Buenos_Aires` y fechas
 ### Escenario G — Regex sin match
 
 - Contrato: `CTR-0006`
-- Alias regex: `(?i).*no\s*match.*`
+- `Regex_Anuncio`: `(?i).*no\s*match.*`
 - Esperado:
   - resultado `no_match`,
   - contrato auditado pero sin acción,

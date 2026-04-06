@@ -16,7 +16,7 @@ Exponer un endpoint HTTP (Webhook) que permita a la UI:
 
 1. Dar de alta contratos.
 2. Consultar contratos próximos a vencer (ventana configurable, default 7 días).
-3. Extender un contrato existente actualizando `Fecha_Expiracion` y reseteando `Notificado_Previo=false`.
+3. Extender un contrato existente actualizando `Fecha_Fin` y reseteando `Notificado_Previo=false`.
 
 ---
 
@@ -58,10 +58,10 @@ Si `action` no coincide, el workflow falla por validación.
 
 Campos requeridos:
 
-- `ID_Contrato` (string)
+- `Contrato_ID` (string)
 - `Cliente` (string)
-- `Anuncio_Regex` (string)
-- `Fecha_Expiracion` (string `YYYY-MM-DD`)
+- `Regex_Anuncio` (string)
+- `Fecha_Fin` (string `YYYY-MM-DD`)
 
 Campos opcionales:
 
@@ -82,22 +82,22 @@ Campos opcionales:
 
 Regla de filtro:
 
-- Retorna contratos con `Fecha_Expiracion` dentro de `[hoy, hoy + dias_proximos]`.
+- Retorna contratos con `Fecha_Fin` dentro de `[hoy, hoy + dias_proximos]`.
 - Excluye `Status_Contrato = Finalizado`.
 
 ## 4.4 Entrada `extension`
 
 Campos requeridos:
 
-- `ID_Contrato` (string)
-- `Nueva_Fecha_Expiracion` (string `YYYY-MM-DD`)
+- `Contrato_ID` (string)
+- `Nueva_Fecha_Fin` (string `YYYY-MM-DD`)
 
 Comportamiento:
 
-- Busca contrato por `ID_Contrato`.
+- Busca contrato por `Contrato_ID`.
 - Si no existe, lanza error de negocio.
 - Si existe:
-  - actualiza `Fecha_Expiracion = Nueva_Fecha_Expiracion`
+  - actualiza `Fecha_Fin = Nueva_Fecha_Fin`
   - actualiza `Updated_At`
   - resetea `Notificado_Previo = false`
 
@@ -113,7 +113,7 @@ Comportamiento:
   "action": "alta",
   "message": "Contrato creado",
   "data": {
-    "ID_Contrato": "CTR-1001"
+    "Contrato_ID": "CTR-1001"
   }
 }
 ```
@@ -128,8 +128,8 @@ Comportamiento:
   "total": 2,
   "data": [
     {
-      "ID_Contrato": "CTR-1001",
-      "Fecha_Expiracion": "2026-04-10"
+      "Contrato_ID": "CTR-1001",
+      "Fecha_Fin": "2026-04-10"
     }
   ]
 }
@@ -143,8 +143,8 @@ Comportamiento:
   "action": "extension",
   "message": "Contrato extendido y Notificado_Previo reseteado",
   "data": {
-    "ID_Contrato": "CTR-1001",
-    "Fecha_Expiracion": "2026-05-15",
+    "Contrato_ID": "CTR-1001",
+    "Fecha_Fin": "2026-05-15",
     "Notificado_Previo": false
   }
 }
@@ -158,12 +158,12 @@ Hoja: `Contratos`
 
 Columnas recomendadas (alineadas al MVP):
 
-- `ID_Contrato`
+- `Contrato_ID`
 - `Cliente`
-- `Anuncio_Regex`
+- `Regex_Anuncio`
 - `Ad_ID`
 - `Fecha_Alta`
-- `Fecha_Expiracion`
+- `Fecha_Fin`
 - `Status_Contrato`
 - `Notificado_Previo`
 - `Updated_At`
@@ -195,7 +195,7 @@ Columnas recomendadas (alineadas al MVP):
 
 - No incluye autenticación/autorización del endpoint (recomendado agregar API key/HMAC en siguiente iteración).
 - No incluye fallback de notificación externa (Slack/Telegram), alineado al alcance MVP fuera de scope.
-- No incluye deduplicación de `ID_Contrato` en ruta `alta` (se recomienda validación previa por lookup si la UI no lo garantiza).
+- No incluye deduplicación de `Contrato_ID` en ruta `alta` (se recomienda validación previa por lookup si la UI no lo garantiza).
 - No incluye alerting/observabilidad avanzada (métricas, correlation_id, SLO) en esta versión base.
 
 ---
@@ -207,10 +207,10 @@ Columnas recomendadas (alineadas al MVP):
 ```json
 {
   "action": "alta",
-  "ID_Contrato": "CTR-1001",
+  "Contrato_ID": "CTR-1001",
   "Cliente": "Acme SA",
-  "Anuncio_Regex": "promo_otoño_2026",
-  "Fecha_Expiracion": "2026-04-15",
+  "Regex_Anuncio": "promo_otoño_2026",
+  "Fecha_Fin": "2026-04-15",
   "Ad_ID": "12001234567890"
 }
 ```
@@ -229,8 +229,8 @@ Columnas recomendadas (alineadas al MVP):
 ```json
 {
   "action": "extension",
-  "ID_Contrato": "CTR-1001",
-  "Nueva_Fecha_Expiracion": "2026-05-15"
+  "Contrato_ID": "CTR-1001",
+  "Nueva_Fecha_Fin": "2026-05-15"
 }
 ```
 
