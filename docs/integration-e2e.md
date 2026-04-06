@@ -64,6 +64,21 @@ UI Management ──(contratos + extensiones)──> Contratos vigentes
 
 ## 3) Contrato de payload compartido (kill-switch -> reporting)
 
+### Esquema canónico vigente
+
+Nombres canónicos obligatorios para contratos en MVP (hard cut, sin aliases):
+
+- `Contrato_ID`
+- `Fecha_Fin`
+- `Regex_Anuncio`
+
+Campos que se mantienen vigentes:
+
+- `Influencer_Name`
+- `Canal_Notificacion`
+- `Status_Contrato`
+- `Notificado_Previo`
+
 ### 3.1 Estructura top-level
 
 ```json
@@ -124,7 +139,7 @@ Reporting debe poder calcular sin ambigüedad:
 ## 4) Secuencia operacional E2E
 
 1. **Alta de contrato (UI Management)**
-   - Operación carga contrato con fechas `YYYY-MM-DD` y alias regex de anuncio.
+   - Operación carga contrato con fechas `YYYY-MM-DD` y `Regex_Anuncio`.
    - Se persiste estado inicial (`Vigente`, preventiva `false`).
 
 2. **Consulta de contrato (UI Management)**
@@ -156,7 +171,7 @@ Reporting debe poder calcular sin ambigüedad:
 | E2E-02 | Alta + consulta consistentes | Alta válida + consulta inmediata | Datos consistentes entre UI y fuente de kill-switch | INFO |
 | E2E-03 | Extensión resetea preventiva | Contrato con preventiva disparada + extensión | Preventiva vuelve a `false` y puede disparar nuevo ciclo 48h | INFO |
 | E2E-04 | Ad no ACTIVE | Contrato vencido + Ad PAUSED/ARCHIVED | No intenta pausa, resultado marcado como `skipped_non_active` | WARN |
-| E2E-05 | Regex no matchea | Alias regex sin coincidencia | Contrato evaluado sin objetivo; se registra `no_match` | WARN |
+| E2E-05 | Regex no matchea | `Regex_Anuncio` sin coincidencia | Contrato evaluado sin objetivo; se registra `no_match` | WARN |
 | E2E-06 | Meta 429 recuperado | Respuesta 429 en intento 1/2 y 200 en 3 | Retry aplicado, pausa exitosa, métrica `retry_429_count` > 0 | WARN |
 | E2E-07 | Meta 500 recuperado | Respuesta 500 en intento 1 y 200 en 2 | Retry aplicado, pausa exitosa, `retry_500_count` > 0 | WARN |
 | E2E-08 | Meta 429/500 no recuperado | 3 intentos fallidos | Ad vencido no pausado, contrato no finaliza, alerta crítica | CRITICAL |

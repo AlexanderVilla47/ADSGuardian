@@ -77,7 +77,7 @@ Implementar una automatización operativa en n8n que detecte anuncios vencidos e
 |---|---|---|---|
 | `Contrato_ID` | String | Sí | Único, no vacío (ej. `CTR-000123`). |
 | `Cliente` | String | Sí | 1..120 chars. |
-| `Anuncio_Regex` | String | Sí | Regex válida; evaluación case-insensitive. |
+| `Regex_Anuncio` | String | Sí | Regex válida; evaluación case-insensitive. |
 | `Fecha_Inicio` | Date(String) | Sí | `YYYY-MM-DD` estricto. |
 | `Fecha_Fin` | Date(String) | Sí | `YYYY-MM-DD` estricto; `Fecha_Fin >= Fecha_Inicio`. |
 | `Ad_ID` | String | No | Si está presente, formato numérico de Meta. |
