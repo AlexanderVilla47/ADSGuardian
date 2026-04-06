@@ -55,7 +55,12 @@ Reglas aplicadas:
    - valida formato de fecha y ventana temporal,
    - genera `correlation_id` por corrida,
    - construye regex case-insensitive flexible,
-   - enruta por `control_type`.
+   - produce colecciones `preventiva[]` y `vencidos[]` en un item agregado.
+3. Antes de cada rama operativa se expanden arrays a items individuales:
+   - `Expand Preventiva`: toma `preventiva[]` y emite 1 item por contrato.
+   - `Expand Vencidos`: toma `vencidos[]` y emite 1 item por contrato.
+
+> Nota de implementación: esta expansión previa evita updates vacíos en Google Sheets y garantiza que cada update matchee por `Contrato_ID` del item actual.
 
 ## B. Preventiva 48h (una sola vez)
 

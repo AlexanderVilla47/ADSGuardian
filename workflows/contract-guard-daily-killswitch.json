@@ -92,28 +92,28 @@
     },
     {
       "parameters": {
-        "dataType": "string",
-        "value1": "={{$json.control_type}}",
-        "rules": {
-          "values": [
-            {
-              "operation": "equal",
-              "value2": "preventive"
-            },
-            {
-              "operation": "equal",
-              "value2": "expired"
-            }
-          ]
-        }
+        "jsCode": "function normalize(row, fallback = {}) {\n  const normalized = { ...row };\n  normalized.Contrato_ID = String(normalized.Contrato_ID ?? fallback.Contrato_ID ?? '').trim();\n  normalized.Fecha_Fin = String(normalized.Fecha_Fin ?? fallback.Fecha_Fin ?? '').trim();\n\n  const regexCanon = String(normalized.Regex_Anuncio ?? normalized.regex_pattern ?? fallback.Regex_Anuncio ?? fallback.regex_pattern ?? '').trim();\n  normalized.Regex_Anuncio = regexCanon;\n  normalized.regex_pattern = String(normalized.regex_pattern ?? regexCanon).trim();\n\n  return normalized;\n}\n\nconst expanded = [];\nfor (const item of items) {\n  const source = item.json ?? {};\n  const preventiva = Array.isArray(source.preventiva) ? source.preventiva : [];\n\n  if (preventiva.length > 0) {\n    for (const row of preventiva) {\n      if (!row || typeof row !== 'object') continue;\n      expanded.push({ json: normalize(row, source) });\n    }\n    continue;\n  }\n\n  if (String(source.control_type || '').toLowerCase() === 'preventive') {\n    expanded.push({ json: normalize(source, source) });\n  }\n}\n\nreturn expanded;"
       },
-      "id": "6bcbc57d-8f3e-45ea-a8e8-7746617f2920",
-      "name": "Rutear Tipo de Control",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
+      "id": "30c4e4f1-38b6-4a5a-bb0e-ec72493d7069",
+      "name": "Expand Preventiva",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         -520,
-        220
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function normalize(row, fallback = {}) {\n  const normalized = { ...row };\n  normalized.Contrato_ID = String(normalized.Contrato_ID ?? fallback.Contrato_ID ?? '').trim();\n  normalized.Fecha_Fin = String(normalized.Fecha_Fin ?? fallback.Fecha_Fin ?? '').trim();\n\n  const regexCanon = String(normalized.Regex_Anuncio ?? normalized.regex_pattern ?? fallback.Regex_Anuncio ?? fallback.regex_pattern ?? '').trim();\n  normalized.Regex_Anuncio = regexCanon;\n  normalized.regex_pattern = String(normalized.regex_pattern ?? regexCanon).trim();\n\n  return normalized;\n}\n\nconst expanded = [];\nfor (const item of items) {\n  const source = item.json ?? {};\n  const vencidos = Array.isArray(source.vencidos) ? source.vencidos : [];\n\n  if (vencidos.length > 0) {\n    for (const row of vencidos) {\n      if (!row || typeof row !== 'object') continue;\n      expanded.push({ json: normalize(row, source) });\n    }\n    continue;\n  }\n\n  if (String(source.control_type || '').toLowerCase() === 'expired') {\n    expanded.push({ json: normalize(source, source) });\n  }\n}\n\nreturn expanded;"
+      },
+      "id": "eef81f17-00f1-4f11-9d86-44acb7b31a87",
+      "name": "Expand Vencidos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        340
       ]
     },
     {
@@ -181,7 +181,8 @@
           "mappingMode": "defineBelow",
           "value": {
             "Notificado_Previo": true,
-            "Fecha_Notificado_Previo": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}"
+            "Fecha_Notificado_Previo": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}",
+            "Updated_At": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}"
           },
           "matchingColumns": [
             "Contrato_ID"
@@ -463,7 +464,8 @@
           "mappingMode": "defineBelow",
           "value": {
             "Status_Contrato": "Finalizado",
-            "Fecha_Finalizacion": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}"
+            "Fecha_Finalizacion": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}",
+            "Updated_At": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}"
           },
           "matchingColumns": [
             "Contrato_ID"
@@ -681,14 +683,19 @@
       "main": [
         [
           {
-            "node": "Rutear Tipo de Control",
+            "node": "Expand Preventiva",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Expand Vencidos",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Rutear Tipo de Control": {
+    "Expand Preventiva": {
       "main": [
         [
           {
@@ -696,7 +703,11 @@
             "type": "main",
             "index": 0
           }
-        ],
+        ]
+      ]
+    },
+    "Expand Vencidos": {
+      "main": [
         [
           {
             "node": "Regex Coincide con Nombre (Sheet)",
