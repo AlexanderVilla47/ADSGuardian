@@ -303,7 +303,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $json;\nconst row = $item(0).$node['Init Retry Precheck'].json;\n\nconst attempt = Number(row.precheck_attempt || 1);\nconst maxAttempts = Number(row.precheck_max_attempts || 3);\nconst statusCode = Number(response.statusCode || 0);\nconst body = response.body || {};\n\nconst retryable = [429, 500].includes(statusCode);\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      precheck_attempt: attempt + 1,\n      precheck_state: 'retry',\n      precheck_status_code: statusCode\n    }\n  }];\n}\n\nif (statusCode !== 200) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'failed',\n      precheck_status_code: statusCode,\n      precheck_reason: 'meta_precheck_non_200'\n    }\n  }];\n}\n\nconst adNameMeta = String(body.name || '').trim();\nconst regexPattern = row.regex_pattern;\nlet regexMatchesMetaName = false;\ntry {\n  regexMatchesMetaName = !!regexPattern && new RegExp(regexPattern, 'i').test(adNameMeta);\n} catch (_) {\n  regexMatchesMetaName = false;\n}\n\nconst status = String(body.status || body.effective_status || '').toUpperCase();\nconst isActive = status === 'ACTIVE';\n\nif (!isActive || !regexMatchesMetaName) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'not_actionable',\n      precheck_status_code: statusCode,\n      ad_status_meta: status || 'UNKNOWN',\n      regexMatchesMetaName,\n      ad_name_meta: adNameMeta\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    precheck_state: 'ready_to_pause',\n    precheck_status_code: statusCode,\n    ad_status_meta: status,\n    regexMatchesMetaName,\n    ad_name_meta: adNameMeta\n  }\n}];"
+        "jsCode": "function getNodeJson(name) {\n  try {\n    return $item(0).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst response = $json || {};\nconst row = {\n  ...getNodeJson('Expand Vencidos'),\n  ...getNodeJson('Init Retry Precheck'),\n  ...getNodeJson('Wait 5m Precheck Retry')\n};\n\nrow.Contrato_ID = String(row.Contrato_ID || '').trim();\nrow.regex_pattern = String(row.regex_pattern || row.Regex_Anuncio || '').trim();\n\nconst attempt = Number(row.precheck_attempt || 1);\nconst maxAttempts = Number(row.precheck_max_attempts || 3);\nconst statusCode = Number(response.statusCode || 0);\nconst body = response.body || {};\n\nconst retryable = [429, 500].includes(statusCode);\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      precheck_attempt: attempt + 1,\n      precheck_state: 'retry',\n      precheck_status_code: statusCode\n    }\n  }];\n}\n\nif (statusCode !== 200) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'failed',\n      precheck_status_code: statusCode,\n      precheck_reason: 'meta_precheck_non_200'\n    }\n  }];\n}\n\nconst adNameMeta = String(body.name || '').trim();\nconst regexPattern = row.regex_pattern;\nlet regexMatchesMetaName = false;\ntry {\n  regexMatchesMetaName = !!regexPattern && new RegExp(regexPattern, 'i').test(adNameMeta);\n} catch (_) {\n  regexMatchesMetaName = false;\n}\n\nconst status = String(body.status || body.effective_status || '').toUpperCase();\nconst isActive = status === 'ACTIVE';\n\nif (!isActive || !regexMatchesMetaName) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'not_actionable',\n      precheck_status_code: statusCode,\n      ad_status_meta: status || 'UNKNOWN',\n      regexMatchesMetaName,\n      ad_name_meta: adNameMeta\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    precheck_state: 'ready_to_pause',\n    precheck_status_code: statusCode,\n    ad_status_meta: status,\n    regexMatchesMetaName,\n    ad_name_meta: adNameMeta\n  }\n}];"
       },
       "id": "c6cf4f72-f995-45d1-98fd-c294f165811b",
       "name": "Evaluar Precheck Meta",
@@ -423,7 +423,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $json;\nconst row = $item(0).$node['Init Retry Pausa'].json;\n\nconst attempt = Number(row.pause_attempt || 1);\nconst maxAttempts = Number(row.pause_max_attempts || 3);\nconst statusCode = Number(response.statusCode || 0);\n\nconst isSuccess = statusCode >= 200 && statusCode < 300;\nif (isSuccess) {\n  return [{\n    json: {\n      ...row,\n      pause_state: 'success',\n      pause_status_code: statusCode\n    }\n  }];\n}\n\nconst retryable = [429, 500].includes(statusCode);\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      pause_attempt: attempt + 1,\n      pause_state: 'retry',\n      pause_status_code: statusCode\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    pause_state: 'failed',\n    pause_status_code: statusCode,\n    pause_reason: retryable ? 'retry_exhausted' : 'non_retryable_meta_response'\n  }\n}];"
+        "jsCode": "function getNodeJson(name) {\n  try {\n    return $item(0).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst response = $json || {};\nconst row = {\n  ...getNodeJson('Expand Vencidos'),\n  ...getNodeJson('Init Retry Pausa'),\n  ...getNodeJson('Wait 5m Pausa Retry')\n};\n\nrow.Contrato_ID = String(row.Contrato_ID || '').trim();\n\nconst attempt = Number(row.pause_attempt || 1);\nconst maxAttempts = Number(row.pause_max_attempts || 3);\nconst statusCode = Number(response.statusCode || 0);\n\nconst isSuccess = statusCode >= 200 && statusCode < 300;\nif (isSuccess) {\n  return [{\n    json: {\n      ...row,\n      pause_state: 'success',\n      pause_status_code: statusCode\n    }\n  }];\n}\n\nconst retryable = [429, 500].includes(statusCode);\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      pause_attempt: attempt + 1,\n      pause_state: 'retry',\n      pause_status_code: statusCode\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    pause_state: 'failed',\n    pause_status_code: statusCode,\n    pause_reason: retryable ? 'retry_exhausted' : 'non_retryable_meta_response'\n  }\n}];"
       },
       "id": "f5dad39f-e21e-4fdb-90f7-6aa4c80b8e8e",
       "name": "Evaluar Pausa",
@@ -447,6 +447,10 @@
             {
               "operation": "equal",
               "value2": "retry"
+            },
+            {
+              "operation": "equal",
+              "value2": "failed"
             }
           ]
         }
@@ -458,6 +462,45 @@
       "position": [
         1670,
         180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function getNodeJson(name) {\n  try {\n    return $item(0).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst nowIso = $now.setZone('America/Argentina/Buenos_Aires').toISO();\nconst merged = {\n  ...getNodeJson('Expand Vencidos'),\n  ...getNodeJson('Init Retry Pausa'),\n  ...$json\n};\n\nconst contratoId = String(merged.Contrato_ID || '').trim();\n\nreturn [{\n  json: {\n    ...merged,\n    Contrato_ID: contratoId,\n    Status_Contrato: 'Finalizado',\n    Fecha_Finalizacion: nowIso,\n    Updated_At: nowIso\n  }\n}];"
+      },
+      "id": "5b7ec655-2ea2-4f95-949f-a62bda5f7785",
+      "name": "Build Finalizado Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1910,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.pause_state}}",
+              "operation": "equal",
+              "value2": "success"
+            },
+            {
+              "value1": "={{String($json.Contrato_ID || '').trim()}}",
+              "operation": "notEmpty"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2d5bd9e0-4ac8-4878-b927-e7fa4fd44f72",
+      "name": "Finalizado Payload Valido",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2150,
+        120
       ]
     },
     {
@@ -490,17 +533,19 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Status_Contrato": "Finalizado",
-            "Fecha_Finalizacion": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}",
-            "Updated_At": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}"
+            "Status_Contrato": "={{$json.Status_Contrato}}",
+            "Fecha_Finalizacion": "={{$json.Fecha_Finalizacion}}",
+            "Updated_At": "={{$json.Updated_At}}"
           },
           "matchingColumns": [
             "Contrato_ID"
           ],
+          "valueToMatch": "={{$json.Contrato_ID}}",
           "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
+        "columnToMatchOn": "Contrato_ID",
         "options": {}
       },
       "id": "81564216-afdf-4bbd-8b5a-c9075474f7bb",
@@ -508,7 +553,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        1910,
+        2390,
         120
       ],
       "notes": "Regla de dominio: solo pasar a Finalizado si la pausa en Meta fue exitosa."
@@ -868,7 +913,7 @@
       "main": [
         [
           {
-            "node": "Sheets - Marcar Finalizado",
+            "node": "Build Finalizado Payload",
             "type": "main",
             "index": 0
           }
@@ -876,6 +921,42 @@
         [
           {
             "node": "Wait 5m Pausa Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta Crítica - Pausa fallida",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta Crítica - Pausa fallida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Finalizado Payload": {
+      "main": [
+        [
+          {
+            "node": "Finalizado Payload Valido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalizado Payload Valido": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Marcar Finalizado",
             "type": "main",
             "index": 0
           }
