@@ -62,6 +62,8 @@ Reglas aplicadas:
 
 > Nota de implementación: esta expansión previa evita updates vacíos en Google Sheets y garantiza que cada update matchee por `Contrato_ID` del item actual.
 
+> **v2 (follow-up fix):** se corrigió el escape regex en `Clasificar Contratos (Activo / 48h / Vencido)` para usar patrón válido de JavaScript al construir fallback desde `Ad_Name`.
+
 ## B. Preventiva 48h (una sola vez)
 
 1. `Payload Alerta Preventiva` arma evento de severidad `WARNING`.
