@@ -257,7 +257,9 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "includeOtherFields": true
+        }
       },
       "id": "c8b52102-24cb-4e88-a907-e077db47be8c",
       "name": "Init Retry Precheck",
@@ -271,7 +273,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://graph.facebook.com/v20.0/{{$json.Ad_ID}}",
+        "url": "={{ $env.META_MODE === 'mock' ? (($env.META_SIMULATOR_BASE_URL || 'http://localhost:5678/webhook') + '/meta/precheck/' + $json.Ad_ID) : ('https://graph.facebook.com/v20.0/' + $json.Ad_ID) }}",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -303,7 +305,20 @@
     },
     {
       "parameters": {
-        "jsCode": "function getNodeJson(name) {\n  try {\n    return $item(0).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst response = $json || {};\nconst row = {\n  ...getNodeJson('Expand Vencidos'),\n  ...getNodeJson('Init Retry Precheck'),\n  ...getNodeJson('Wait 5m Precheck Retry')\n};\n\nrow.Contrato_ID = String(row.Contrato_ID || '').trim();\nrow.regex_pattern = String(row.regex_pattern || row.Regex_Anuncio || '').trim();\n\nconst attempt = Number(row.precheck_attempt || 1);\nconst maxAttempts = Number(row.precheck_max_attempts || 3);\nconst statusCode = Number(response.statusCode || 0);\nconst body = response.body || {};\n\nconst retryable = [429, 500].includes(statusCode);\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      precheck_attempt: attempt + 1,\n      precheck_state: 'retry',\n      precheck_status_code: statusCode\n    }\n  }];\n}\n\nif (statusCode !== 200) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'failed',\n      precheck_status_code: statusCode,\n      precheck_reason: 'meta_precheck_non_200'\n    }\n  }];\n}\n\nconst adNameMeta = String(body.name || '').trim();\nconst regexPattern = row.regex_pattern;\nlet regexMatchesMetaName = false;\ntry {\n  regexMatchesMetaName = !!regexPattern && new RegExp(regexPattern, 'i').test(adNameMeta);\n} catch (_) {\n  regexMatchesMetaName = false;\n}\n\nconst status = String(body.status || body.effective_status || '').toUpperCase();\nconst isActive = status === 'ACTIVE';\n\nif (!isActive || !regexMatchesMetaName) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'not_actionable',\n      precheck_status_code: statusCode,\n      ad_status_meta: status || 'UNKNOWN',\n      regexMatchesMetaName,\n      ad_name_meta: adNameMeta\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    precheck_state: 'ready_to_pause',\n    precheck_status_code: statusCode,\n    ad_status_meta: status,\n    regexMatchesMetaName,\n    ad_name_meta: adNameMeta\n  }\n}];"
+        "jsCode": "const raw = $json || {};\n\nfunction toFiniteNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\n\nconst hasWrapper = Object.prototype.hasOwnProperty.call(raw, 'statusCode');\nconst statusFromWrapper = toFiniteNumber(raw.statusCode);\nconst statusFromCanonical = toFiniteNumber(raw.http_status);\nconst httpStatus = statusFromWrapper ?? statusFromCanonical ?? (hasWrapper ? 0 : 200);\n\nconst bodyCandidate = hasWrapper ? raw.body : (raw.http_body ?? raw);\nconst httpBody = bodyCandidate && typeof bodyCandidate === 'object' ? bodyCandidate : {};\n\nconst httpOk = httpStatus >= 200 && httpStatus < 300;\nconst retryable = [429, 500].includes(httpStatus);\n\nreturn [{\n  json: {\n    ...raw,\n    http_status: httpStatus,\n    http_body: httpBody,\n    http_ok: httpOk,\n    retryable,\n    statusCode: httpStatus,\n    body: httpBody\n  }\n}];"
+      },
+      "id": "9ab2f716-fd9d-4869-b741-6af20978a556",
+      "name": "Normalizar HTTP Precheck",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function getNodeJson(name) {\n  try {\n    return $item(0).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst response = $json || {};\nconst row = {\n  ...getNodeJson('Expand Vencidos'),\n  ...getNodeJson('Init Retry Precheck'),\n  ...getNodeJson('Wait 5m Precheck Retry')\n};\n\nrow.Contrato_ID = String(row.Contrato_ID || '').trim();\nrow.regex_pattern = String(row.regex_pattern || row.Regex_Anuncio || '').trim();\n\nconst attempt = Number(row.precheck_attempt || 1);\nconst maxAttempts = Number(row.precheck_max_attempts || 3);\nconst httpStatus = Number(response.http_status || 0);\nconst httpBody = response.http_body && typeof response.http_body === 'object' ? response.http_body : {};\nconst httpOk = Boolean(response.http_ok);\nconst retryable = Boolean(response.retryable);\n\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      precheck_attempt: attempt + 1,\n      precheck_state: 'retry',\n      precheck_status_code: httpStatus,\n      precheck_http_ok: httpOk\n    }\n  }];\n}\n\nif (!httpOk) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'failed',\n      precheck_status_code: httpStatus,\n      precheck_http_ok: httpOk,\n      precheck_reason: 'meta_precheck_non_2xx'\n    }\n  }];\n}\n\nconst adNameMeta = String(httpBody.name || '').trim();\nconst regexPattern = row.regex_pattern;\nlet regexMatchesMetaName = false;\ntry {\n  regexMatchesMetaName = !!regexPattern && new RegExp(regexPattern, 'i').test(adNameMeta);\n} catch (_) {\n  regexMatchesMetaName = false;\n}\n\nconst status = String(httpBody.status || httpBody.effective_status || '').toUpperCase();\nconst isActive = status === 'ACTIVE';\n\nif (!isActive || !regexMatchesMetaName) {\n  return [{\n    json: {\n      ...row,\n      precheck_state: 'not_actionable',\n      precheck_status_code: httpStatus,\n      precheck_http_ok: httpOk,\n      ad_status_meta: status || 'UNKNOWN',\n      regexMatchesMetaName,\n      ad_name_meta: adNameMeta\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    precheck_state: 'ready_to_pause',\n    precheck_status_code: httpStatus,\n    precheck_http_ok: httpOk,\n    ad_status_meta: status,\n    regexMatchesMetaName,\n    ad_name_meta: adNameMeta\n  }\n}];"
       },
       "id": "c6cf4f72-f995-45d1-98fd-c294f165811b",
       "name": "Evaluar Precheck Meta",
@@ -331,6 +346,10 @@
             {
               "operation": "equal",
               "value2": "not_actionable"
+            },
+            {
+              "operation": "equal",
+              "value2": "failed"
             }
           ]
         }
@@ -376,7 +395,9 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "includeOtherFields": true
+        }
       },
       "id": "78f71e38-8a5a-4769-b7ce-f5793f64e19a",
       "name": "Init Retry Pausa",
@@ -390,7 +411,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v20.0/{{$json.Ad_ID}}",
+        "url": "={{ $env.META_MODE === 'mock' ? (($env.META_SIMULATOR_BASE_URL || 'http://localhost:5678/webhook') + '/meta/pause/' + $json.Ad_ID) : ('https://graph.facebook.com/v20.0/' + $json.Ad_ID) }}",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -423,7 +444,20 @@
     },
     {
       "parameters": {
-        "jsCode": "function getNodeJson(name) {\n  try {\n    return $item(0).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst response = $json || {};\nconst row = {\n  ...getNodeJson('Expand Vencidos'),\n  ...getNodeJson('Init Retry Pausa'),\n  ...getNodeJson('Wait 5m Pausa Retry')\n};\n\nrow.Contrato_ID = String(row.Contrato_ID || '').trim();\n\nconst attempt = Number(row.pause_attempt || 1);\nconst maxAttempts = Number(row.pause_max_attempts || 3);\nconst statusCode = Number(response.statusCode || 0);\n\nconst isSuccess = statusCode >= 200 && statusCode < 300;\nif (isSuccess) {\n  return [{\n    json: {\n      ...row,\n      pause_state: 'success',\n      pause_status_code: statusCode\n    }\n  }];\n}\n\nconst retryable = [429, 500].includes(statusCode);\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      pause_attempt: attempt + 1,\n      pause_state: 'retry',\n      pause_status_code: statusCode\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    pause_state: 'failed',\n    pause_status_code: statusCode,\n    pause_reason: retryable ? 'retry_exhausted' : 'non_retryable_meta_response'\n  }\n}];"
+        "jsCode": "const raw = $json || {};\n\nfunction toFiniteNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\n\nconst hasWrapper = Object.prototype.hasOwnProperty.call(raw, 'statusCode');\nconst statusFromWrapper = toFiniteNumber(raw.statusCode);\nconst statusFromCanonical = toFiniteNumber(raw.http_status);\nconst httpStatus = statusFromWrapper ?? statusFromCanonical ?? (hasWrapper ? 0 : 200);\n\nconst bodyCandidate = hasWrapper ? raw.body : (raw.http_body ?? raw);\nconst httpBody = bodyCandidate && typeof bodyCandidate === 'object' ? bodyCandidate : {};\n\nconst httpOk = httpStatus >= 200 && httpStatus < 300;\nconst retryable = [429, 500].includes(httpStatus);\n\nreturn [{\n  json: {\n    ...raw,\n    http_status: httpStatus,\n    http_body: httpBody,\n    http_ok: httpOk,\n    retryable,\n    statusCode: httpStatus,\n    body: httpBody\n  }\n}];"
+      },
+      "id": "c7a8194b-2467-4231-a788-614d4756d0d7",
+      "name": "Normalizar HTTP Pausa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1310,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function getNodeJson(name) {\n  try {\n    return $item(0).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst response = $json || {};\nconst row = {\n  ...getNodeJson('Expand Vencidos'),\n  ...getNodeJson('Init Retry Pausa'),\n  ...getNodeJson('Wait 5m Pausa Retry')\n};\n\nrow.Contrato_ID = String(row.Contrato_ID || '').trim();\n\nconst attempt = Number(row.pause_attempt || 1);\nconst maxAttempts = Number(row.pause_max_attempts || 3);\nconst httpStatus = Number(response.http_status || 0);\nconst httpOk = Boolean(response.http_ok);\nconst retryable = Boolean(response.retryable);\n\nif (httpOk) {\n  return [{\n    json: {\n      ...row,\n      pause_state: 'success',\n      pause_status_code: httpStatus,\n      pause_http_ok: httpOk\n    }\n  }];\n}\n\nif (retryable && attempt < maxAttempts) {\n  return [{\n    json: {\n      ...row,\n      pause_attempt: attempt + 1,\n      pause_state: 'retry',\n      pause_status_code: httpStatus,\n      pause_http_ok: httpOk\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...row,\n    pause_state: 'failed',\n    pause_status_code: httpStatus,\n    pause_http_ok: httpOk,\n    pause_reason: retryable ? 'retry_exhausted' : 'non_retryable_meta_response'\n  }\n}];"
       },
       "id": "f5dad39f-e21e-4fdb-90f7-6aa4c80b8e8e",
       "name": "Evaluar Pausa",
@@ -847,7 +881,7 @@
       "main": [
         [
           {
-            "node": "Evaluar Precheck Meta",
+            "node": "Normalizar HTTP Precheck",
             "type": "main",
             "index": 0
           }
@@ -891,7 +925,7 @@
       "main": [
         [
           {
-            "node": "Evaluar Pausa",
+            "node": "Normalizar HTTP Pausa",
             "type": "main",
             "index": 0
           }
@@ -1048,6 +1082,29 @@
             "type": "main",
             "index": 0
           }
+        ],
+        []
+      ]
+    },
+    "Normalizar HTTP Precheck": {
+      "main": [
+        [
+          {
+            "node": "Evaluar Precheck Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar HTTP Pausa": {
+      "main": [
+        [
+          {
+            "node": "Evaluar Pausa",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -1079,4 +1136,3 @@
     }
   ]
 }
-

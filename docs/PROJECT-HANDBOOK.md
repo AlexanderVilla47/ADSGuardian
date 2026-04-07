@@ -380,6 +380,8 @@ Uso:
 
 ## 8) Runbook operativo
 
+> Para transición controlada de mock/testing a producción (cutover one-shot), usar: **`docs/PROD-CUTOVER-RUNBOOK.md`**.
+
 ## Diario
 - Revisar corrida `Cron Diario 00:01`.
 - Revisar incidentes `CRITICAL` y resolver primero vencidos no pausados.
