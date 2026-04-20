@@ -12,24 +12,18 @@
       "name": "Webhook UI",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        -1180,
-        120
-      ],
+      "position": [-1180, 120],
       "webhookId": "contract-ui-management"
     },
     {
       "parameters": {
-        "jsCode": "const payload = $json.body ?? $json;\nconst action = String(payload.action ?? '').trim().toLowerCase();\nconst timezone = 'America/Argentina/Buenos_Aires';\n\nfunction nowDateInTZ(tz) {\n  const fmt = new Intl.DateTimeFormat('en-CA', {\n    timeZone: tz,\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n  });\n  return fmt.format(new Date()); // YYYY-MM-DD\n}\n\nreturn [\n  {\n    json: {\n      ...payload,\n      action,\n      timezone,\n      request_ts: new Date().toISOString(),\n      today_tz: nowDateInTZ(timezone),\n    },\n  },\n];"
+        "jsCode": "const payload = $json.body ?? $json;\nconst action = String(payload.action ?? '').trim().toLowerCase();\nconst timezone = 'America/Argentina/Buenos_Aires';\n\nfunction nowDateInTZ(tz) {\n  const fmt = new Intl.DateTimeFormat('en-CA', {\n    timeZone: tz,\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n  });\n  return fmt.format(new Date());\n}\n\nreturn [\n  {\n    json: {\n      ...payload,\n      action,\n      timezone,\n      request_ts: new Date().toISOString(),\n      today_tz: nowDateInTZ(timezone),\n    },\n  };\n]"
       },
       "id": "2",
       "name": "Normalize Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        -960,
-        120
-      ]
+      "position": [-960, 120]
     },
     {
       "parameters": {
@@ -39,10 +33,7 @@
       "name": "Validate Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        -740,
-        120
-      ]
+      "position": [-740, 120]
     },
     {
       "parameters": {
@@ -64,49 +55,9 @@
                       "operation": "equals"
                     }
                   }
-                ],
-                "combinator": "and"
-              }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "strict"
-                },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "consulta",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "strict"
-                },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "extension",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
+                ]
+              },
+              "combinator": "and"
             }
           ]
         },
@@ -116,30 +67,24 @@
       "name": "Route Action",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [
-        -520,
-        120
-      ]
+      "position": [-520, 120]
     },
     {
       "parameters": {
-        "jsCode": "return [{\n  json: {\n    Contrato_ID: String($json.Contrato_ID).trim(),\n    Cliente: String($json.Cliente).trim(),\n    Regex_Anuncio: String($json.Regex_Anuncio).trim(),\n    Fecha_Alta: String($json.Fecha_Alta ?? $json.today_tz),\n    Fecha_Fin: String($json.Fecha_Fin),\n    Status_Contrato: String($json.Status_Contrato ?? 'Activo'),\n    Notificado_Previo: false,\n    Ad_ID: String($json.Ad_ID ?? ''),\n    Updated_At: $json.request_ts,\n  },\n}];"
+        "jsCode": "return [\n  {\n    json: {\n      Contrato_ID: String($json.Contrato_ID).trim(),\n      Cliente: String($json.Cliente).trim(),\n      Regex_Anuncio: String($json.Regex_Anuncio).trim(),\n      Fecha_Alta: String($json.Fecha_Alta ?? $json.today_tz),\n      Fecha_Fin: String($json.Fecha_Fin),\n      Status_Contrato: String($json.Status_Contrato ?? 'Activo'),\n      Notificado_Previo: false,\n      Ad_ID: String($json.Ad_ID ?? ''),\n      Ad_Name: String($json.Ad_Name ?? ''),\n      Fecha_Notificado_Previo: '',\n      Fecha_Finalizacion: '',\n      Updated_At: $json.request_ts,\n    },\n  },\n];"
       },
       "id": "5",
       "name": "Prepare Alta Row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        -300,
-        -80
-      ]
+      "position": [-300, -80]
     },
     {
       "parameters": {
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
           "mode": "id"
         },
         "sheetName": {
@@ -161,13 +106,10 @@
       "name": "GS Append Alta",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [
-        -80,
-        -80
-      ],
+      "position": [-80, -80],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "={{ $env.GSHEETS_CREDENTIAL_ID }}",
+          "id": "qIEJQ6Bbcg8r9QWG",
           "name": "Google Sheets OAuth2"
         }
       }
@@ -184,17 +126,14 @@
       "name": "Respond Alta",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        140,
-        -80
-      ]
+      "position": [140, -80]
     },
     {
       "parameters": {
         "operation": "read",
         "documentId": {
           "__rl": true,
-          "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
           "mode": "id"
         },
         "sheetName": {
@@ -210,13 +149,10 @@
       "name": "GS Read Contratos",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [
-        -300,
-        120
-      ],
+      "position": [-300, 120],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "={{ $env.GSHEETS_CREDENTIAL_ID }}",
+          "id": "qIEJQ6Bbcg8r9QWG",
           "name": "Google Sheets OAuth2"
         }
       }
@@ -229,10 +165,7 @@
       "name": "Filter Proximos Vencer",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        -80,
-        120
-      ]
+      "position": [-80, 120]
     },
     {
       "parameters": {
@@ -246,17 +179,14 @@
       "name": "Respond Consulta",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        140,
-        120
-      ]
+      "position": [140, 120]
     },
     {
       "parameters": {
         "operation": "read",
         "documentId": {
           "__rl": true,
-          "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
           "mode": "id"
         },
         "sheetName": {
@@ -272,36 +202,30 @@
       "name": "GS Read For Extension",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [
-        -300,
-        320
-      ],
+      "position": [-300, 320],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "={{ $env.GSHEETS_CREDENTIAL_ID }}",
+          "id": "qIEJQ6Bbcg8r9QWG",
           "name": "Google Sheets OAuth2"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\n\nif (!found) {\n  const err = new Error('Contrato no encontrado para extension');\n  err.name = 'NotFoundError';\n  err.details = { Contrato_ID: idContrato };\n  throw err;\n}\n\nreturn [{\n  json: {\n    ...found.json,\n    Contrato_ID: idContrato,\n    Fecha_Fin: String(req.Nueva_Fecha_Fin),\n    Notificado_Previo: false,\n    Updated_At: req.request_ts,\n  },\n}];"
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\n\nif (!found) {\n  const err = new Error('Contrato no encontrado para extension');\n  err.name = 'NotFoundError';\n  err.details = { Contrato_ID: idContrato };\n  throw err;\n}\n\nreturn [\n  {\n    json: {\n      ...found.json,\n      Contrato_ID: idContrato,\n      Fecha_Fin: String(req.Nueva_Fecha_Fin),\n      Notificado_Previo: false,\n      Updated_At: req.request_ts,\n    },\n  };\n]"
       },
       "id": "12",
       "name": "Prepare Extension Row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        -80,
-        320
-      ]
+      "position": [-80, 320]
     },
     {
       "parameters": {
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
           "mode": "id"
         },
         "sheetName": {
@@ -312,9 +236,7 @@
         "columns": {
           "mappingMode": "autoMapInputData",
           "value": {},
-          "matchingColumns": [
-            "Contrato_ID"
-          ],
+          "matchingColumns": ["Contrato_ID"],
           "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -325,13 +247,10 @@
       "name": "GS Update Extension",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [
-        140,
-        320
-      ],
+      "position": [140, 320],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "={{ $env.GSHEETS_CREDENTIAL_ID }}",
+          "id": "qIEJQ6Bbcg8r9QWG",
           "name": "Google Sheets OAuth2"
         }
       }
@@ -348,174 +267,107 @@
       "name": "Respond Extension",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        360,
-        320
-      ]
+      "position": [360, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\nconst safeAction = String(input.action ?? 'unknown').trim().toLowerCase();\nconst correlationId = String(input.correlation_id ?? `ak-f1-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\nconst logicalExecutionId = String(input.logical_execution_id ?? `${correlationId}:f1:${safeAction}`);\n\nreturn [\n  {\n    json: {\n      schema_version: '1.0.0',\n      event_type: 'contract.ui.action',\n      source_workflow: 'contract-ui-management',\n      target_workflow_id: '8mlwAxLtJVrwpLhi',\n      timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires'),\n      correlation_id: correlationId,\n      logical_execution_id: logicalExecutionId,\n      execution: {\n        n8n_execution_id: String($execution?.id ?? ''),\n        run_type: 'internal_execute_workflow',\n        status: 'queued'\n      },\n      payload: {\n        action: safeAction,\n        Contrato_ID: String(input.Contrato_ID ?? ''),\n        Fecha_Fin: String(input.Fecha_Fin ?? ''),\n        Nueva_Fecha_Fin: String(input.Nueva_Fecha_Fin ?? ''),\n        Regex_Anuncio: String(input.Regex_Anuncio ?? ''),\n        request_ts: String(input.request_ts ?? nowIso),\n        today_tz: String(input.today_tz ?? ''),\n        timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires')\n      },\n      dispatched_at: nowIso\n    },\n  };\n];"
+      },
+      "id": "15",
+      "name": "Build Internal Payload F1->F2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-520, -300]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8mlwAxLtJVrwpLhi",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "16",
+      "name": "Execute F2 Internal",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [-280, -300],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json ?? {};\nreturn [\n  {\n    json: {\n      event: 'internal_chain_dispatch_ok',\n      source_workflow: 'contract-ui-management',\n      target_workflow_id: '8mlwAxLtJVrwpLhi',\n      correlation_id: String(source.correlation_id ?? ''),\n      logical_execution_id: String(source.logical_execution_id ?? ''),\n      status: 'dispatched',\n      timestamp: new Date().toISOString()\n    },\n  };\n];"
+      },
+      "id": "17",
+      "name": "Log F1 Chain Dispatch OK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-40, -380]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json ?? {};\nreturn [\n  {\n    json: {\n      event: 'internal_chain_dispatch_error',\n      source_workflow: 'contract-ui-management',\n      target_workflow_id: '8mlwAxLtJVrwpLhi',\n      correlation_id: String(source.correlation_id ?? ''),\n      logical_execution_id: String(source.logical_execution_id ?? ''),\n      status: 'error',\n      error: String(source.error?.message ?? source.message ?? 'unknown_execute_workflow_error'),\n      timestamp: new Date().toISOString()\n    },\n  };\n];"
+      },
+      "id": "18",
+      "name": "Log F1 Chain Dispatch Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-40, -220]
     }
   ],
   "connections": {
     "Webhook UI": {
-      "main": [
-        [
-          {
-            "node": "Normalize Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Normalize Request", "type": "main", "index": 0 }]]
     },
     "Normalize Request": {
-      "main": [
-        [
-          {
-            "node": "Validate Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]]
     },
     "Validate Input": {
       "main": [
-        [
-          {
-            "node": "Route Action",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Route Action", "type": "main", "index": 0 }],
+        [{ "node": "Build Internal Payload F1->F2", "type": "main", "index": 0 }]
       ]
     },
     "Route Action": {
       "main": [
-        [
-          {
-            "node": "Prepare Alta Row",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "GS Read Contratos",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "GS Read For Extension",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Prepare Alta Row", "type": "main", "index": 0 }],
+        [{ "node": "GS Read Contratos", "type": "main", "index": 0 }],
+        [{ "node": "GS Read For Extension", "type": "main", "index": 0 }]
       ]
     },
     "Prepare Alta Row": {
-      "main": [
-        [
-          {
-            "node": "GS Append Alta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "GS Append Alta", "type": "main", "index": 0 }]]
     },
     "GS Append Alta": {
-      "main": [
-        [
-          {
-            "node": "Respond Alta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Respond Alta", "type": "main", "index": 0 }]]
     },
     "GS Read Contratos": {
-      "main": [
-        [
-          {
-            "node": "Filter Proximos Vencer",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Filter Proximos Vencer", "type": "main", "index": 0 }]]
     },
     "Filter Proximos Vencer": {
-      "main": [
-        [
-          {
-            "node": "Respond Consulta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Respond Consulta", "type": "main", "index": 0 }]]
     },
     "GS Read For Extension": {
-      "main": [
-        [
-          {
-            "node": "Prepare Extension Row",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Prepare Extension Row", "type": "main", "index": 0 }]]
     },
     "Prepare Extension Row": {
-      "main": [
-        [
-          {
-            "node": "GS Update Extension",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "GS Update Extension", "type": "main", "index": 0 }]]
     },
     "GS Update Extension": {
+      "main": [[{ "node": "Respond Extension", "type": "main", "index": 0 }]]
+    },
+    "Build Internal Payload F1->F2": {
+      "main": [[{ "node": "Execute F2 Internal", "type": "main", "index": 0 }]]
+    },
+    "Execute F2 Internal": {
       "main": [
-        [
-          {
-            "node": "Respond Extension",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Log F1 Chain Dispatch OK", "type": "main", "index": 0 }],
+        [{ "node": "Log F1 Chain Dispatch Error", "type": "main", "index": 0 }]
       ]
     }
   },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "saveExecutionProgress": true,
-    "saveManualExecutions": true,
-    "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all"
-  },
-  "staticData": null,
-  "pinData": {},
-  "versionId": "1",
-  "meta": {
-    "templateCredsSetupCompleted": false,
-    "instanceId": "adskiller-local"
-  },
-  "id": "contract-ui-management",
-  "tags": [
-    {
-      "name": "adskiller"
-    },
-    {
-      "name": "mvp"
-    },
-    {
-      "name": "ui"
-    }
-  ]
+  "settings": {}
 }

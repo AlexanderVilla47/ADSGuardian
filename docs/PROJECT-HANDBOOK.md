@@ -337,7 +337,7 @@ Recibir resumen de ejecución kill-switch, derivar severidad y notificar al cana
   "metrics": { "expired_unpaused_count": 0 },
   "notification": {
     "channel": "slack",
-    "slack": { "webhook_url": "https://hooks.slack.com/services/XXX/YYY/ZZZ" }
+    "slack": { "webhook_url": "__REDACTED_SLACK_WEBHOOK__" }
   }
 }
 ```
@@ -379,6 +379,8 @@ Uso:
 ---
 
 ## 8) Runbook operativo
+
+> Para transición controlada de mock/testing a producción (cutover one-shot), usar: **`docs/PROD-CUTOVER-RUNBOOK.md`**.
 
 ## Diario
 - Revisar corrida `Cron Diario 00:01`.

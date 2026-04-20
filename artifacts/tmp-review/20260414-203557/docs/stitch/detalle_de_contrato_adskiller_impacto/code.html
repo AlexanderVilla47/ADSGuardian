@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Detalle de Contrato - AdsKiller</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#5a4300",
+                        "on-secondary-fixed": "#320046",
+                        "inverse-primary": "#ecb2ff",
+                        "primary": "#7c00a9",
+                        "on-background": "#201922",
+                        "tertiary-fixed-dim": "#eac162",
+                        "on-secondary-fixed-variant": "#633178",
+                        "on-secondary-container": "#6e3b83",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#251a00",
+                        "background": "#fff7fb",
+                        "surface-container-low": "#feeffd",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#614800",
+                        "primary-fixed-dim": "#ecb2ff",
+                        "inverse-on-surface": "#fbecfa",
+                        "secondary-fixed-dim": "#ecb2ff",
+                        "secondary-container": "#eaaeff",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#ecdeec",
+                        "on-surface": "#201922",
+                        "outline": "#817284",
+                        "error-container": "#ffdad6",
+                        "surface-variant": "#ecdeec",
+                        "tertiary-fixed": "#ffdf9a",
+                        "secondary-fixed": "#f8d8ff",
+                        "on-tertiary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#ffdd93",
+                        "surface-bright": "#fff7fb",
+                        "secondary": "#7d4992",
+                        "outline-variant": "#d3c1d4",
+                        "primary-fixed": "#f8d8ff",
+                        "surface-dim": "#e4d6e3",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#320046",
+                        "surface-container": "#f8eaf7",
+                        "inverse-surface": "#362e38",
+                        "surface-container-high": "#f2e4f1",
+                        "tertiary-container": "#7e5f00",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#9a28c9",
+                        "surface-tint": "#9420c3",
+                        "on-primary-container": "#f7d6ff",
+                        "on-surface-variant": "#4f4252",
+                        "on-primary-fixed-variant": "#75009f",
+                        "surface": "#fff7fb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-manrope { font-family: 'Manrope', sans-serif; }
+        .glass-header { backdrop-filter: blur(20px); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+<!-- Sidebar Navigation -->
+<aside class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-slate-50 dark:bg-slate-950 p-4 space-y-2 z-40">
+<div class="mb-8 px-2 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-white">
+<span class="material-symbols-outlined" data-icon="shield_with_heart" style="font-variation-settings: 'FILL' 1;">shield_with_heart</span>
+</div>
+<div>
+<h1 class="text-xl font-extrabold text-purple-700 dark:text-purple-300 tracking-tighter">AdsKiller</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Contract Ops</p>
+</div>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-300 rounded-xl font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/40 rounded-xl font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="description" style="font-variation-settings: 'FILL' 1;">description</span>
+                Contratos
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-300 rounded-xl font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="history_toggle_off">history_toggle_off</span>
+                Historial Operativo
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-300 rounded-xl font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Configuración
+            </a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="md:ml-64 min-h-screen">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 bg-white/60 dark:bg-purple-950/60 backdrop-blur-xl flex justify-between items-center w-full px-6 py-3 shadow-sm dark:shadow-none">
+<div class="flex items-center gap-4">
+<button class="md:hidden p-2 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant font-medium text-sm">Contratos</span>
+<span class="material-symbols-outlined text-xs text-outline-variant" data-icon="chevron_right">chevron_right</span>
+<span class="text-purple-700 font-bold font-manrope">CTR-2024-9921-X</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex items-center bg-surface-container-low px-3 py-1.5 rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant mr-2" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-48 text-on-surface" placeholder="Buscar execution_id..." type="text"/>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-purple-50 dark:hover:bg-purple-900/50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-purple-50 dark:hover:bg-purple-900/50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-outline-variant">
+<img alt="User Profile" data-alt="professional male headshot with neutral background and soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEXToCGqj4B65F3gT-YyYLp7gkNh32J1o4a1MEx-elD4qPpxLDLM_KLKJP45pcQGTPk7YRlBFuW9oAfWzAca7WoxZ_xFK28Ucn6Q7DbCAk97RkUoJ1_V3XLXUfX9HkS6NSLCezXoCA-VYM_5LMyXYWBluWq54vXDY5Z49euwPxD4DL8GW8mVKAcqL5HvQy5DmS01xEnI3ciS8eLILhQjSZgSRFX4VqXUf2K1iVSYeod3JyyZh7EMXS7377HIDa_E6fJIe3urAl-VI"/>
+</div>
+</div>
+</div>
+</header>
+<section class="p-6 max-w-[1440px] mx-auto space-y-6">
+<!-- Summary Header Bento -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Main Identity Card -->
+<div class="md:col-span-2 bg-surface-container-lowest p-6 rounded-full border-l-[4px] border-primary flex items-center justify-between">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-label-sm text-on-surface-variant font-medium tracking-wider uppercase">Contract ID</span>
+<span class="material-symbols-outlined text-xs text-primary" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<h2 class="text-3xl font-black text-on-surface font-manrope tracking-tight">CTR-2024-9921-X</h2>
+<p class="text-body-sm text-on-surface-variant mt-1">Influencer: Marina Valezka • Campaign: Summer 24 Blast</p>
+</div>
+<div class="flex flex-col items-end">
+<span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full mb-2">ACTIVO</span>
+<p class="text-[10px] text-outline text-right">Last Sync: 10m ago</p>
+</div>
+</div>
+<!-- Secondary KPI: Date -->
+<div class="bg-surface-container-lowest p-6 rounded-full flex flex-col justify-center">
+<span class="text-label-sm text-on-surface-variant font-medium tracking-wider uppercase">Fecha de Fin</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-primary" data-icon="event">event</span>
+<span class="text-2xl font-bold font-manrope text-on-surface">15 Dic 2024</span>
+</div>
+</div>
+<!-- Secondary KPI: Risk -->
+<div class="bg-surface-container-lowest p-6 rounded-full flex flex-col justify-center">
+<span class="text-label-sm text-on-surface-variant font-medium tracking-wider uppercase">Risk Index</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-2xl font-bold font-manrope text-primary">12.4</span>
+<div class="flex-1 h-2 bg-surface-container-low rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[12.4%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Bar -->
+<div class="flex flex-wrap items-center justify-between gap-4 py-2">
+<div class="flex gap-3">
+<button class="px-6 py-2.5 bg-gradient-to-br from-primary to-primary-container text-white font-semibold rounded-full shadow-md hover:scale-[0.98] transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="update">update</span>
+                        Extender contrato
+                    </button>
+<button class="px-6 py-2.5 bg-surface-container-high text-on-secondary-container font-semibold rounded-full hover:bg-surface-container-highest transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="cancel">cancel</span>
+                        Baja manual
+                    </button>
+<button class="px-6 py-2.5 bg-surface-container-high text-on-secondary-container font-semibold rounded-full hover:bg-surface-container-highest transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="refresh">refresh</span>
+                        Reintentar corrida
+                    </button>
+</div>
+<!-- Last Operational Action Card -->
+<div class="flex items-center gap-4 bg-primary-fixed/30 px-5 py-3 rounded-full border border-primary/10">
+<div class="bg-primary-container w-8 h-8 rounded-full flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm" data-icon="info">info</span>
+</div>
+<div>
+<p class="text-[10px] text-primary-fixed-dim uppercase font-black leading-none">Última acción operativa</p>
+<p class="text-sm font-semibold text-on-primary-fixed leading-tight">Ajuste de presupuesto preventivo automático</p>
+</div>
+<div class="text-right ml-4">
+<p class="text-[10px] text-on-surface-variant">24/10/2023</p>
+<p class="text-[10px] text-on-surface-variant">14:22:10</p>
+</div>
+</div>
+</div>
+<!-- Impact History Section -->
+<div class="bg-surface-container-low rounded-[1rem] overflow-hidden">
+<div class="px-8 py-6 flex justify-between items-center bg-surface-container-high/50">
+<div>
+<h3 class="text-xl font-bold font-manrope text-on-surface">Historial de impacto del contrato</h3>
+<p class="text-body-sm text-on-surface-variant">Influencia de las corridas globales sobre este contrato específico</p>
+</div>
+<button class="p-2 hover:bg-surface-container-highest rounded-full transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-label-sm text-on-surface-variant uppercase tracking-wider">
+<th class="px-8 py-4 font-semibold">Fecha/Hora de corrida</th>
+<th class="px-6 py-4 font-semibold">IDs de ejecución</th>
+<th class="px-4 py-4 font-semibold text-center">Evaluado</th>
+<th class="px-4 py-4 font-semibold text-center">Pausado</th>
+<th class="px-4 py-4 font-semibold text-center">Preventiva</th>
+<th class="px-4 py-4 font-semibold text-center">Resultado</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1: Active impact -->
+<tr class="bg-surface-container-lowest hover:bg-primary-fixed/10 transition-colors group">
+<td class="px-8 py-5">
+<div class="flex flex-col">
+<span class="text-on-surface font-semibold">25 Oct 2023</span>
+<span class="text-xs text-on-surface-variant">09:12:45 AM</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col gap-0.5">
+<span class="text-xs font-mono text-primary font-bold">EXE_88129033</span>
+<span class="text-[10px] font-mono text-outline uppercase tracking-tighter">CORR_992_X_V3</span>
+</div>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-green-600" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-outline-variant" data-icon="do_not_disturb_on">do_not_disturb_on</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-amber-500" data-icon="warning" style="font-variation-settings: 'FILL' 1;">warning</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="px-2 py-0.5 rounded text-[10px] font-black bg-primary/10 text-primary uppercase">ACTIONED</span>
+</td>
+</tr>
+<!-- Row 2: Standard check -->
+<tr class="hover:bg-primary-fixed/10 transition-colors">
+<td class="px-8 py-5">
+<div class="flex flex-col">
+<span class="text-on-surface font-semibold">25 Oct 2023</span>
+<span class="text-xs text-on-surface-variant">08:00:00 AM</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col gap-0.5">
+<span class="text-xs font-mono text-on-surface-variant">EXE_88128911</span>
+<span class="text-[10px] font-mono text-outline uppercase tracking-tighter">CORR_992_X_V3</span>
+</div>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-green-600" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-outline-variant" data-icon="do_not_disturb_on">do_not_disturb_on</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-outline-variant" data-icon="do_not_disturb_on">do_not_disturb_on</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="px-2 py-0.5 rounded text-[10px] font-black bg-slate-200 text-slate-600 uppercase">NOMINAL</span>
+</td>
+</tr>
+<!-- Row 3: Paused during run -->
+<tr class="bg-surface-container-lowest hover:bg-primary-fixed/10 transition-colors">
+<td class="px-8 py-5">
+<div class="flex flex-col">
+<span class="text-on-surface font-semibold">24 Oct 2023</span>
+<span class="text-xs text-on-surface-variant">11:45:12 PM</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col gap-0.5">
+<span class="text-xs font-mono text-on-surface-variant">EXE_88127004</span>
+<span class="text-[10px] font-mono text-outline uppercase tracking-tighter">CORR_981_M_V1</span>
+</div>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-green-600" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-primary" data-icon="pause_circle" style="font-variation-settings: 'FILL' 1;">pause_circle</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-outline-variant" data-icon="do_not_disturb_on">do_not_disturb_on</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 text-purple-700 uppercase">PAUSED</span>
+</td>
+</tr>
+<!-- Row 4: Error in run -->
+<tr class="hover:bg-primary-fixed/10 transition-colors">
+<td class="px-8 py-5">
+<div class="flex flex-col">
+<span class="text-on-surface font-semibold">24 Oct 2023</span>
+<span class="text-xs text-on-surface-variant">10:00:00 PM</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col gap-0.5">
+<span class="text-xs font-mono text-on-surface-variant">EXE_88126882</span>
+<span class="text-[10px] font-mono text-outline uppercase tracking-tighter">CORR_981_M_V1</span>
+</div>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-error" data-icon="cancel" style="font-variation-settings: 'FILL' 1;">cancel</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-outline-variant" data-icon="do_not_disturb_on">do_not_disturb_on</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="material-symbols-outlined text-outline-variant" data-icon="do_not_disturb_on">do_not_disturb_on</span>
+</td>
+<td class="px-4 py-5 text-center">
+<span class="px-2 py-0.5 rounded text-[10px] font-black bg-error-container text-on-error-container uppercase">ERROR</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-8 py-4 border-t border-outline-variant/10 bg-surface-container-low flex items-center justify-between">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Page 1 of 12 • Showing 4 rows of 48 total impacts</p>
+<div class="flex gap-2">
+<button class="p-1.5 rounded-full hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back_ios_new">arrow_back_ios_new</span>
+</button>
+<button class="p-1.5 rounded-full hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Metrics Aside Row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Insight Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-full flex items-center gap-5">
+<div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="insights">insights</span>
+</div>
+<div>
+<p class="text-[10px] uppercase font-black text-outline">Stability Rate</p>
+<p class="text-2xl font-black text-on-surface font-manrope">98.2%</p>
+</div>
+</div>
+<!-- Insight Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-full flex items-center gap-5">
+<div class="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-amber-600 text-3xl" data-icon="bolt" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<div>
+<p class="text-[10px] uppercase font-black text-outline">Preventative Interventions</p>
+<p class="text-2xl font-black text-on-surface font-manrope">03</p>
+</div>
+</div>
+<!-- Insight Card 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-full flex items-center gap-5">
+<div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-green-600 text-3xl" data-icon="account_balance_wallet" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<div>
+<p class="text-[10px] uppercase font-black text-outline">Budget Adherence</p>
+<p class="text-2xl font-black text-on-surface font-manrope">Optimal</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button (Suppressed as per rules for Detail screens, but adding visual anchor if needed) -->
+<!-- Suppressed -->
+</body></html>

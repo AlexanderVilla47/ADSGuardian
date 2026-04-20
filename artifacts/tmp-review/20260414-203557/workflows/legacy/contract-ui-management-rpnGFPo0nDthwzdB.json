@@ -1,0 +1,696 @@
+﻿{
+    "updatedAt":  "2026-04-13T15:30:30.136Z",
+    "createdAt":  "2026-04-06T01:47:32.329Z",
+    "id":  "rpnGFPo0nDthwzdB",
+    "name":  "contract-ui-management",
+    "description":  null,
+    "active":  false,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "id":  "1",
+                      "name":  "Webhook UI",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  1,
+                      "position":  [
+                                       250,
+                                       100
+                                   ],
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "contract-ui-management",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "2",
+                      "name":  "Normalize Request",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       470,
+                                       100
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const payload = $json.body ?? $json;\nconst action = String(payload.action ?? \u0027\u0027).trim().toLowerCase();\nconst timezone = \u0027America/Argentina/Buenos_Aires\u0027;\n\nfunction nowDateInTZ(tz) {\n  const fmt = new Intl.DateTimeFormat(\u0027en-CA\u0027, {\n    timeZone: tz,\n    year: \u0027numeric\u0027,\n    month: \u00272-digit\u0027,\n    day: \u00272-digit\u0027,\n  });\n  return fmt.format(new Date());\n}\n\nreturn [\n  {\n    json: {\n      ...payload,\n      action,\n      timezone,\n      request_ts: new Date().toISOString(),\n      today_tz: nowDateInTZ(timezone),\n    },\n  }\n];"
+                                     }
+                  },
+                  {
+                      "id":  "3",
+                      "name":  "Validate Input",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       690,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const input = $json;\nconst allowedActions = new Set([\u0027alta\u0027, \u0027consulta\u0027, \u0027extension\u0027]);\n\nfunction isValidDateFormat(value) {\n  if (typeof value !== \u0027string\u0027) return false;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;\n  const [y, m, d] = value.split(\u0027-\u0027).map(Number);\n  const dt = new Date(Date.UTC(y, m - 1, d));\n  return dt.getUTCFullYear() === y \u0026\u0026 dt.getUTCMonth() === (m - 1) \u0026\u0026 dt.getUTCDate() === d;\n}\n\nfunction badRequest(message, details = {}) {\n  const err = new Error(message);\n  err.name = \u0027ValidationError\u0027;\n  err.details = details;\n  throw err;\n}\n\nif (!allowedActions.has(input.action)) {\n  badRequest(\u0027`action` inv�lida. Usar: alta | consulta | extension\u0027, { action: input.action });\n}\n\nif (input.action === \u0027alta\u0027) {\n  const required = [\u0027Contrato_ID\u0027, \u0027Cliente\u0027, \u0027Regex_Anuncio\u0027, \u0027Fecha_Fin\u0027];\n  const missing = required.filter((f) =\u003e !String(input[f] ?? \u0027\u0027).trim());\n  if (missing.length) {\n    badRequest(\u0027Faltan campos obligatorios para alta\u0027, { missing });\n  }\n\n  if (!isValidDateFormat(input.Fecha_Fin)) {\n    badRequest(\u0027Fecha_Fin inv�lida. Formato requerido: YYYY-MM-DD\u0027);\n  }\n}\n\nif (input.action === \u0027extension\u0027) {\n  const required = [\u0027Contrato_ID\u0027, \u0027Nueva_Fecha_Fin\u0027];\n  const missing = required.filter((f) =\u003e !String(input[f] ?? \u0027\u0027).trim());\n  if (missing.length) {\n    badRequest(\u0027Faltan campos obligatorios para extension\u0027, { missing });\n  }\n\n  if (!isValidDateFormat(input.Nueva_Fecha_Fin)) {\n    badRequest(\u0027Nueva_Fecha_Fin inv�lida. Formato requerido: YYYY-MM-DD\u0027);\n  }\n}\n\nif (input.action === \u0027consulta\u0027) {\n  const dias = Number(input.dias_proximos ?? 7);\n  if (!Number.isInteger(dias) || dias \u003c 1 || dias \u003e 60) {\n    badRequest(\u0027dias_proximos inv�lido. Debe ser entero entre 1 y 60\u0027);\n  }\n  input.dias_proximos = dias;\n}\n\nreturn [{ json: input }];"
+                                     }
+                  },
+                  {
+                      "id":  "4",
+                      "name":  "Route Action",
+                      "type":  "n8n-nodes-base.switch",
+                      "typeVersion":  3.2,
+                      "position":  [
+                                       910,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "rules":  {
+                                                       "values":  [
+                                                                      {
+                                                                          "conditions":  {
+                                                                                             "options":  {
+                                                                                                             "caseSensitive":  false,
+                                                                                                             "leftValue":  "",
+                                                                                                             "typeValidation":  "strict"
+                                                                                                         },
+                                                                                             "conditions":  [
+                                                                                                                {
+                                                                                                                    "leftValue":  "={{ $json.action }}",
+                                                                                                                    "rightValue":  "alta",
+                                                                                                                    "operator":  {
+                                                                                                                                     "type":  "string",
+                                                                                                                                     "operation":  "equals"
+                                                                                                                                 }
+                                                                                                                }
+                                                                                                            ]
+                                                                                         },
+                                                                          "combinator":  "and"
+                                                                      },
+                                                                      {
+                                                                          "conditions":  {
+                                                                                             "options":  {
+                                                                                                             "caseSensitive":  false,
+                                                                                                             "leftValue":  "",
+                                                                                                             "typeValidation":  "strict"
+                                                                                                         },
+                                                                                             "conditions":  [
+                                                                                                                {
+                                                                                                                    "leftValue":  "={{ $json.action }}",
+                                                                                                                    "rightValue":  "consulta",
+                                                                                                                    "operator":  {
+                                                                                                                                     "type":  "string",
+                                                                                                                                     "operation":  "equals"
+                                                                                                                                 }
+                                                                                                                }
+                                                                                                            ]
+                                                                                         },
+                                                                          "combinator":  "and"
+                                                                      },
+                                                                      {
+                                                                          "conditions":  {
+                                                                                             "options":  {
+                                                                                                             "caseSensitive":  false,
+                                                                                                             "leftValue":  "",
+                                                                                                             "typeValidation":  "strict"
+                                                                                                         },
+                                                                                             "conditions":  [
+                                                                                                                {
+                                                                                                                    "leftValue":  "={{ $json.action }}",
+                                                                                                                    "rightValue":  "extension",
+                                                                                                                    "operator":  {
+                                                                                                                                     "type":  "string",
+                                                                                                                                     "operation":  "equals"
+                                                                                                                                 }
+                                                                                                                }
+                                                                                                            ]
+                                                                                         },
+                                                                          "combinator":  "and"
+                                                                      }
+                                                                  ],
+                                                       "options":  {
+
+                                                                   }
+                                                   },
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "5",
+                      "name":  "Build Alta Row",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1130,
+                                       500
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "return [\n  {\n    json: {\n      Contrato_ID: String($json.Contrato_ID).trim(),\n      Cliente: String($json.Cliente).trim(),\n      Regex_Anuncio: String($json.Regex_Anuncio).trim(),\n      Fecha_Alta: String($json.Fecha_Alta ?? $json.today_tz),\n      Fecha_Fin: String($json.Fecha_Fin),\n      Status_Contrato: String($json.Status_Contrato ?? \u0027Activo\u0027),\n      Notificado_Previo: false,\n      Ad_ID: String($json.Ad_ID ?? \u0027\u0027),\n      Ad_Name: String($json.Ad_Name ?? \u0027\u0027),\n      Fecha_Notificado_Previo: \u0027\u0027,\n      Fecha_Finalizacion: \u0027\u0027,\n      Updated_At: $json.request_ts,\n    },\n  },\n];"
+                                     }
+                  },
+                  {
+                      "id":  "6",
+                      "name":  "GS Append Alta",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       1350,
+                                       500
+                                   ],
+                      "parameters":  {
+                                         "operation":  "append",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                            "mode":  "id"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "Contratos",
+                                                           "mode":  "name"
+                                                       },
+                                         "columns":  {
+                                                         "mappingMode":  "autoMapInputData",
+                                                         "value":  {
+
+                                                                   },
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "qIEJQ6Bbcg8r9QWG",
+                                                                        "name":  "Google Sheets account"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "id":  "7",
+                      "name":  "Respond Alta",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       1570,
+                                       500
+                                   ],
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ { ok: true, action: \u0027alta\u0027, message: \u0027Contrato creado\u0027, data: $json } }}",
+                                         "options":  {
+                                                         "responseCode":  201
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "8",
+                      "name":  "GS Read Contratos",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       1130,
+                                       700
+                                   ],
+                      "parameters":  {
+                                         "operation":  "read",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                            "mode":  "id"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "Contratos",
+                                                           "mode":  "name"
+                                                       },
+                                         "options":  {
+                                                         "returnAll":  true
+                                                     }
+                                     },
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "qIEJQ6Bbcg8r9QWG",
+                                                                        "name":  "Google Sheets account"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "id":  "9",
+                      "name":  "Filter Proximos Vencer",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1350,
+                                       700
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const trigger = $items(\u0027Validate Input\u0027, 0, 0)[0].json;\nconst dias = Number(trigger.dias_proximos ?? 7);\n\nfunction parseYmd(ymd) {\n  const [y, m, d] = String(ymd).split(\u0027-\u0027).map(Number);\n  return new Date(Date.UTC(y, m - 1, d));\n}\n\nconst today = parseYmd(trigger.today_tz);\nconst maxDate = new Date(today.getTime() + dias * 24 * 60 * 60 * 1000);\n\nconst out = [];\nfor (const item of items) {\n  const row = item.json;\n  const exp = String(row.Fecha_Fin ?? \u0027\u0027).trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(exp)) continue;\n\n  const expDate = parseYmd(exp);\n  if (row.Status_Contrato === \u0027Finalizado\u0027) continue;\n\n  if (expDate \u003e= today \u0026\u0026 expDate \u003c= maxDate) {\n    out.push({ json: row });\n  }\n}\n\nout.sort((a, b) =\u003e String(a.json.Fecha_Fin).localeCompare(String(b.json.Fecha_Fin)));\nreturn out;"
+                                     }
+                  },
+                  {
+                      "id":  "10",
+                      "name":  "Respond Consulta",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       1570,
+                                       700
+                                   ],
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ { ok: true, action: \u0027consulta\u0027, dias_proximos: $items(\u0027Validate Input\u0027, 0, 0)[0].json.dias_proximos, total: $items(\u0027Filter Proximos Vencer\u0027).length, data: $items(\u0027Filter Proximos Vencer\u0027).map(i =\u003e i.json) } }}",
+                                         "options":  {
+                                                         "responseCode":  200
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "11",
+                      "name":  "GS Read For Extension",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       1130,
+                                       900
+                                   ],
+                      "parameters":  {
+                                         "operation":  "read",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                            "mode":  "id"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "Contratos",
+                                                           "mode":  "name"
+                                                       },
+                                         "options":  {
+                                                         "returnAll":  true
+                                                     }
+                                     },
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "qIEJQ6Bbcg8r9QWG",
+                                                                        "name":  "Google Sheets account"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "id":  "12",
+                      "name":  "Build Extension Row",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1350,
+                                       900
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const req = $items(\u0027Validate Input\u0027, 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst found = items.find((i) =\u003e String(i.json.Contrato_ID ?? \u0027\u0027).trim() === idContrato);\n\nif (!found) {\n  const err = new Error(\u0027Contrato no encontrado para extension\u0027);\n  err.name = \u0027NotFoundError\u0027;\n  err.details = { Contrato_ID: idContrato };\n  throw err;\n}\n\nreturn [\n  {\n    json: {\n      ...found.json,\n      Contrato_ID: idContrato,\n      Fecha_Fin: String(req.Nueva_Fecha_Fin),\n      Notificado_Previo: false,\n      Updated_At: req.request_ts,\n    },\n  };\n]"
+                                     }
+                  },
+                  {
+                      "id":  "13",
+                      "name":  "GS Update Extension",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       1570,
+                                       900
+                                   ],
+                      "parameters":  {
+                                         "operation":  "appendOrUpdate",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                            "mode":  "id"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "Contratos",
+                                                           "mode":  "name"
+                                                       },
+                                         "columns":  {
+                                                         "mappingMode":  "autoMapInputData",
+                                                         "value":  {
+
+                                                                   },
+                                                         "matchingColumns":  [
+                                                                                 "Contrato_ID"
+                                                                             ],
+                                                         "schema":  [
+
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "qIEJQ6Bbcg8r9QWG",
+                                                                        "name":  "Google Sheets account"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "id":  "14",
+                      "name":  "Respond Extension",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       1790,
+                                       900
+                                   ],
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ { ok: true, action: \u0027extension\u0027, message: \u0027Contrato extendido y Notificado_Previo reseteado\u0027, data: $json } }}",
+                                         "options":  {
+                                                         "responseCode":  200
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "15",
+                      "name":  "Build Internal Payload F1-\u003eF2",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       690,
+                                       1100
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\nconst safeAction = String(input.action ?? \u0027unknown\u0027).trim().toLowerCase();\nconst correlationId = String(input.correlation_id ?? `ak-f1-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\nconst logicalExecutionId = String(input.logical_execution_id ?? `${correlationId}:f1:${safeAction}`);\n\nreturn [\n  {\n    json: {\n      schema_version: \u00271.0.0\u0027,\n      event_type: \u0027contract.ui.action\u0027,\n      source_workflow: \u0027contract-ui-management\u0027,\n      target_workflow_id: \u00278mlwAxLtJVrwpLhi\u0027,\n      timezone: String(input.timezone ?? \u0027America/Argentina/Buenos_Aires\u0027),\n      correlation_id: correlationId,\n      logical_execution_id: logicalExecutionId,\n      execution: {\n        n8n_execution_id: String($execution?.id ?? \u0027\u0027),\n        run_type: \u0027internal_execute_workflow\u0027,\n        status: \u0027queued\u0027\n      },\n      payload: {\n        action: safeAction,\n        Contrato_ID: String(input.Contrato_ID ?? \u0027\u0027),\n        Fecha_Fin: String(input.Fecha_Fin ?? \u0027\u0027),\n        Nueva_Fecha_Fin: String(input.Nueva_Fecha_Fin ?? \u0027\u0027),\n        Regex_Anuncio: String(input.Regex_Anuncio ?? \u0027\u0027),\n        request_ts: String(input.request_ts ?? nowIso),\n        today_tz: String(input.today_tz ?? \u0027\u0027),\n        timezone: String(input.timezone ?? \u0027America/Argentina/Buenos_Aires\u0027)\n      },\n      dispatched_at: nowIso\n    },\n  };\n];"
+                                     }
+                  },
+                  {
+                      "id":  "16",
+                      "name":  "Execute F2 Internal",
+                      "type":  "n8n-nodes-base.executeWorkflow",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       910,
+                                       1100
+                                   ],
+                      "parameters":  {
+                                         "workflowId":  {
+                                                            "__rl":  true,
+                                                            "value":  "8mlwAxLtJVrwpLhi",
+                                                            "mode":  "id"
+                                                        },
+                                         "options":  {
+                                                         "waitForSubWorkflow":  true
+                                                     }
+                                     },
+                      "onError":  "continueErrorOutput"
+                  },
+                  {
+                      "id":  "17",
+                      "name":  "Log F1 Chain Dispatch OK",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1130,
+                                       1100
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const source = $json ?? {};\nreturn [\n  {\n    json: {\n      event: \u0027internal_chain_dispatch_ok\u0027,\n      source_workflow: \u0027contract-ui-management\u0027,\n      target_workflow_id: \u00278mlwAxLtJVrwpLhi\u0027,\n      correlation_id: String(source.correlation_id ?? \u0027\u0027),\n      logical_execution_id: String(source.logical_execution_id ?? \u0027\u0027),\n      status: \u0027dispatched\u0027,\n      timestamp: new Date().toISOString()\n    },\n  };\n];"
+                                     }
+                  },
+                  {
+                      "id":  "18",
+                      "name":  "Log F1 Chain Dispatch Error",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1130,
+                                       1250
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const source = $json ?? {};\nreturn [\n  {\n    json: {\n      event: \u0027internal_chain_dispatch_error\u0027,\n      source_workflow: \u0027contract-ui-management\u0027,\n      target_workflow_id: \u00278mlwAxLtJVrwpLhi\u0027,\n      correlation_id: String(source.correlation_id ?? \u0027\u0027),\n      logical_execution_id: String(source.logical_execution_id ?? \u0027\u0027),\n      status: \u0027error\u0027,\n      error: String(source.error?.message ?? source.message ?? \u0027unknown_execute_workflow_error\u0027),\n      timestamp: new Date().toISOString()\n    },\n  };\n];"
+                                     }
+                  }
+              ],
+    "connections":  {
+                        "Webhook UI":  {
+                                           "main":  [
+                                                        [
+                                                            {
+                                                                "node":  "Normalize Request",
+                                                                "type":  "main",
+                                                                "index":  0
+                                                            }
+                                                        ]
+                                                    ]
+                                       },
+                        "Normalize Request":  {
+                                                  "main":  [
+                                                               [
+                                                                   {
+                                                                       "node":  "Validate Input",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   }
+                                                               ]
+                                                           ]
+                                              },
+                        "Validate Input":  {
+                                               "main":  [
+                                                            [
+                                                                {
+                                                                    "node":  "Route Action",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ],
+                                                            [
+                                                                {
+                                                                    "node":  "Build Internal Payload F1-\u003eF2",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ]
+                                                        ]
+                                           },
+                        "Route Action":  {
+                                             "main":  [
+                                                          [
+                                                              {
+                                                                  "node":  "Build Alta Row",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ],
+                                                          [
+                                                              {
+                                                                  "node":  "GS Read Contratos",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ],
+                                                          [
+                                                              {
+                                                                  "node":  "GS Read For Extension",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ]
+                                                      ]
+                                         },
+                        "Build Alta Row":  {
+                                               "main":  [
+                                                            [
+                                                                {
+                                                                    "node":  "GS Append Alta",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ]
+                                                        ]
+                                           },
+                        "GS Append Alta":  {
+                                               "main":  [
+                                                            [
+                                                                {
+                                                                    "node":  "Respond Alta",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ]
+                                                        ]
+                                           },
+                        "GS Read Contratos":  {
+                                                  "main":  [
+                                                               [
+                                                                   {
+                                                                       "node":  "Filter Proximos Vencer",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   }
+                                                               ]
+                                                           ]
+                                              },
+                        "Filter Proximos Vencer":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Respond Consulta",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "GS Read For Extension":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Build Extension Row",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  },
+                        "Build Extension Row":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "GS Update Extension",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "GS Update Extension":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Respond Extension",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Build Internal Payload F1-\u003eF2":  {
+                                                                   "main":  [
+                                                                                [
+                                                                                    {
+                                                                                        "node":  "Execute F2 Internal",
+                                                                                        "type":  "main",
+                                                                                        "index":  0
+                                                                                    }
+                                                                                ]
+                                                                            ]
+                                                               },
+                        "Execute F2 Internal":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Log F1 Chain Dispatch OK",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ],
+                                                                 [
+                                                                     {
+                                                                         "node":  "Log F1 Chain Dispatch Error",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate",
+                     "availableInMCP":  false,
+                     "callerPolicy":  "workflowsFromSameOwner",
+                     "saveExecutionProgress":  true,
+                     "saveManualExecutions":  true,
+                     "saveDataErrorExecution":  "all",
+                     "saveDataSuccessExecution":  "all"
+                 },
+    "staticData":  null,
+    "meta":  {
+                 "templateCredsSetupCompleted":  true
+             },
+    "pinData":  {
+                    "Webhook UI":  [
+                                       {
+                                           "json":  {
+                                                        "headers":  {
+                                                                        "content-type":  "application/json",
+                                                                        "user-agent":  "PostmanRuntime/7.53.0",
+                                                                        "accept":  "*/*",
+                                                                        "postman-token":  "2ebd7aa6-5d46-4c7b-be38-8405983914f4",
+                                                                        "host":  "168.138.125.21.nip.io:5678",
+                                                                        "accept-encoding":  "gzip, deflate, br",
+                                                                        "connection":  "keep-alive",
+                                                                        "content-length":  "244"
+                                                                    },
+                                                        "params":  {
+
+                                                                   },
+                                                        "query":  {
+
+                                                                  },
+                                                        "body":  {
+                                                                     "action":  "alta",
+                                                                     "Contrato_ID":  "CTR-9001",
+                                                                     "Cliente":  "Cliente Test",
+                                                                     "Regex_Anuncio":  "promo.*test",
+                                                                     "Fecha_Fin":  "2026-04-10",
+                                                                     "Canal_Notificacion":  "Slack",
+                                                                     "Ad_ID":  "12000009999",
+                                                                     "Ad_Name":  "Promo Test Abril"
+                                                                 },
+                                                        "webhookUrl":  "http://168.138.125.21.nip.io:5678/webhook/contract-ui-management",
+                                                        "executionMode":  "production"
+                                                    },
+                                           "pairedItem":  {
+                                                              "item":  0
+                                                          }
+                                       }
+                                   ]
+                },
+    "versionId":  "7d3b8117-70cd-40cf-9d2b-5d981e2a42f7",
+    "activeVersionId":  null,
+    "versionCounter":  122,
+    "triggerCount":  1,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-04-06T01:47:32.332Z",
+                       "createdAt":  "2026-04-06T01:47:32.332Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "rpnGFPo0nDthwzdB",
+                       "projectId":  "Z0pgCY9RJ5VJF6JD",
+                       "project":  {
+                                       "updatedAt":  "2026-03-13T00:12:04.657Z",
+                                       "createdAt":  "2026-03-13T00:09:47.440Z",
+                                       "id":  "Z0pgCY9RJ5VJF6JD",
+                                       "name":  "Alexander Villa \u003calexandervilla.cuenta@gmail.com\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  null
+}

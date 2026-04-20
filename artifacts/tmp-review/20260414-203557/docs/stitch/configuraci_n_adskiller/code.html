@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AdsKiller Configuration</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#75009f",
+                        "on-secondary-fixed": "#320046",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#9420c3",
+                        "tertiary-fixed": "#ffdf9a",
+                        "surface-bright": "#fff7fb",
+                        "on-tertiary-fixed": "#251a00",
+                        "error-container": "#ffdad6",
+                        "secondary": "#7d4992",
+                        "on-primary": "#ffffff",
+                        "primary-fixed": "#f8d8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#eaaeff",
+                        "on-primary-fixed": "#320046",
+                        "surface-container-low": "#feeffd",
+                        "tertiary-container": "#7e5f00",
+                        "on-secondary-container": "#6e3b83",
+                        "primary": "#7c00a9",
+                        "secondary-fixed-dim": "#ecb2ff",
+                        "background": "#fff7fb",
+                        "secondary-fixed": "#f8d8ff",
+                        "inverse-surface": "#362e38",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#201922",
+                        "on-tertiary-container": "#ffdd93",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#e4d6e3",
+                        "inverse-on-surface": "#fbecfa",
+                        "outline-variant": "#d3c1d4",
+                        "tertiary-fixed-dim": "#eac162",
+                        "on-background": "#201922",
+                        "surface": "#fff7fb",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#ecb2ff",
+                        "primary-fixed-dim": "#ecb2ff",
+                        "primary-container": "#9a28c9",
+                        "surface-container-high": "#f2e4f1",
+                        "on-primary-container": "#f7d6ff",
+                        "outline": "#817284",
+                        "surface-container": "#f8eaf7",
+                        "on-surface-variant": "#4f4252",
+                        "on-secondary-fixed-variant": "#633178",
+                        "surface-variant": "#ecdeec",
+                        "surface-container-highest": "#ecdeec",
+                        "tertiary": "#614800",
+                        "on-tertiary-fixed-variant": "#5a4300"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #fff7fb; color: #201922; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-40 bg-white/60 dark:bg-purple-950/60 backdrop-blur-md shadow-sm flex justify-between items-center px-6 py-3 w-full">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-black text-purple-800 dark:text-purple-200 font-headline tracking-tight">AdsKiller</span>
+<div class="hidden md:flex items-center gap-6">
+<span class="text-slate-500 dark:text-slate-400 font-manrope text-sm font-medium hover:text-purple-700 transition-colors cursor-pointer">Dashboard</span>
+<span class="text-slate-500 dark:text-slate-400 font-manrope text-sm font-medium hover:text-purple-700 transition-colors cursor-pointer">Contratos</span>
+<span class="text-slate-500 dark:text-slate-400 font-manrope text-sm font-medium hover:text-purple-700 transition-colors cursor-pointer">Ejecuciones y Alertas</span>
+<span class="text-purple-700 font-bold font-manrope text-sm border-b-2 border-purple-700 pb-1">Configuración</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-purple-50 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="p-2 rounded-full hover:bg-purple-50 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">help</span>
+</button>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="User avatar" class="w-full h-full object-cover" data-alt="Close-up professional headshot of a smiling man with a neutral blurred background, soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9x0k9VtH6ZvS9G1M29RyvVh5jW0C2YxZIo2yZXDsoYfijjCiSWZMa0631zoYxI_3dn6VkOkzqZoJMdZu26QacfK-IZJTqP3yfS1f4Mx4t_JLvDe29j654_FoIyGE5a3A32YKHu68aC9yjDgDwaT-57iyt8zmlKLVa2eJKa3NmujemnVoT17_11fqoNMRpIQ7q_jYi7GKk2CFv0ZmhHw_bF5SxpvUKpBGIKzGqnkoDlzXtp1JTfimd6wtcDdLH3_y6Z3rrHEEGLEI"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar (Hidden on Mobile) -->
+<aside class="hidden md:flex fixed left-0 top-0 h-full w-64 z-50 bg-purple-50 flex-col py-6 px-4 gap-2">
+<div class="mb-8 px-4">
+<h1 class="text-xl font-extrabold text-purple-900 font-headline">AdsKiller</h1>
+<p class="text-xs text-on-surface-variant font-medium">Risk Management</p>
+</div>
+<nav class="flex-grow flex flex-col gap-1">
+<a class="flex items-center gap-3 text-slate-600 px-4 py-3 hover:bg-white/80 hover:translate-x-1 transition-transform duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-manrope text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 px-4 py-3 hover:bg-white/80 hover:translate-x-1 transition-transform duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-manrope text-sm font-medium">Contratos</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 px-4 py-3 hover:bg-white/80 hover:translate-x-1 transition-transform duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined">warning</span>
+<span class="font-manrope text-sm font-medium">Ejecuciones y Alertas</span>
+</a>
+<a class="flex items-center gap-3 bg-white text-purple-700 rounded-xl px-4 py-3 shadow-sm transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-manrope text-sm font-medium">Configuración</span>
+</a>
+</nav>
+<div class="pt-4 border-t border-outline-variant/30">
+<a class="flex items-center gap-3 text-slate-600 px-4 py-3 hover:bg-white/80 hover:translate-x-1 transition-transform duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span class="font-manrope text-sm font-medium">Help Center</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="md:ml-64 pt-20 pb-12 px-6 md:px-10">
+<div class="max-w-6xl mx-auto">
+<!-- Header Section -->
+<div class="mb-10">
+<h2 class="text-3xl font-black text-on-surface font-headline tracking-tight mb-2">Configuración</h2>
+<p class="text-on-surface-variant font-body">Manage your API integrations, operational thresholds, and influencer matching rules.</p>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Channels Module (Slack/Telegram) -->
+<div class="lg:col-span-2 space-y-6">
+<section class="bg-surface-container-low rounded-full p-8 shadow-sm">
+<div class="flex items-center gap-3 mb-6">
+<div class="bg-primary-container p-2 rounded-xl text-white">
+<span class="material-symbols-outlined">hub</span>
+</div>
+<h3 class="text-xl font-bold font-headline text-primary">Channels</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Slack API -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-primary">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6" data-alt="Slack logo symbol in color" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVSVccfRJWQ8n_K3f9Q-uYxBiXZlEU_WGWLe7nJVdOXWr32cNy409X0rJOdTlS2YnK04MMJ1DUiFLuQfia8Iexq99OpXs1fy2AP22kVBthIhf5Ei2OSIWwjGWX1YOwWFXjYHz9zMsoU-ms2q3R2Ts22aMcCt0x50os9tYKtfUGZLLPhH1jnvgL0RsYE5LpYQS4xz8dRISrtSrj51ljTU3wNaREofj94A0dUpJw52iPfenZhs8QMjGDy6TY7utQ0_DrmjaKpbdPKEc"/>
+<span class="font-bold text-on-surface">Slack API</span>
+</div>
+<span class="bg-primary-fixed text-on-primary-fixed-variant px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider">ACTIVE</span>
+</div>
+<div class="space-y-3">
+<div>
+<label class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1 block">WEBHOOK URL</label>
+<input class="w-full bg-surface-container-low border-none rounded-lg text-sm px-3 py-2 text-on-surface focus:ring-2 focus:ring-primary" type="password" value="••••••••••••••••••••••••"/>
+</div>
+<div>
+<label class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1 block">CHANNEL ID</label>
+<input class="w-full bg-surface-container-low border-none rounded-lg text-sm px-3 py-2 text-on-surface focus:ring-2 focus:ring-primary" type="text" value="#ad-alerts-primary"/>
+</div>
+</div>
+</div>
+<!-- Telegram API -->
+<div class="bg-surface-container-lowest p-6 rounded-xl">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6" data-alt="Telegram airplane icon logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3i_MBaGgeqSutegKdwEoU0T1NWh3H-UUnmpVbdyvG1nH4__MHnZ8Yxr1OBx4IWCGE1KPhZnNyl5cxozs_eaMBOvMWG-4qInLkB3rh3OFO7VNmeIckcrzh98wLCqVRFhOmCJaW_5uqUYKLlBdddbXAT-y0LLXHVfdA9_hpoQlHXADVLs8zzuccy__dgHdW3XBd6mKf2SLFyvfGsyYZz81GjF8MGPW4zN-KGS4vHUKN5kefiNDDTP_WIwH1TPASsrURto5Wd0_HR1U"/>
+<span class="font-bold text-on-surface">Telegram API</span>
+</div>
+<span class="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider">DISCONNECTED</span>
+</div>
+<div class="flex flex-col items-center justify-center h-24 border-2 border-dashed border-outline-variant rounded-xl group hover:bg-surface-container-low transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-outline mb-1 group-hover:text-primary">add_circle</span>
+<span class="text-xs font-bold text-outline group-hover:text-primary">Connect Telegram Bot</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Advanced: Influencer Normalization -->
+<section class="bg-surface-container-low rounded-full p-8 shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-3">
+<div class="bg-secondary p-2 rounded-xl text-white">
+<span class="material-symbols-outlined">psychology</span>
+</div>
+<h3 class="text-xl font-bold font-headline text-secondary">Influencer Matching</h3>
+</div>
+<button class="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-lg">sync</span> Refresh Aliases
+                            </button>
+</div>
+<!-- Threshold Legend -->
+<div class="grid grid-cols-3 gap-4 mb-8">
+<div class="bg-surface-container-lowest p-4 rounded-xl border-t-2 border-emerald-500">
+<p class="text-[10px] font-bold text-on-surface-variant mb-1">AUTO_MATCH</p>
+<p class="text-2xl font-black text-emerald-600 font-headline">≥ 0.93</p>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-xl border-t-2 border-amber-500">
+<p class="text-[10px] font-bold text-on-surface-variant mb-1">REVIEW</p>
+<p class="text-2xl font-black text-amber-600 font-headline">0.86-0.93</p>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-xl border-t-2 border-error">
+<p class="text-[10px] font-bold text-on-surface-variant mb-1">NO_MATCH</p>
+<p class="text-2xl font-black text-error font-headline">&lt; 0.86</p>
+</div>
+</div>
+<!-- Alias Table -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-high/50">
+<tr>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Detected Alias</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Resolved Entity</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Confidence</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="hover:bg-primary-fixed/20 transition-colors">
+<td class="px-6 py-4 font-mono text-sm text-on-surface">faridick</td>
+<td class="px-6 py-4 font-bold text-sm text-primary">Farid Dieck</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-12 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-emerald-500 h-full w-[98%]"></div>
+</div>
+<span class="text-xs font-bold text-emerald-600">0.98</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">more_vert</span>
+</td>
+</tr>
+<tr class="hover:bg-primary-fixed/20 transition-colors">
+<td class="px-6 py-4 font-mono text-sm text-on-surface">j.rodriguez.off</td>
+<td class="px-6 py-4 font-bold text-sm text-primary">Juan Rodriguez</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-12 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-emerald-500 h-full w-[94%]"></div>
+</div>
+<span class="text-xs font-bold text-emerald-600">0.94</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">more_vert</span>
+</td>
+</tr>
+<tr class="hover:bg-primary-fixed/20 transition-colors">
+<td class="px-6 py-4 font-mono text-sm text-on-surface">mariag_vlogs</td>
+<td class="px-6 py-4 font-bold text-sm text-primary">Maria Garcia</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-12 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-amber-500 h-full w-[89%]"></div>
+</div>
+<span class="text-xs font-bold text-amber-600">0.89</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<button class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded">REVIEW NEEDED</button>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="px-6 py-4 bg-surface-container-high/20 flex justify-center">
+<button class="text-xs font-bold text-on-surface-variant hover:text-primary">Load 24 more aliases</button>
+</div>
+</div>
+</section>
+</div>
+<!-- Operational Parameters & Sidebar Context -->
+<div class="space-y-6">
+<!-- Thresholds Module -->
+<section class="bg-surface-container-low rounded-full p-8 shadow-sm h-fit">
+<div class="flex items-center gap-3 mb-6">
+<div class="bg-tertiary p-2 rounded-xl text-white">
+<span class="material-symbols-outlined">settings_input_component</span>
+</div>
+<h3 class="text-xl font-bold font-headline text-tertiary">Parameters</h3>
+</div>
+<div class="space-y-6">
+<div class="bg-surface-container-lowest p-5 rounded-xl">
+<div class="flex justify-between items-center mb-4">
+<label class="text-xs font-bold text-on-surface-variant">Sensitivity Threshold</label>
+<span class="text-primary font-black text-lg">0.72</span>
+</div>
+<input class="w-full h-1.5 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-primary" max="100" min="0" type="range" value="72"/>
+<p class="text-[10px] text-on-surface-variant mt-2">Adjusts how aggressively the AI flags contract deviations.</p>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl">
+<div class="flex justify-between items-center mb-4">
+<label class="text-xs font-bold text-on-surface-variant">Alert Frequency</label>
+<span class="bg-primary-fixed text-on-primary-fixed-variant px-2 py-1 rounded-lg text-xs font-bold uppercase">Real-time</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<button class="p-2 border border-primary bg-primary text-white text-[10px] font-bold rounded-lg">RT</button>
+<button class="p-2 border border-outline-variant text-on-surface-variant text-[10px] font-bold rounded-lg">Daily</button>
+<button class="p-2 border border-outline-variant text-on-surface-variant text-[10px] font-bold rounded-lg">Custom</button>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl">
+<div class="flex items-center justify-between mb-4">
+<label class="text-xs font-bold text-on-surface-variant">Automatic Blocking</label>
+<div class="w-10 h-5 bg-primary rounded-full relative cursor-pointer shadow-inner">
+<div class="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm"></div>
+</div>
+</div>
+<p class="text-[10px] text-on-surface-variant">Instantly pause executions if risk index exceeds 0.85.</p>
+</div>
+</div>
+<button class="w-full mt-8 bg-gradient-to-br from-primary to-primary-container text-white font-bold py-4 rounded-full shadow-lg hover:brightness-110 transition-all">
+                            Save Global Parameters
+                        </button>
+</section>
+<!-- Help Tooltip/Card -->
+<section class="bg-primary/5 rounded-full p-8 border-2 border-primary/10">
+<span class="material-symbols-outlined text-primary text-4xl mb-4">info</span>
+<h4 class="text-lg font-bold font-headline text-on-surface mb-2">Need Guidance?</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed mb-4">
+                            Matching thresholds are calibrated based on your current influencer database. 
+                            If you find too many <span class="font-bold text-amber-600">REVIEW</span> statuses, consider decreasing the AUTO_MATCH limit in the advanced JSON config.
+                        </p>
+<a class="text-sm font-bold text-primary flex items-center gap-1 group" href="#">
+                            Read the Technical Documentation
+                            <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
+</a>
+</section>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-md flex justify-around py-3 px-2 z-40">
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-bold">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-bold">Contracts</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-purple-700">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="text-[10px] font-bold">Config</span>
+</div>
+</nav>
+</body></html>

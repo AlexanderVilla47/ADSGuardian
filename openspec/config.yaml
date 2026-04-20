@@ -1,0 +1,19 @@
+schema: spec-driven
+
+context: |
+  Stack: Workflows n8n + docs Markdown + scripts PowerShell
+  Arquitectura: negocio orquestado por F1/F2/F3
+  Persistencia MVP: Google Sheets
+  Testing: smoke/regresion operativa con scripts .ps1
+  Estilo: reglas de dominio y evidencia deterministica
+
+rules:
+  proposal:
+    - Incluir impacto de negocio y riesgo operativo
+    - Definir rollback para acciones de pausa/manual
+  specs:
+    - Usar Given/When/Then
+    - Usar RFC 2119 (MUST/SHALL/SHOULD/MAY)
+  tasks:
+    - Mantener tareas chicas y verificables
+    - Priorizar caminos de mayor riesgo operativo

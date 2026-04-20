@@ -43,16 +43,18 @@
 | Sheets - Marcar Notificado_Previo | `n8n-nodes-base.googleSheets` | Marca `Notificado_Previo=true` + timestamp | Contrato preventive | Fila actualizada | Emitir Alerta Operativa | Alto | Update en Sheets |
 | Regex Coincide con Nombre (Sheet) | `n8n-nodes-base.if` | Verifica match regex en nombre de Sheet | `regexMatchesSheetName` | true→precheck / false→alerta crítica | Rutear Tipo de Control | Alto | Rama true/false |
 | Init Retry Precheck | `n8n-nodes-base.set` | Inicializa contador retry pre-check | Contrato expired elegible | `precheck_attempt=1`, `max=3` | Regex Coincide true | Medio | Contadores de retry |
-| Meta - Precheck Estado Ad | `n8n-nodes-base.httpRequest` | Consulta estado/nombre de Ad en Meta | `Ad_ID`, token | Full response HTTP | Init Retry Precheck / Wait Precheck + `META_ACCESS_TOKEN` | Crítico | `statusCode`, body Meta |
+| Meta - Precheck Estado Ad | `n8n-nodes-base.httpRequest` | Consulta estado/nombre de Ad en Meta | `Ad_ID` | Full response HTTP | Init Retry Precheck / Wait Precheck + credencial n8n `Meta Ads API (Bearer)` | Crítico | `statusCode`, body Meta |
 | Evaluar Precheck Meta | `n8n-nodes-base.code` | Decide `ready_to_pause` / `retry` / `not_actionable` / `failed` | Respuesta Meta + estado retry | Estado de precheck y contexto | Meta - Precheck Estado Ad | Crítico | `precheck_state`, status, razón |
 | Rutear Estado Precheck | `n8n-nodes-base.switch` | Rutea estado precheck (pausa/retry/fallo) | `precheck_state` | Rama adecuada | Evaluar Precheck Meta | Crítico | Ruta por estado |
 | Wait 5m Precheck Retry | `n8n-nodes-base.wait` | Espera 5 min entre retries precheck | Estado retry | Reintento precheck | Rutear Estado Precheck | Medio | Delay registrado |
 | Init Retry Pausa | `n8n-nodes-base.set` | Inicializa contador retry pausa | Estado ready_to_pause | `pause_attempt=1`, `max=3` | Rutear Estado Precheck | Medio | Contadores pausa |
-| Meta - Pausar Ad | `n8n-nodes-base.httpRequest` | Ejecuta pausa de Ad (`status=PAUSED`) | `Ad_ID`, token | Full response HTTP | Init Retry Pausa / Wait Pausa + `META_ACCESS_TOKEN` | Crítico | HTTP status pausa |
+| Meta - Pausar Ad | `n8n-nodes-base.httpRequest` | Ejecuta pausa de Ad (`status=PAUSED`) | `Ad_ID` | Full response HTTP | Init Retry Pausa / Wait Pausa + credencial n8n `Meta Ads API (Bearer)` | Crítico | HTTP status pausa |
 | Evaluar Pausa | `n8n-nodes-base.code` | Decide `success` / `retry` / `failed` según status y attempts | Respuesta pausa + contadores | Estado de pausa | Meta - Pausar Ad | Crítico | `pause_state`, `pause_reason` |
-| Rutear Resultado Pausa | `n8n-nodes-base.switch` | Rutea éxito / retry / falla final | `pause_state` | Finalizado / wait retry / alerta crítica | Evaluar Pausa | Crítico | Ruta tomada |
+| Rutear Resultado Pausa | `n8n-nodes-base.switch` | Rutea éxito / retry / falla final | `pause_state` | Postcheck / wait retry / alerta crítica | Evaluar Pausa | Crítico | Ruta tomada |
+| Meta - Postcheck Estado Ad | `n8n-nodes-base.httpRequest` | Revalida estado del Ad luego de pausa | `Ad_ID` | Full response HTTP | Rama success de `Rutear Resultado Pausa` + credencial n8n `Meta Ads API (Bearer)` | Crítico | `statusCode`, body Meta |
+| Evaluar Postcheck Meta | `n8n-nodes-base.code` | Confirma `effective_status=PAUSED` para habilitar finalización | Respuesta postcheck + contexto de pausa | `postcheck_state=confirmed_paused|failed` | Meta - Postcheck Estado Ad | Crítico | `postcheck_state`, `ad_status_postcheck` |
 | Wait 5m Pausa Retry | `n8n-nodes-base.wait` | Espera 5 min entre retries de pausa | Estado retry | Reintento pausa | Rutear Resultado Pausa | Medio | Delay registrado |
-| Sheets - Marcar Finalizado | `n8n-nodes-base.googleSheets` | Actualiza `Status_Contrato=Finalizado` + fecha fin | Pausa exitosa | Fila finalizada | Rutear Resultado Pausa + credenciales GS | Crítico | Update de estado final |
+| Sheets - Marcar Finalizado | `n8n-nodes-base.googleSheets` | Actualiza `Status_Contrato=Finalizado` + fecha fin | Pausa 2xx + postcheck `PAUSED` | Fila finalizada | Finalizado Payload Valido + credenciales GS | Crítico | Update de estado final |
 | Alerta Crítica - Regex inválido | `n8n-nodes-base.set` | Construye alerta crítica por no match regex | Rama false regex | Payload CRITICAL | Regex Coincide false | Alto | `alert_type=...REGEX_MISMATCH` |
 | Alerta Crítica - Precheck fallido | `n8n-nodes-base.set` | Construye alerta crítica por precheck no recuperable | Rama fallo precheck | Payload CRITICAL | Rutear Estado Precheck (fallo) | Crítico | `alert_type=...PRECHECK_FAILED` |
 | Alerta Crítica - Pausa fallida | `n8n-nodes-base.set` | Construye alerta crítica por retry agotado/fallo pausa | Rama falla pausa | Payload CRITICAL | Rutear Resultado Pausa (fallo) | Crítico | `alert_type=...RETRY_EXHAUSTED` |
@@ -67,7 +69,7 @@
 |---|---|---|---|---|---|---|---|
 | KillSwitch Result Webhook | `n8n-nodes-base.webhook` | Recibe resumen de ejecución del kill-switch | POST JSON | Item de entrada | Endpoint activo | Alto | Payload recibido |
 | Normalize Payload | `n8n-nodes-base.code` | Normaliza métricas, incidents, channel, execution_status; deriva severidad | Payload webhook | JSON normalizado + `derived.*` | Webhook | Alto | `derived.severity`, métricas normalizadas |
-| Is Critical Alert | `n8n-nodes-base.if` | Separa CRITICAL de INFO/WARN | `derived.is_critical` | Rama CRITICAL o normal | Normalize Payload | Medio-Alto | Rama ejecutada |
+| Is Critical Alert | `n8n-nodes-base.if` | Separa CRITICAL de INFO/WARN | `derived.severity` o `derived.is_critical` | Rama CRITICAL o normal | Normalize Payload | Medio-Alto | Rama ejecutada |
 | Build CRITICAL Message | `n8n-nodes-base.code` | Construye mensaje crítico con métricas/incidentes y acción requerida | Payload normalizado | `message_text` crítico | Is Critical Alert (true) | Medio | Mensaje generado |
 | Build INFO/WARN Message | `n8n-nodes-base.code` | Construye mensaje INFO o WARN | Payload normalizado | `message_text` | Is Critical Alert (false) | Medio | Mensaje generado |
 | Is Slack Channel | `n8n-nodes-base.if` | Evalúa si canal es Slack | `notification.channel` | Slack o siguiente validación | Build Message | Medio | Rama seleccionada |

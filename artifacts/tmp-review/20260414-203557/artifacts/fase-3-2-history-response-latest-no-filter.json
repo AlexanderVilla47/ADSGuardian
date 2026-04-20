@@ -1,0 +1,37 @@
+﻿{
+    "ok":  true,
+    "action":  "history",
+    "data":  {
+                 "page":  1,
+                 "page_size":  5,
+                 "total":  2,
+                 "items":  [
+                               {
+                                   "execution_id":  "ak-f2-1776136547490-w1yjnw:f2",
+                                   "tracking_id":  "",
+                                   "correlation_id":  "ak-f2-1776136547490-w1yjnw",
+                                   "action":  "killswitch.execution.summary",
+                                   "run_mode":  "",
+                                   "result":  "success",
+                                   "actor":  "",
+                                   "executed_at":  "2026-04-14T03:15:51.922Z"
+                               },
+                               {
+                                   "execution_id":  "ak-f2-1776136547490-w1yjnw:f2",
+                                   "tracking_id":  "",
+                                   "correlation_id":  "ak-f2-1776136547490-w1yjnw",
+                                   "action":  "ops_notification_channel_error",
+                                   "run_mode":  "",
+                                   "result":  "error",
+                                   "actor":  "",
+                                   "executed_at":  "2026-04-14T03:15:47.533Z"
+                               }
+                           ]
+             },
+    "meta":  {
+                 "correlation_id":  "ak-ui-1776137437328-vtbjj9",
+                 "execution_id":  "1007",
+                 "actor":  "ops-fase3-2@adskiller",
+                 "timestamp":  "2026-04-14T03:30:37.313Z"
+             }
+}

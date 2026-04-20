@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AdsKiller Configuration</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#75009f",
+                        "on-secondary-fixed": "#320046",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#9420c3",
+                        "tertiary-fixed": "#ffdf9a",
+                        "surface-bright": "#fff7fb",
+                        "on-tertiary-fixed": "#251a00",
+                        "error-container": "#ffdad6",
+                        "secondary": "#7d4992",
+                        "on-primary": "#ffffff",
+                        "primary-fixed": "#f8d8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#eaaeff",
+                        "on-primary-fixed": "#320046",
+                        "surface-container-low": "#feeffd",
+                        "tertiary-container": "#7e5f00",
+                        "on-secondary-container": "#6e3b83",
+                        "primary": "#7c00a9",
+                        "secondary-fixed-dim": "#ecb2ff",
+                        "background": "#fff7fb",
+                        "secondary-fixed": "#f8d8ff",
+                        "inverse-surface": "#362e38",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#201922",
+                        "on-tertiary-container": "#ffdd93",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#e4d6e3",
+                        "inverse-on-surface": "#fbecfa",
+                        "outline-variant": "#d3c1d4",
+                        "tertiary-fixed-dim": "#eac162",
+                        "on-background": "#201922",
+                        "surface": "#fff7fb",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#ecb2ff",
+                        "primary-fixed-dim": "#ecb2ff",
+                        "primary-container": "#9a28c9",
+                        "surface-container-high": "#f2e4f1",
+                        "on-primary-container": "#f7d6ff",
+                        "outline": "#817284",
+                        "surface-container": "#f8eaf7",
+                        "on-surface-variant": "#4f4252",
+                        "on-secondary-fixed-variant": "#633178",
+                        "surface-variant": "#ecdeec",
+                        "surface-container-highest": "#ecdeec",
+                        "tertiary": "#614800",
+                        "on-tertiary-fixed-variant": "#5a4300"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface overflow-x-hidden">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full w-64 z-50 bg-purple-50 flex flex-col py-6 px-4 gap-2 transition-transform duration-200 border-r border-outline-variant/10">
+<div class="mb-8 px-4">
+<h1 class="text-xl font-extrabold text-purple-900 tracking-tight font-headline">AdsKiller</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-bold">Risk Management</p>
+</div>
+<nav class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 text-slate-600 px-4 py-3 hover:bg-white/80 hover:translate-x-1 transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-manrope text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 px-4 py-3 hover:bg-white/80 hover:translate-x-1 transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-manrope text-sm font-medium">Contratos</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 px-4 py-3 hover:bg-white/80 hover:translate-x-1 transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-manrope text-sm font-medium">Historial Operativo</span>
+</a>
+<a class="flex items-center gap-3 bg-white text-purple-700 rounded-xl px-4 py-3 shadow-sm transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-manrope text-sm font-medium">Configuración</span>
+</a>
+</nav>
+<!-- User Profile Info at Bottom -->
+<div class="mt-auto pt-6 border-t border-outline-variant/20">
+<div class="flex items-center gap-3 px-4 py-4">
+<img alt="AdsKiller Admin" class="w-8 h-8 rounded-full bg-primary-fixed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqbntsppipo0WqDRM8Ddj4p7wjPf-DOgWF4b2Oxp14CMtq2UaAIAEmc83neqE_89r7QsUNPeXZQjiRg9z_TF0sT__nnPoCQGGEY04XDRGQR6BTXxb8FQxiauMnn2kTkB15AMpVTi2V8DctbpOrl8JLNtlrS-X7wJBWmKdEkL4dmpdUT8ok00ZxB4qnNvJLTh9hD5QjjDYY_0tNSkz5Lv7JgzN-XxsYoKgXYVCJNOp3Fpatoe5INIv-Zt9TsRcrn_dyjQhxPn6XY_M"/>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-on-surface">Admin User</span>
+<span class="text-[10px] text-on-surface-variant font-medium">Premium Plan</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Top AppBar Shell -->
+<header class="fixed top-0 right-0 left-64 z-40 h-16 bg-white/60 backdrop-blur-md flex justify-between items-center px-8 shadow-sm">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-on-surface-variant/50" placeholder="Search parameters..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex flex-col items-end mr-2">
+<span class="text-xs font-bold text-on-surface">Admin User</span>
+<span class="text-[10px] text-on-surface-variant font-medium">ID: 8841-X</span>
+</div>
+<img alt="User profile" class="w-9 h-9 rounded-full bg-primary-fixed border-2 border-white shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqbntsppipo0WqDRM8Ddj4p7wjPf-DOgWF4b2Oxp14CMtq2UaAIAEmc83neqE_89r7QsUNPeXZQjiRg9z_TF0sT__nnPoCQGGEY04XDRGQR6BTXxb8FQxiauMnn2kTkB15AMpVTi2V8DctbpOrl8JLNtlrS-X7wJBWmKdEkL4dmpdUT8ok00ZxB4qnNvJLTh9hD5QjjDYY_0tNSkz5Lv7JgzN-XxsYoKgXYVCJNOp3Fpatoe5INIv-Zt9TsRcrn_dyjQhxPn6XY_M"/>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-64 pt-24 pb-12 px-10">
+<div class="max-w-4xl mx-auto">
+<!-- Header Section -->
+<div class="mb-10">
+<h2 class="text-3xl font-black text-on-surface font-headline tracking-tight mb-2">Configuración</h2>
+<p class="text-on-surface-variant font-medium">Manage your API integrations and communication channels.</p>
+</div>
+<!-- Channels Module (Slack/Telegram) -->
+<section class="bg-surface-container-low rounded-3xl p-8 shadow-sm">
+<div class="flex items-center gap-3 mb-8">
+<div class="bg-primary-container p-2 rounded-xl text-white">
+<span class="material-symbols-outlined">hub</span>
+</div>
+<h3 class="text-xl font-bold font-headline text-primary">Channels</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Slack API -->
+<div class="bg-white p-6 rounded-xl border-l-4 border-primary shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6" data-alt="Slack logo symbol in color" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVSVccfRJWQ8n_K3f9Q-uYxBiXZlEU_WGWLe7nJVdOXWr32cNy409X0rJOdTlS2YnK04MMJ1DUiFLuQfia8Iexq99OpXs1fy2AP22kVBthIhf5Ei2OSIWwjGWX1YOwWFXjYHz9zMsoU-ms2q3R2Ts22aMcCt0x50os9tYKtfUGZLLPhH1jnvgL0RsYE5LpYQS4xz8dRISrtSrj51ljTU3wNaREofj94A0dUpJw52iPfenZhs8QMjGDy6TY7utQ0_DrmjaKpbdPKEc"/>
+<span class="font-bold text-on-surface">Slack API</span>
+</div>
+<span class="bg-primary-fixed text-on-primary-fixed-variant px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase">Active</span>
+</div>
+<div class="space-y-4">
+<div>
+<label class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1 block">Webhook URL</label>
+<input class="w-full bg-surface-container-low border-none rounded-lg text-sm px-3 py-2 text-on-surface focus:ring-2 focus:ring-primary" type="password" value="••••••••••••••••••••••••"/>
+</div>
+<div>
+<label class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1 block">Channel ID</label>
+<input class="w-full bg-surface-container-low border-none rounded-lg text-sm px-3 py-2 text-on-surface focus:ring-2 focus:ring-primary" type="text" value="#ad-alerts-primary"/>
+</div>
+</div>
+</div>
+<!-- Telegram API -->
+<div class="bg-white p-6 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6" data-alt="Telegram airplane icon logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3i_MBaGgeqSutegKdwEoU0T1NWh3H-UUnmpVbdyvG1nH4__MHnZ8Yxr1OBx4IWCGE1KPhZnNyl5cxozs_eaMBOvMWG-4qInLkB3rh3OFO7VNmeIckcrzh98wLCqVRFhOmCJaW_5uqUYKLlBdddbXAT-y0LLXHVfdA9_hpoQlHXADVLs8zzuccy__dgHdW3XBd6mKf2SLFyvfGsyYZz81GjF8MGPW4zN-KGS4vHUKN5kefiNDDTP_WIwH1TPASsrURto5Wd0_HR1U"/>
+<span class="font-bold text-on-surface">Telegram API</span>
+</div>
+<span class="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase">Disconnected</span>
+</div>
+<div class="flex flex-col items-center justify-center h-32 border-2 border-dashed border-outline-variant rounded-xl group hover:bg-surface-container-low transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-outline mb-1 group-hover:text-primary transition-colors">add_circle</span>
+<span class="text-xs font-bold text-outline group-hover:text-primary transition-colors">Connect Telegram Bot</span>
+</div>
+</div>
+</div>
+<button class="w-full mt-8 bg-gradient-to-br from-primary to-primary-container text-white font-bold py-4 rounded-full shadow-lg hover:brightness-110 transition-all font-headline">
+                    Save Channel Configuration
+                </button>
+</section>
+</div>
+</main>
+<!-- Bottom Navigation (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-md flex justify-around py-3 px-2 z-40 border-t border-outline-variant/30">
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-bold">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-bold">Contracts</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-purple-700">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="text-[10px] font-bold">Config</span>
+</div>
+</nav>
+</body></html>

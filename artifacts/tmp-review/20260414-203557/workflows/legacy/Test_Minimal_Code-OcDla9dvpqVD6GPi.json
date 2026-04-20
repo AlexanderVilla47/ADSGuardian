@@ -1,0 +1,120 @@
+﻿{
+    "updatedAt":  "2026-04-13T04:42:24.632Z",
+    "createdAt":  "2026-04-13T04:42:24.632Z",
+    "id":  "OcDla9dvpqVD6GPi",
+    "name":  "Test Minimal Code",
+    "description":  null,
+    "active":  false,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "test-minimal-code",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "1",
+                      "name":  "Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  1,
+                      "position":  [
+                                       -400,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "return [{ json: { ok: true, message: \u0027works\u0027 } }];",
+                                         "mode":  "runOnceForAllItems",
+                                         "language":  "javaScript"
+                                     },
+                      "id":  "2",
+                      "name":  "Simple Code",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -200,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ $json }}",
+                                         "options":  {
+                                                         "responseCode":  200
+                                                     }
+                                     },
+                      "id":  "3",
+                      "name":  "Respond",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       0,
+                                       300
+                                   ]
+                  }
+              ],
+    "connections":  {
+                        "Webhook":  {
+                                        "main":  [
+                                                     [
+                                                         {
+                                                             "node":  "Simple Code",
+                                                             "type":  "main",
+                                                             "index":  0
+                                                         }
+                                                     ]
+                                                 ]
+                                    },
+                        "Simple Code":  {
+                                            "main":  [
+                                                         [
+                                                             {
+                                                                 "node":  "Respond",
+                                                                 "type":  "main",
+                                                                 "index":  0
+                                                             }
+                                                         ]
+                                                     ]
+                                        }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "callerPolicy":  "workflowsFromSameOwner",
+                     "availableInMCP":  false
+                 },
+    "staticData":  null,
+    "meta":  null,
+    "pinData":  null,
+    "versionId":  "d23b4818-3173-430e-b6bd-364ebe6ef083",
+    "activeVersionId":  null,
+    "versionCounter":  4,
+    "triggerCount":  1,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-04-13T04:42:24.635Z",
+                       "createdAt":  "2026-04-13T04:42:24.635Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "OcDla9dvpqVD6GPi",
+                       "projectId":  "Z0pgCY9RJ5VJF6JD",
+                       "project":  {
+                                       "updatedAt":  "2026-03-13T00:12:04.657Z",
+                                       "createdAt":  "2026-03-13T00:09:47.440Z",
+                                       "id":  "Z0pgCY9RJ5VJF6JD",
+                                       "name":  "Alexander Villa \u003calexandervilla.cuenta@gmail.com\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  null
+}

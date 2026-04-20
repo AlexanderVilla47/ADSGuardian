@@ -1,0 +1,17 @@
+{
+  "name": "contract-ui-management",
+  "nodes": [
+    {
+      "id": "2",
+      "name": "Normalize Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-960, 120],
+      "parameters": {
+        "jsCode": "const payload = $json.body ?? $json;\nconst action = String(payload.action ?? '').trim().toLowerCase();\nconst timezone = 'America/Argentina/Buenos_Aires';\n\nfunction nowDateInTZ(tz) {\n  const fmt = new Intl.DateTimeFormat('en-CA', {\n    timeZone: tz,\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n  });\n  return fmt.format(new Date());\n}\n\nreturn [\n  {\n    json: {\n      ...payload,\n      action,\n      timezone,\n      request_ts: new Date().toISOString(),\n      today_tz: nowDateInTZ(timezone),\n    },\n  };\n]",
+        "mode": "runOnceForAllItems",
+        "language": "javaScript"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+$body = Invoke-RestMethod -Uri "http://168.138.125.21.nip.io:5678/webhook/contract-ui-management-v2" -Method POST -Body '{"action":"consulta","dias_proximos":7}' -ContentType "application/json" -TimeoutSec 30

@@ -1,0 +1,23 @@
+﻿run_id=flow3-hypercare-20260412-203324
+started_at=2026-04-12T20:33:24.9684820-03:00
+ended_at=2026-04-12T20:33:37.6208774-03:00
+status=GREEN
+exit_code=0
+api_key_fingerprint=eyJh...3hws(len=289)
+api_base_url=default
+workflow_id=BFHHQwYFfmcpqshb
+---
+[info] N8N_MCP_TOKEN detectado (legacy/deprecado para Flow3); se ignora y se usa N8N_API_KEY con X-N8N-API-KEY.
+[1/3] Preflight API
+[2/3] Ejecutando 4 casos smoke
+[3/3] Resultado final
+
+Case        ExecutionId Status Details           
+----        ----------- ------ -------           
+telegram    689         PASS   asserts minimos OK
+slack       690         PASS   asserts minimos OK
+both        691         PASS   asserts minimos OK
+unsupported 692         PASS   asserts minimos OK
+
+
+Smoke regression GREEN (4/4).

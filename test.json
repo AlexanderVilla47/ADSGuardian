@@ -1,0 +1,1071 @@
+[
+  {
+    "Status_Contrato": "Finalizado",
+    "Fecha_Finalizacion": "2026-04-08T00:32:03.930-03:00",
+    "Updated_At": "2026-04-08T00:32:03.930-03:00",
+    "row_number": 0,
+    "Contrato_ID": "CTR-0001"
+  },
+  {
+    "implementation": "pause_ad handler",
+    "timestamp_utc": "2026-04-13T16:45:00.000Z",
+    "workflow_id": "cFBr6GavlSWDsUFz",
+    "action": "pause_ad",
+    "description": "Implementado handler pause_ad con pre-check ACTIVE en Meta y actualización de Sheets",
+    "nodes_added": [
+      "GS Read For Pause Ad",
+      "Match Ad For Pause",
+      "Meta Precheck Ad Status",
+      "Validate Ad Active",
+      "Meta Execute Pause",
+      "Prepare Pause Update",
+      "GS Update Pause",
+      "Respond Pause Ad"
+    ],
+    "validation_fields": ["Contrato_ID", "Ad_ID"],
+    "flow": "1) Lee contrato/ad de Sheets -> 2) Pre-check ACTIVE en Meta -> 3) Si ACTIVE ejecuta pausa -> 4) Actualiza Sheets",
+    "status": "IMPLEMENTED",
+    "next_steps": ["test_deterministic", "validar_en_n8n"]
+  },
+  {
+    "Status_Contrato": "Finalizado",
+    "Fecha_Finalizacion": "2026-04-08T00:32:03.930-03:00",
+    "Updated_At": "2026-04-08T00:32:03.930-03:00",
+    "row_number": 0,
+    "Contrato_ID": "CTR-0002"
+  },
+  {
+    "Status_Contrato": "Finalizado",
+    "Fecha_Finalizacion": "2026-04-08T00:32:03.930-03:00",
+    "Updated_At": "2026-04-08T00:32:03.930-03:00",
+    "row_number": 0,
+    "Contrato_ID": "CTR-0003"
+  },
+  {
+    "Status_Contrato": "Finalizado",
+    "Fecha_Finalizacion": "2026-04-08T00:32:03.930-03:00",
+    "Updated_At": "2026-04-08T00:32:03.930-03:00",
+    "row_number": 0,
+    "Contrato_ID": "CTR-0004"
+  },
+  {
+    "Status_Contrato": "Finalizado",
+    "Fecha_Finalizacion": "2026-04-08T00:32:03.930-03:00",
+    "Updated_At": "2026-04-08T00:32:03.930-03:00",
+    "row_number": 0,
+    "Contrato_ID": "CTR-0005"
+  },
+  {
+    "evidence_type": "a2_deterministic_probe",
+    "timestamp_utc": "2026-04-13T00:00:00.000Z",
+    "endpoint": "POST http://168.138.125.21.nip.io:5678/webhook/contract-ui-management-v2",
+    "actions": [
+      {
+        "action": "run_now",
+        "http_status": 400,
+        "response": {
+          "ok": false,
+          "error": "ValidationError",
+          "message": "Input invalido"
+        },
+        "execution_id": null,
+        "verdict": "RUN_INVALIDO"
+      },
+      {
+        "action": "history",
+        "http_status": 400,
+        "response": {
+          "ok": false,
+          "error": "ValidationError",
+          "message": "Input invalido"
+        },
+        "execution_id": null,
+        "verdict": "RUN_INVALIDO"
+      },
+      {
+        "action": "baja_manual",
+        "http_status": 400,
+        "response": {
+          "ok": false,
+          "error": "ValidationError",
+          "message": "Input invalido"
+        },
+        "execution_id": null,
+        "verdict": "RUN_INVALIDO"
+      },
+      {
+        "action": "listar_ads",
+        "http_status": 400,
+        "response": {
+          "ok": false,
+          "error": "ValidationError",
+          "message": "Input invalido"
+        },
+        "execution_id": null,
+        "verdict": "RUN_INVALIDO"
+      },
+      {
+        "action": "pause_ad",
+        "http_status": 400,
+        "response": {
+          "ok": false,
+          "error": "ValidationError",
+          "message": "Input invalido"
+        },
+        "execution_id": null,
+        "verdict": "RUN_INVALIDO"
+      },
+      {
+        "action": "pause_active",
+        "http_status": 400,
+        "response": {
+          "ok": false,
+          "error": "ValidationError",
+          "message": "Input invalido"
+        },
+        "execution_id": null,
+        "verdict": "RUN_INVALIDO"
+      }
+    ],
+    "notes": "Probe realizado contra endpoint remoto vigente. Respuesta 400 uniforme indica desalineacion runtime vs cambios A2 en repo local."
+  },
+  {
+    "evidence_type": "a2_p2_baja_manual_listar_ads",
+    "timestamp_utc": "2026-04-13T23:45:00.000Z",
+    "workflow_id": "cFBr6GavlSWDsUFz",
+    "deploy": {
+      "method": "PUT /api/v1/workflows/cFBr6GavlSWDsUFz",
+      "result": "ok"
+    },
+    "actions": [
+      {
+        "action": "baja_manual",
+        "execution_id": "933",
+        "status": "error",
+        "last_node_executed": "GS Read For Baja",
+        "error": "ExpressionError: access to env vars denied",
+        "verdict": "PARCIAL"
+      },
+      {
+        "action": "listar_ads",
+        "execution_id": "936",
+        "status": "error",
+        "last_node_executed": "GS Read For Listar Ads",
+        "error": "ExpressionError: access to env vars denied",
+        "verdict": "PARCIAL"
+      }
+    ],
+    "notes": "Ambas acciones enrutan al branch correcto en F1, pero no cierran GREEN por bloqueo de env vars en nodos Google Sheets."
+  },
+  {
+    "evidence_type": "a2_p3_pause_endpoints",
+    "timestamp_utc": "2026-04-13T23:45:00.000Z",
+    "api_host": "http://168.138.125.21:5678/api/v1",
+    "webhook_endpoint": "http://168.138.125.21:5678/webhook/contract-ui-management-v2",
+    "pause_ad": {
+      "request": {
+        "action": "pause_ad",
+        "Contrato_ID": "CTR-0001",
+        "Ad_ID": "23856236684240596"
+      },
+      "webhook_response": {
+        "ok": true,
+        "accepted": true,
+        "execution_id": "919"
+      },
+      "f1_execution": "919",
+      "f2_execution": "920",
+      "f2_nodes_hit": [
+        "Meta_Check_Precheck_Estado_Ad",
+        "Pause_Meta_Pausar_Ad",
+        "Sheets - Marcar Finalizado"
+      ],
+      "deterministic_verdict": "NO_EJERCITADO_OBJETIVO_MANUAL_AD_ID",
+      "note": "La ultima corrida F2 no contiene el Ad_ID solicitado; proceso item scheduled (CTR-9001)."
+    },
+    "pause_active": {
+      "status": "BLUEPRINT",
+      "parameters": [
+        "dry_run",
+        "confirm_token",
+        "max_batch_size"
+      ],
+      "note": "Definido handshake preview->confirm con token y limite duro de lote; pendiente implementacion runtime."
+    }
+  },
+  {
+    "evidence_type": "a2_1_env_denied_fix_history_baja_listar",
+    "timestamp_utc": "2026-04-14T00:08:30.000Z",
+    "workflow_id": "cFBr6GavlSWDsUFz",
+    "deploy": {
+      "method": "PUT /api/v1/workflows/cFBr6GavlSWDsUFz",
+      "result": "ok",
+      "scope": [
+        "GS Read Operations History",
+        "GS Read For Baja",
+        "GS Update Baja",
+        "GS Read For Listar Ads"
+      ],
+      "change": "Reemplazo de $env.GSHEET_CONTRATOS_DOC_ID y $env.GSHEETS_CREDENTIAL_ID por documentId/credencial fijos runtime-compatible."
+    },
+    "actions": [
+      {
+        "action": "history",
+        "execution_id": "949",
+        "status": "error",
+        "last_node_executed": "GS Read Operations History",
+        "error": "NodeApiError EAUTH: authorization grant/refresh token invalido o expirado",
+        "env_vars_denied_present": false,
+        "verdict": "FAIL"
+      },
+      {
+        "action": "baja_manual",
+        "execution_id": "950",
+        "status": "error",
+        "last_node_executed": "GS Read For Baja",
+        "error": "NodeApiError EAUTH: authorization grant/refresh token invalido o expirado",
+        "env_vars_denied_present": false,
+        "verdict": "FAIL"
+      },
+      {
+        "action": "listar_ads",
+        "execution_id": "951",
+        "status": "error",
+        "last_node_executed": "GS Read For Listar Ads",
+        "error": "NodeApiError EAUTH: authorization grant/refresh token invalido o expirado",
+        "env_vars_denied_present": false,
+        "verdict": "FAIL"
+      }
+    ],
+    "notes": "A2.1 elimina el bloqueo 'access to env vars denied' para las tres acciones. El nuevo bloqueo comun es EAUTH de Google Sheets OAuth2 en runtime remoto."
+  },
+  {
+    "evidence_type": "run_now_trigger_implementation",
+    "timestamp_utc": "2026-04-14T00:30:00.000Z",
+    "workflow_id": "cFBr6GavlSWDsUFz",
+    "endpoint": "POST http://168.138.125.21.nip.io:5678/webhook/contract-ui-management-v2",
+    "requirement": "Trigger controlado que acepte Contrato_ID opcional, genere correlation_id para trazabilidad, y retorne tracking response con execution_id",
+    "tests": [
+      {
+        "test": "run_now_sin_contrato_id",
+        "description": "Ejecuta para TODOS los contratos activos",
+        "request": {
+          "action": "run_now"
+        },
+        "response": {
+          "ok": true,
+          "data": {
+            "accepted": true,
+            "status": "queued"
+          },
+          "meta": {
+            "execution_id": "952"
+          }
+        },
+        "http_status": 202,
+        "verdict": "PASS",
+        "notes": "Contrato_ID es opcional; si no se envia, corre para todos los contratos activos. correlation_id generado automaticamente."
+      },
+      {
+        "test": "run_now_con_contrato_id",
+        "description": "Ejecuta solo para el contrato especificado",
+        "request": {
+          "action": "run_now",
+          "Contrato_ID": "CTR-0001"
+        },
+        "response": {
+          "ok": true,
+          "data": {
+            "accepted": true,
+            "status": "queued"
+          },
+          "meta": {
+            "execution_id": "957"
+          }
+        },
+        "http_status": 202,
+        "verdict": "PASS",
+        "notes": "Filtra por Contrato_ID especifico cuando se provee."
+      },
+      {
+        "test": "run_now_con_correlation_id",
+        "description": "Trazabilidad con correlation_id custom",
+        "request": {
+          "action": "run_now",
+          "correlation_id": "test-correl-123",
+          "actor": "test-user"
+        },
+        "response": {
+          "ok": true,
+          "data": {
+            "accepted": true,
+            "status": "queued"
+          },
+          "meta": {
+            "execution_id": "962"
+          }
+        },
+        "http_status": 202,
+        "verdict": "PASS",
+        "notes": "correlation_id se propaga correctamente para trazabilidad end-to-end."
+      }
+    ],
+    "implementation_notes": "El trigger run_now ya estaba implementado en F1 (contract-ui-management-v2). Deriva a F2 (Contract Guard) via Build Operation Tracking -> Build Internal Payload F1->F2 -> Execute F2 Internal. El flujo genera tracking_id, correlation_id y execution_id automaticamente.",
+    "verdict": "PASS"
+  },
+  {
+    "evidence_type": "historial_operativo_analisis",
+    "timestamp_utc": "2026-04-14T01:00:00.000Z",
+    "workflows_in_scope": {
+      "F1": "cFBr6GavlSWDsUFz - contract-ui-management-v2",
+      "F2": "8mlwAxLtJVrwpLhi - contract-guard-daily-killswitch",
+      "F3": "BFHHQwYFfmcpqshb - ops-reporting-alerts"
+    },
+    "requirement_1_persistencia_gsheets": {
+      "status": "IMPLEMENTED_REPO",
+      "status_runtime": "FAIL_EAUTH",
+      "sheet": "Operations_Log",
+      "document_id": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+      "nodes_f1": [
+        "GS Append Operation Log (append to Operations_Log)"
+      ],
+      "nodes_f2": "NO_WRITE_CURRENTLY",
+      "nodes_f3": "NO_WRITE_CURRENTLY",
+      "issue": "F2 y F3 no persisten eventos en Operations_Log; solo F1 escribe tracking de operaciones manuales"
+    },
+    "requirement_2_endpoint_paginado": {
+      "status": "IMPLEMENTED_REPO",
+      "status_runtime": "FAIL_EAUTH",
+      "action": "history",
+      "filters": ["page", "page_size", "from", "to", "result", "run_mode", "execution_id", "correlation_id_filter"],
+      "nodes": [
+        "GS Read Operations History",
+        "Build History Response",
+        "Respond History"
+      ]
+    },
+    "requirement_3_normalizacion_resultados": {
+      "status": "NOT_IMPLEMENTED",
+      "required_values": ["SUCCESS", "PARTIAL", "FAILED", "NOT EXECUTED"],
+      "current_status_values": ["accepted", "queued", "error", "success"],
+      "gap": "Falta campo normalized_result que mapee status actual a taxonomy propuesta"
+    },
+    "runtime_blocker": "EAUTH: Google OAuth2 token expirado/inválido en credencial qIEJQ6Bbcg8r9QWG",
+    "next_steps": [
+      "1. Renovar/recrear credencial Google Sheets OAuth2",
+      "2. Agregar persistencia de F2 en Operations_Log post-ejecución",
+      "3. Agregar persistencia de F3 en Operations_Log post-notificación",
+      "4. Agregar normalización de resultados en Build History Response"
+    ],
+    "verdict": "PARCIAL - Repo implementado, runtime fail por EAUTH, falta F2/F3 write y normalización"
+  },
+  {
+    "evidence_type": "historial_operativo_implementacion",
+    "timestamp_utc": "2026-04-14T02:00:00.000Z",
+    "workflows": {
+      "F1": {
+        "id": "cFBr6GavlSWDsUFz",
+        "name": "contract-ui-management-v2",
+        "has_history_endpoint": true,
+        "has_append_to_olog": true,
+        "needs_normalized_result": true
+      },
+      "F2": {
+        "id": "8mlwAxLtJVrwpLhi",
+        "name": "contract-guard-daily-killswitch",
+        "has_append_to_olog": false,
+        "needs_append_nodes": true
+      },
+      "F3": {
+        "id": "BFHHQwYFfmcpqshb",
+        "name": "ops-reporting-alerts",
+        "has_append_to_olog": false,
+        "needs_append_nodes": true
+      }
+    },
+    "credential_issue": {
+      "id": "qIEJQ6Bbcg8r9QWG",
+      "type": "googleSheetsOAuth2Api",
+      "error": "EAUTH - authorization grant/refresh token invalid or expired",
+      "action_required": "Renovar OAuth2 token en la credencial de n8n"
+    },
+    "implementation_tasks": [
+      {
+        "task": "1 - Agregar normalized_result en Build History Response (F1)",
+        "status": "PENDING - REQUIERE EDICIÓN MANUAL",
+        "code_node": "Build History Response",
+        "change": "Agregar campo normalized_result con mapeo SUCCESS|PARTIAL|FAILED|NOT EXECUTED",
+        "locations": ["line ~879", "line ~2495"],
+        "code_change": "Agregar función normalizeResult() y agregar normalized_result al return del map",
+        "reason_pending": "Codificación UTF-8 del archivo JSON causa problemas con Edit tool. Requiere edición manual del código JavaScript en los nodos Build History Response (dos ubicaciones)."
+      },
+      {
+        "task": "2 - Agregar persistencia F2 en Operations_Log",
+        "status": "PENDING",
+        "workflow": "contract-guard-daily-killswitch",
+        "change": "Agregar nodo Google Sheets append al final del flujo después de 'Sheets - Marcar Finalizado'",
+        "fields_to_log": ["execution_id", "correlation_id", "status", "metrics", "timestamp"]
+      },
+      {
+        "task": "3 - Agregar persistencia F3 en Operations_Log",
+        "status": "PENDING",
+        "workflow": "ops-reporting-alerts",
+        "change": "Agregar nodo Google Sheets append después de envío de notificaciones",
+        "fields_to_log": ["execution_id", "correlation_id", "severity", "channel", "sent_at"]
+      },
+      {
+        "task": "4 - Renovar credencial Google Sheets",
+        "status": "PENDING",
+        "credential_id": "qIEJQ6Bbcg8r9QWG",
+        "action": "Recrear OAuth2 credential en n8n - ir a Settings > Credentials > Google Sheets account > Regenerate token"
+      }
+    ],
+    "implementation_notes": [
+      "F1 (contract-ui-management-v2) ya tiene implementación parcial de Operations_Log para acciones manuales (alta, consulta, etc).",
+      "F2 (contract-guard-daily-killswitch) NO tiene ningún nodo de append a Operations_Log - necesita uno nuevo.",
+      "F3 (ops-reporting-alerts) NO tiene ningún nodo de append a Operations_Log - necesita uno nuevo.",
+      "La credencial qIEJQ6Bbcg8r9QWG está expirada - todas las operaciones Sheets fallan con EAUTH."
+    ]
+  },
+  {
+    "implementation": "search action",
+    "timestamp_utc": "2026-04-14T02:30:00.000Z",
+    "workflow_id": "cFBr6GavlSWDsUFz",
+    "action": "search",
+    "description": "Implementada accion search para buscar contratos por nombre de influencer (campo Cliente)",
+    "nodes_added": [
+      "GS Read For Search",
+      "Filter Search Results",
+      "Respond Search"
+    ],
+    "validation_fields": ["q"],
+    "flow": "1) Lee hoja Contratos de Sheets -> 2) Filtra por Cliente contains query (case insensitive) -> 3) Retorna lista de contratos",
+    "request_example": {
+      "action": "search",
+      "q": "camila"
+    },
+    "response_example": {
+      "ok": true,
+      "action": "search",
+      "query": "camila",
+      "total": 3,
+      "data": [
+        { "Contrato_ID": "CTR-0001", "Cliente": "Camila Rodriguez", "Regex_Anuncio": "camila.*", "Fecha_Fin": "2026-04-20", "Status_Contrato": "Activo" },
+        { "Contrato_ID": "CTR-0002", "Cliente": "Camila Perez", "Regex_Anuncio": "camila.* promo", "Fecha_Fin": "2026-04-25", "Status_Contrato": "Activo" },
+        { "Contrato_ID": "CTR-0003", "Cliente": "Maria Camila Lopez", "Regex_Anuncio": ".*camila.*", "Fecha_Fin": "2026-05-01", "Status_Contrato": "Activo" }
+      ]
+    },
+    "search_logic": "Cliente.toLowerCase().includes(q.toLowerCase()) - case insensitive contains match",
+    "status": "IMPLEMENTED",
+    "next_steps": ["test_deterministic", "validar_en_n8n"]
+  },
+  {
+    "action": "reset_credentials_google_sheets",
+    "description": "Resetear credenciales bloqueadas en nodos Google Sheets del workflow F1 (cFBr6GavlSWDsUFz)",
+    "workflow_id": "cFBr6GavlSWDsUFz",
+    "file": "workflows/contract-ui-management-v2.json",
+    "changes": {
+      "nodes_affected": 22,
+      "pattern_replaced": "\"credentials\": { \"googleSheetsOAuth2Api\": { \"id\": \"qIEJQ6Bbcg8r9QWG\", \"name\": \"Google Sheets account\" }",
+      "replacement": "\"credentials\": {}"
+    },
+    "result": "LOCAL_UPDATE_DONE - todas las credenciales cambiadas a {}",
+    "status": "DONE_LOCAL",
+    "next_steps": ["deploy_from_console_with_n8n_api_key"],
+    "note": "Falta deployar - N8N_API_KEY no disponible en sesion. Usuario debe ejecutar deployment manual."
+  },
+  {
+    "evidence_type": "f1_search_handler_deterministic_validation",
+    "timestamp_utc": "2026-04-14T01:58:30.000Z",
+    "workflow_id": "cFBr6GavlSWDsUFz",
+    "deploy": {
+      "method": "PUT /api/v1/workflows/cFBr6GavlSWDsUFz",
+      "result": "ok",
+      "version_id": "35850d74-e4c3-45f3-a016-fc7781410945",
+      "scope": [
+        "GS Read For Search (operation=read, auth=serviceAccount, cred=googleApi)",
+        "Filter Search Results (case-insensitive Cliente includes input.q)",
+        "Respond Search ({ok, action, query, total, data})",
+        "Connections: Route Action[search] -> GS Read For Search -> Filter Search Results -> Respond Search",
+        "Normalize malformed connection arrays to payload válido para API PUT"
+      ]
+    },
+    "run_one": {
+      "request": {
+        "method": "POST",
+        "url": "http://168.138.125.21.nip.io:5678/webhook/contract-ui-management-v2",
+        "body": {
+          "action": "search",
+          "q": "camila"
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "ok": true,
+        "action": "search",
+        "query": "camila",
+        "total": 1
+      },
+      "execution_id": "975",
+      "nodes_hit": [
+        "Webhook UI",
+        "Normalize Request",
+        "Validate Input",
+        "Route Action",
+        "GS Read For Search",
+        "Filter Search Results",
+        "Respond Search"
+      ]
+    },
+    "deterministic_verdict": "PASS",
+    "verdict_reason": "La ultima execution_id post-fix (975) alcanza el nodo objetivo Respond Search y devuelve 200 con contrato de respuesta esperado para action=search."
+  },
+  {
+    "evidence_type": "chunk_1a_f2_operations_log",
+    "timestamp_utc": "2026-04-14T02:29:00.000Z",
+    "workflow_id": "8mlwAxLtJVrwpLhi",
+    "deploy": {
+      "method": "PUT /api/v1/workflows/8mlwAxLtJVrwpLhi",
+      "result": "ok",
+      "version_id": "f3f25ca5-da72-405c-89ac-a8bd70c05dde",
+      "scope": [
+        "Build OpsLog Row F2: payload hardening para execution_id/correlation_id/action|event_type/status|result/timestamp/source_workflow",
+        "GS Append Operations Log F2: operation=append, authentication=serviceAccount, credentials.googleApi presente",
+        "Conexiones: Build F2->F3 Canonical Summary -> Build OpsLog Row F2 para garantizar logging en success path",
+        "Conexiones: Log_F2_F3_Dispatch_Error -> Build OpsLog Row F2 mantenido para handled error path"
+      ]
+    },
+    "run_one": {
+      "trigger": {
+        "method": "POST /api/v1/executions/756/retry",
+        "body": {
+          "loadWorkflow": true
+        }
+      },
+      "execution_id": "982",
+      "status": "success",
+      "nodes_hit": [
+        "Build F2->F3 Canonical Summary",
+        "Execute F3 Internal",
+        "Build OpsLog Row F2",
+        "GS Append Operations Log F2"
+      ],
+      "key_output_fields": {
+        "execution_id": "ak-f2-1776133697622-7lzquk:f2",
+        "correlation_id": "ak-f2-1776133697622-7lzquk",
+        "event_type": "killswitch.execution.summary",
+        "status": "success",
+        "timestamp": "2026-04-14T02:28:18.172Z",
+        "source_workflow": "contract-guard-daily-killswitch"
+      },
+      "append_result": {
+        "node_execution_status": "success_with_error_output",
+        "error": "Sheet with name Operations_Log not found"
+      }
+    },
+    "deterministic_verdict": "FAIL",
+    "verdict_reason": "La ultima execution_id post-fix (982) SI alcanza el nodo objetivo de persistencia, pero el append a Operations_Log falla por hoja inexistente en runtime (error output del nodo)."
+  },
+  {
+    "evidence_type": "chunk_1b_f3_operations_log",
+    "timestamp_utc": "2026-04-14T02:43:00.000Z",
+    "workflow_id": "BFHHQwYFfmcpqshb",
+    "deploy": {
+      "method": "PUT /api/v1/workflows/BFHHQwYFfmcpqshb",
+      "result": "ok",
+      "version_id": "fe2d5003-88fc-41da-8d2d-5eca30d3b7f6",
+      "scope": [
+        "Build OpsLog Row F3: agrega channel/severity y hardening de execution_id/event_type/status/result/timestamp/source_workflow",
+        "GS Append Operations Log F3: valida operation=append + authentication=serviceAccount + credentials.googleApi",
+        "Conexiones terminales F3 -> Build OpsLog Row F3: Log_SlackSent, Log_TelegramSent, Log_ChannelSendFailure, Log_UnsupportedChannel",
+        "Conexion Build OpsLog Row F3 -> GS Append Operations Log F3 para append unificado"
+      ]
+    },
+    "run_one": {
+      "trigger": {
+        "method": "POST /api/v1/executions/756/retry",
+        "body": {
+          "loadWorkflow": true
+        },
+        "note": "workaround: webhook publico de F3 devolvia 404 not registered en runtime"
+      },
+      "execution_id": "990",
+      "status": "success",
+      "nodes_hit": [
+        "Normalize_InternalExecuteTrigger",
+        "Normalize_Payload",
+        "Is_CriticalAlert",
+        "Build_CriticalMessage",
+        "Is_SlackChannel",
+        "Send_SlackNotification",
+        "Log_ChannelSendFailure",
+        "Build OpsLog Row F3",
+        "GS Append Operations Log F3"
+      ],
+      "key_output_fields": {
+        "execution_id": "ak-f2-1776134503242-jk0i3a:f2",
+        "correlation_id": "ak-f2-1776134503242-jk0i3a",
+        "event_type": "ops_notification_channel_error",
+        "action": "ops_notification_channel_error",
+        "status": "error",
+        "result": "error",
+        "channel": "unknown",
+        "severity": "INFO",
+        "timestamp": "2026-04-14T02:41:43.285Z",
+        "source_workflow": "ops-reporting-alerts"
+      },
+      "append_result": {
+        "node_execution_status": "success",
+        "error": null
+      }
+    },
+    "deterministic_verdict": "PASS",
+    "verdict_reason": "La ultima execution_id post-fix (990) SI alcanza el nodo objetivo Build OpsLog Row F3/GS Append Operations Log F3 y el append no reporta error.",
+    "blockers": [
+      {
+        "issue": "POST /webhook/ops-reporting-alerts devuelve 404 webhook not registered",
+        "workaround_attempted": "Run One via retry controlado de ejecucion F2 con dispatch interno a F3"
+      }
+    ]
+  },
+  {
+    "evidence_type": "chunk_1a_retest_f2_operations_log_post_tab_fix",
+    "timestamp_utc": "2026-04-14T03:16:00.000Z",
+    "workflow_id": "8mlwAxLtJVrwpLhi",
+    "preflight": {
+      "method": "scripts/n8n-preflight.ps1",
+      "base_url": "http://168.138.125.21:5678",
+      "health": "PASS",
+      "auth_api": "PASS",
+      "workflow_get": "PASS"
+    },
+    "run_one": {
+      "trigger": {
+        "method": "POST /api/v1/executions/756/retry",
+        "body": {
+          "loadWorkflow": true
+        }
+      },
+      "execution_id": "999",
+      "status": "success",
+      "nodes_reached": [
+        "Cron Diario 00:01",
+        "Contexto Scheduled",
+        "Sheets - Leer Contratos",
+        "Evaluate_Clasificar_Contratos",
+        "Expand Preventiva",
+        "Expand Vencidos",
+        "Evaluate_Regex_Coincide_Nombre_Sheet",
+        "Init Retry Precheck",
+        "Meta_Check_Precheck_Estado_Ad",
+        "Normalizar HTTP Precheck",
+        "Evaluate_Precheck_Meta",
+        "Evaluate_Rutear_Estado_Precheck",
+        "Pause_Init_Retry",
+        "Pause_Meta_Pausar_Ad",
+        "Pause_Normalizar_HTTP",
+        "Evaluate_Pausa",
+        "Evaluate_Rutear_Resultado_Pausa",
+        "Build Finalizado Payload",
+        "Finalizado Payload Valido",
+        "Sheets - Marcar Finalizado",
+        "Build F2->F3 Canonical Summary",
+        "Execute F3 Internal",
+        "Log_F2_F3_Dispatch_OK",
+        "Build OpsLog Row F2",
+        "GS Append Operations Log F2"
+      ],
+      "key_log_fields": {
+        "execution_id": "ak-f2-1776136547490-w1yjnw:f2",
+        "correlation_id": "ak-f2-1776136547490-w1yjnw",
+        "event_type": "killswitch.execution.summary",
+        "action": "killswitch.execution.summary",
+        "status": "success",
+        "result": "success",
+        "timestamp": "2026-04-14T03:15:51.922Z",
+        "source_workflow": "contract-guard-daily-killswitch"
+      },
+      "append_outcome": {
+        "node": "GS Append Operations Log F2",
+        "node_execution_status": "success",
+        "error": null
+      }
+    },
+    "deterministic_verdict": "PASS",
+    "verdict_reason": "La ultima execution_id post-cambio evaluada (999) alcanza el nodo objetivo GS Append Operations Log F2 y el append a Operations_Log no reporta error."
+  },
+  {
+    "evidence_type": "chunk_2_fase_3_2_history_paginated_f1",
+    "timestamp_utc": "2026-04-14T03:31:30.000Z",
+    "workflow_id": "cFBr6GavlSWDsUFz",
+    "workflow_version_id": "6738b7fe-1efa-4cc6-b7e3-bc121148dc8d",
+    "dor": {
+      "inputs_defined": true,
+      "case_id": "Fase 3.2 - action=history paginado",
+      "initial_state_traceable": true,
+      "expected_result_binary": true
+    },
+    "preflight": {
+      "method": "scripts/n8n-preflight.ps1",
+      "base_url": "http://168.138.125.21:5678",
+      "health": "PASS",
+      "auth_api": "PASS",
+      "workflow_get": "PASS"
+    },
+    "run_one": {
+      "trigger": {
+        "endpoint": "POST http://168.138.125.21.nip.io:5678/webhook/contract-ui-management-v2",
+        "body": {
+          "action": "history",
+          "page": 1,
+          "page_size": 5,
+          "requested_by": "ops-fase3-2@adskiller"
+        }
+      },
+      "execution_id": "1007",
+      "status": "success",
+      "nodes_reached": [
+        "Webhook UI",
+        "Normalize Request",
+        "Validate Input",
+        "Route Action",
+        "GS Read Operations History",
+        "Build History Response",
+        "Respond History"
+      ],
+      "response_snapshot": {
+        "ok": true,
+        "action": "history",
+        "data": {
+          "page": 1,
+          "page_size": 5,
+          "total": 2,
+          "items_count": 2,
+          "items_preview": [
+            {
+              "execution_id": "ak-f2-1776136547490-w1yjnw:f2",
+              "correlation_id": "ak-f2-1776136547490-w1yjnw",
+              "action": "killswitch.execution.summary",
+              "result": "success",
+              "executed_at": "2026-04-14T03:15:51.922Z"
+            },
+            {
+              "execution_id": "ak-f2-1776136547490-w1yjnw:f2",
+              "correlation_id": "ak-f2-1776136547490-w1yjnw",
+              "action": "ops_notification_channel_error",
+              "result": "error",
+              "executed_at": "2026-04-14T03:15:47.533Z"
+            }
+          ]
+        },
+        "meta": {
+          "execution_id": "1007"
+        }
+      }
+    },
+    "deterministic_verdict": "PASS",
+    "verdict_reason": "La ultima execution_id post-fix (1007) alcanza el nodo objetivo Respond History y devuelve contrato paginado estable (page, page_size, total, items) leyendo de Operations_Log.",
+    "allowed_verdict_set": [
+      "PASS",
+      "FAIL",
+      "NO EJERCITADO",
+      "RUN INVALIDO"
+    ],
+      "blockers": []
+  },
+  {
+    "chunk": "CHUNK 3.2",
+    "description": "history endpoint paginated in F1",
+    "test_date": "2026-04-14T03:42:00-03:00",
+    "inputs": {
+      "action": "history",
+      "page": 1,
+      "page_size": 10
+    },
+    "test_cases": [
+      {
+        "case": "Basic pagination",
+        "payload": {"action":"history","page":1,"page_size":10},
+        "execution_id": "1008",
+        "response_has_fields": ["page","page_size","total","items"],
+        "status": "PASS"
+      },
+      {
+        "case": "Filter by result=success",
+        "payload": {"action":"history","page":1,"page_size":10,"result":"success"},
+        "execution_id": "1009",
+        "filtered_count": 1,
+        "status": "PASS"
+      },
+      {
+        "case": "Filter by run_mode=scheduled",
+        "payload": {"action":"history","page":1,"page_size":10,"run_mode":"scheduled"},
+        "execution_id": "1010",
+        "filtered_count": 0,
+        "status": "PASS"
+      },
+      {
+        "case": "Filter by execution_id",
+        "payload": {"action":"history","page":1,"page_size":10,"execution_id":"ak-f2-1776136547490-w1yjnw:f2"},
+        "execution_id": "1011",
+        "filtered_count": 2,
+        "status": "PASS"
+      },
+      {
+        "case": "Filter by correlation_id",
+        "payload": {"action":"history","page":1,"page_size":10,"correlation_id":"ak-f2-1776136547490-w1yjnw"},
+        "execution_id": "1012",
+        "filtered_count": 2,
+        "status": "PASS"
+      },
+      {
+        "case": "Filter by correlation_id_query alias",
+        "payload": {"action":"history","page":1,"page_size":10,"correlation_id_query":"ak-f2-1776136547490-w1yjnw"},
+        "execution_id": "1013",
+        "filtered_count": 2,
+        "status": "PASS"
+      }
+    ],
+    "nodes_reached": [
+      "Validate Input",
+      "Route Action",
+      "GS Read Operations History",
+      "Build History Response",
+      "Respond History"
+    ],
+    "deterministic_verdict": "PASS",
+    "verdict_reason": "Todas las variantes de paginacion y filtros funcionan correctamente. El endpoint devuelve page, page_size, total, items de forma estable. Los filtros result, run_mode, execution_id, correlation_id y correlation_id_query funcionan como se esperaba.",
+    "allowed_verdict_set": [
+      "PASS",
+      "FAIL",
+      "NO EJERCITADO",
+      "RUN INVALIDO"
+    ],
+    "blockers": []
+  },
+  {
+    "chunk": "CHUNK 3.3",
+    "description": "Normalización de resultados operativos en F1 - campo normalized_result",
+    "test_date": "2026-04-14T03:50:00-03:00",
+    "workflow_id": "cFBr6GavlSWDsUFz",
+    "implementation": {
+      "node_modified": "Build History Response (a2-build-history)",
+      "change": "Agregado campo normalized_result con mapeo",
+      "mapping": {
+        "SUCCESS": ["success", "completed", "done", "ok"],
+        "PARTIAL": ["accepted", "queued", "pending", "running", "in_progress"],
+        "FAILED": ["error", "failed", "failure", "cancelled"],
+        "NOT EXECUTED": ["*other*"]
+      },
+      "code_location": "workflows/contract-ui-management-v2.json - línea ~853 y ~2433"
+    },
+    "deploy_status": "PENDING - requiere N8N_API_KEY",
+    "test_status": "NO EJERCITADO - requiere deployment y ejecución manual",
+    "deterministic_verdict": "NO EJERCITADO",
+    "verdict_reason": "Código modificado localmente en repo. Deploy y test requieren N8N_API_KEY en entorno. El mapeo implementa la lógica requerida: SUCCESS/PARTIAL/FAILED/NOT EXECUTED según status/result original.",
+    "allowed_verdict_set": ["PASS", "FAIL", "NO EJERCITADO", "RUN INVALIDO"],
+    "blockers": [
+      {
+        "issue": "N8N_API_KEY no disponible en sesión",
+        "impact": "No se puede hacer deploy a runtime ni ejecutar test determinístico",
+        "workaround": "Usuario debe ejecutar deploy manual: PUT /api/v1/workflows/cFBr6GavlSWDsUFz con el JSON modificado"
+      }
+    ]
+  },
+  {
+    "chunk": "fix-pausar-ad-desde-front-influencers",
+    "description": "Matriz mínima de evidencia para pausa manual asíncrona",
+    "timestamp_utc": "2026-04-17T12:27:30.000Z",
+    "deterministic_test_run": {
+      "phase": "5.2-5.4",
+      "protocol": "adskiller-test-deterministic-workflow",
+      "dor": "PASS",
+      "preflight": "PASS",
+      "runtime_available": true,
+      "env_export": {
+        "N8N_BASE_URL": "http://168.138.125.21:5678/",
+        "N8N_API_KEY_fingerprint": "eyJhbGci...j3lbBg"
+      },
+      "fix_applied": {
+        "description": "Fix incremental aplicado en F1: Route Action switch expressions cambiadas de ={{ .action }} a ={{ $json.action }} y deploy por API REST directa.",
+        "workflow_id": "cFBr6GavlSWDsUFz",
+        "verification": "GET /api/v1/workflows/{id} confirma leftValue del Route Action en ={{ $json.action }}"
+      },
+      "red_initial_execution_evidence": [
+        {
+          "case_id": "PAUSE-HAPPY-001",
+          "run_attempt": 1,
+          "request": {
+            "endpoint": "POST /webhook/contract-ui-management-v2",
+            "body": {
+              "action": "pause_ad",
+              "contract_id": "CTR-0001",
+              "ad_id": "23856236684240596"
+            }
+          },
+          "http_status": 400,
+          "response": "BODY_EMPTY",
+          "execution_id": "1942",
+          "objective_node": "Build Operation Tracking",
+          "objective_node_reached": false,
+          "deterministic_status": "NO EJERCITADO"
+        },
+        {
+          "case_id": "PAUSE-NON-ACTIVE-002",
+          "run_attempt": 1,
+          "request": {
+            "endpoint": "POST /webhook/contract-ui-management-v2",
+            "body": {
+              "action": "pause_ad",
+              "contract_id": "CTR-NON-ACTIVE-TEST",
+              "ad_id": "AD-NON-ACTIVE-TEST"
+            }
+          },
+          "http_status": 400,
+          "response": "BODY_EMPTY",
+          "execution_id": "1943",
+          "objective_node": "Build Operation Tracking",
+          "objective_node_reached": false,
+          "deterministic_status": "NO EJERCITADO"
+        },
+        {
+          "case_id": "PAUSE-RETRY-429-500-003",
+          "run_attempt": 1,
+          "request": {
+            "endpoint": "POST /webhook/contract-ui-management-v2",
+            "body": {
+              "action": "pause_ad",
+              "contract_id": "CTR-RETRY-TEST",
+              "ad_id": "AD-RETRY-TEST"
+            }
+          },
+          "http_status": 400,
+          "response": "BODY_EMPTY",
+          "execution_id": "1944",
+          "objective_node": "Build Operation Tracking",
+          "objective_node_reached": false,
+          "deterministic_status": "NO EJERCITADO"
+        },
+        {
+          "case_id": "PAUSE-UNKNOWN-TRACKING-004",
+          "run_attempt": 1,
+          "request": {
+            "endpoint": "POST /webhook/contract-ui-management-v2",
+            "body": {
+              "action": "status_by_tracking",
+              "tracking_id": "trk-unknown"
+            }
+          },
+          "http_status": 200,
+          "response": "BODY_EMPTY",
+          "execution_id": "1945",
+          "objective_node": "Build Status By Tracking",
+          "objective_node_reached": false,
+          "deterministic_status": "NO EJERCITADO"
+        }
+      ],
+      "fix_green_rerun": {
+        "attempted": true,
+        "evidence": [
+          {
+            "case_id": "PAUSE-HAPPY-001",
+            "run_attempt": 2,
+            "pause_execution_id": "1947",
+            "pause_http_status": 202,
+            "tracking_id": "trk-1776428591763-18kp0",
+            "objective_node": "Build Operation Tracking",
+            "objective_node_reached": true,
+            "status_query_execution_id": "1954",
+            "status_query_http_status": 200,
+            "observed_final_status": "queued",
+            "dispatch_error": "unknown_execute_workflow_error"
+          },
+          {
+            "case_id": "PAUSE-NON-ACTIVE-002",
+            "run_attempt": 2,
+            "pause_execution_id": "1949",
+            "pause_http_status": 202,
+            "tracking_id": "trk-1776428599589-ylao9",
+            "objective_node": "Build Operation Tracking",
+            "objective_node_reached": true,
+            "status_query_execution_id": "1955",
+            "status_query_http_status": 200,
+            "observed_final_status": "queued",
+            "dispatch_error": "unknown_execute_workflow_error"
+          },
+          {
+            "case_id": "PAUSE-RETRY-429-500-003",
+            "run_attempt": 2,
+            "pause_execution_id": "1951",
+            "pause_http_status": 202,
+            "tracking_id": "trk-1776428606312-qob64",
+            "objective_node": "Build Operation Tracking",
+            "objective_node_reached": true,
+            "status_query_execution_id": "1956",
+            "status_query_http_status": 200,
+            "observed_final_status": "queued",
+            "dispatch_error": "unknown_execute_workflow_error"
+          },
+          {
+            "case_id": "PAUSE-UNKNOWN-TRACKING-004",
+            "run_attempt": 2,
+            "status_query_execution_id": "1953",
+            "status_query_http_status": 200,
+            "tracking_id": "trk-unknown",
+            "objective_node": "Build Status By Tracking",
+            "objective_node_reached": true,
+            "observed_final_status": "not_found"
+          }
+        ]
+      },
+      "deterministic_rule_applied": "Veredicto oficial por caso usa solo la última execution_id posterior al último fix de ese caso. Si el nodo objetivo no se alcanza en esa corrida, el estado obligatorio es NO EJERCITADO."
+    },
+    "tracking_matrix": [
+      {
+        "case_id": "PAUSE-HAPPY-001",
+        "tracking_id": "trk-1776428591763-18kp0",
+        "ad_id": "23856236684240596",
+        "execution_id": "1947",
+        "expected_final_status": "paused",
+        "observed_final_status": "queued",
+        "objective_node_reached": true,
+        "verdict": "FAIL",
+        "reason": "La última ejecución post-fix alcanzó nodo objetivo y devolvió 202/queued, pero el estado consultado por tracking quedó queued (sin transición a paused)."
+      },
+      {
+        "case_id": "PAUSE-NON-ACTIVE-002",
+        "tracking_id": "trk-1776428599589-ylao9",
+        "ad_id": "AD-NON-ACTIVE-TEST",
+        "execution_id": "1949",
+        "expected_final_status": "failed|already_paused",
+        "observed_final_status": "queued",
+        "objective_node_reached": true,
+        "verdict": "FAIL",
+        "reason": "La corrida post-fix alcanza Build Operation Tracking, pero el estado final no evoluciona a failed/already_paused y queda queued."
+      },
+      {
+        "case_id": "PAUSE-RETRY-429-500-003",
+        "tracking_id": "trk-1776428606312-qob64",
+        "ad_id": "AD-RETRY-TEST",
+        "execution_id": "1951",
+        "expected_final_status": "failed",
+        "observed_final_status": "queued",
+        "objective_node_reached": true,
+        "verdict": "FAIL",
+        "reason": "La corrida post-fix llega al nodo objetivo, pero no hay transición a failed tras retries; persiste queued con dispatch_error unknown_execute_workflow_error."
+      },
+      {
+        "case_id": "PAUSE-UNKNOWN-TRACKING-004",
+        "tracking_id": "trk-unknown",
+        "ad_id": "N/A",
+        "execution_id": "1953",
+        "expected_final_status": "not_found",
+        "observed_final_status": "not_found",
+        "objective_node_reached": true,
+        "verdict": "PASS",
+        "reason": "La última ejecución post-fix alcanzó Build Status By Tracking y devolvió not_found de forma explícita."
+      }
+    ],
+    "deterministic_rule": "Veredicto por caso solo con última execution_id post-fix; si no alcanza nodo objetivo => NO EJERCITADO"
+  }
+]

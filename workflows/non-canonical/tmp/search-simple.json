@@ -1,0 +1,25 @@
+{
+  "name": "search-influencers-simple",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "search", "responseMode": "responseNode" },
+      "id": "1", "name": "Webhook", "type": "n8n-nodes-base.webhook", "typeVersion": 1, "position": [250, 300], "webhookId": "search"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? {};\nconst query = String(body.q ?? '').trim();\nconst limit = Math.min(20, Math.max(1, Number(body.limit ?? 10)));\n\nconst mockData = [\n  {name: 'Camila Rodriguez', channel: 'Instagram'},\n  {name: 'Cami Roldan', channel: 'TikTok'},\n  {name: 'Sofia Luna', channel: 'YouTube'},\n  {name: 'Mica Torres', channel: 'Instagram'},\n  {name: 'Nati Lopez', channel: 'TikTok'},\n  {name: 'Agus Costa', channel: 'Instagram'},\n  {name: 'Dani Navarro', channel: 'YouTube'},\n  {name: 'Vero Diaz', channel: 'Instagram'}\n];\n\nconst q = query.toLowerCase();\nconst results = mockData\n  .filter(i => i.name.toLowerCase().includes(q))\n  .slice(0, limit)\n  .map(i => ({name: i.name, channel: i.channel, score: 1}));\n\nreturn [{json:{ok:true, action:'search', query, total:results.length, items:results}}];"
+      },
+      "id": "2", "name": "Search", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [450, 300]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ $json }}" },
+      "id": "3", "name": "Respond", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.1, "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{"node": "Search", "type": "main", "index": 0}]] },
+    "Search": { "main": [[{"node": "Respond", "type": "main", "index": 0}]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,3580 @@
+{
+  "updatedAt": "2026-04-15T14:04:37.834Z",
+  "createdAt": "2026-04-06T04:02:16.950Z",
+  "id": "8mlwAxLtJVrwpLhi",
+  "name": "AdsKiller - Contract Guard Daily KillSwitch (MVP)",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "custom",
+              "cronExpression": "1 0 * * *"
+            }
+          ]
+        }
+      },
+      "id": "712bba43-cd97-46c3-9455-41152512b137",
+      "name": "Cron Diario 00:01",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -160
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "49fe0038-8b92-4214-be14-79e46158f75a",
+      "name": "Trigger Manual On-Demand",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { run_mode: 'scheduled' } }];"
+      },
+      "id": "59a6f606-1be2-4da0-91cf-27d9fdadfcd6",
+      "name": "Contexto Scheduled",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { run_mode: 'manual' } }];"
+      },
+      "id": "d421319a-abcf-467f-bf2c-1d99539043a0",
+      "name": "Contexto Manual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=Contratos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "70ed9a52-c2ef-4b38-bbd8-1a3f0001a602",
+      "name": "Sheets - Leer Contratos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        -80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qIEJQ6Bbcg8r9QWG",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Fuente Ãºnica de contratos. Se esperan columnas: Contrato_ID, Status_Contrato, Fecha_Fin (YYYY-MM-DD), Ad_ID, Ad_Name, Regex_Anuncio, Notificado_Previo."
+    },
+    {
+      "parameters": {
+        "jsCode": "const TZ = 'America/Argentina/Buenos_Aires';\n\nfunction parseYMD(value) {\n  if (!value || typeof value !== 'string') return null;\n  const m = value.trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (!m) return null;\n  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);\n}\n\nfunction nowInTimezone(timeZone) {\n  return new Date(new Date().toLocaleString('en-US', { timeZone }));\n}\n\nfunction startOfDay(d) {\n  const x = new Date(d);\n  x.setHours(0, 0, 0, 0);\n  return x;\n}\n\nfunction daysBetween(a, b) {\n  const ms = 24 * 60 * 60 * 1000;\n  return Math.floor((b.getTime() - a.getTime()) / ms);\n}\n\nfunction toBool(v) {\n  if (typeof v === 'boolean') return v;\n  if (typeof v === 'number') return v !== 0;\n  if (typeof v !== 'string') return false;\n  return ['true', '1', 'si', 'sÃ­', 'yes', 'y', 'x'].includes(v.trim().toLowerCase());\n}\n\nfunction buildRegex(pattern, fallbackName) {\n  if (pattern && typeof pattern === 'string') {\n    try {\n      return new RegExp(pattern, 'i');\n    } catch (_) {}\n  }\n\n  const safe = String(fallbackName || '')\n    .trim()\n    .replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')\n    .replace(/\\s+/g, '.*');\n\n  return safe ? new RegExp(safe, 'i') : null;\n}\n\nconst today = startOfDay(nowInTimezone(TZ));\nconst runMode = $input.first()?.json?.run_mode || 'scheduled';\nconst runCorrelation = `ak-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;\n\nconst actionable = [];\n\nfor (const item of items) {\n  const row = item.json;\n  const status = String(row.Status_Contrato || '').trim().toLowerCase();\n  const isActiveContract = ['activo', 'active', 'activa'].includes(status);\n  if (!isActiveContract) continue;\n\n  const endDate = parseYMD(row.Fecha_Fin);\n  if (!endDate) continue;\n\n  const diffDays = daysBetween(today, endDate);\n  const isExpired = diffDays < 0;\n  const isPreventiveWindow = diffDays >= 0 && diffDays <= 2;\n  const alreadyNotified = toBool(row.Notificado_Previo);\n\n  const adName = String(row.Ad_Name || row.Ad_Name_Meta || row.Nombre_Anuncio || '').trim();\n  const regex = buildRegex(row.Regex_Anuncio || row.Regex_Anuncio, adName);\n  const regexMatchesSheetName = regex ? regex.test(adName) : false;\n\n  let controlType = null;\n  if (isExpired) controlType = 'expired';\n  if (isPreventiveWindow && !alreadyNotified) controlType = 'preventive';\n\n  if (!controlType) continue;\n\n  actionable.push({\n    json: {\n      ...row,\n      run_mode: runMode,\n      correlation_id: runCorrelation,\n      control_type: controlType,\n      days_to_end: diffDays,\n      timezone: TZ,\n      regex_pattern: regex ? regex.source : null,\n      regexMatchesSheetName\n    }\n  });\n}\n\nreturn actionable;"
+      },
+      "id": "e36b8d4e-31e3-4e3f-8dca-e0359ca625f5",
+      "name": "Clasificar Contratos (Activo / 48h / Vencido)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function normalize(row, fallback = {}) {\n  const normalized = { ...row };\n  normalized.Contrato_ID = String(normalized.Contrato_ID ?? fallback.Contrato_ID ?? '').trim();\n  normalized.Fecha_Fin = String(normalized.Fecha_Fin ?? fallback.Fecha_Fin ?? '').trim();\n\n  const regexCanon = String(normalized.Regex_Anuncio ?? normalized.regex_pattern ?? fallback.Regex_Anuncio ?? fallback.regex_pattern ?? '').trim();\n  normalized.Regex_Anuncio = regexCanon;\n  normalized.regex_pattern = String(normalized.regex_pattern ?? regexCanon).trim();\n\n  return normalized;\n}\n\nconst expanded = [];\nfor (const item of items) {\n  const source = item.json ?? {};\n  const preventiva = Array.isArray(source.preventiva) ? source.preventiva : [];\n\n  if (preventiva.length > 0) {\n    for (const row of preventiva) {\n      if (!row || typeof row !== 'object') continue;\n      expanded.push({ json: normalize(row, source) });\n    }\n    continue;\n  }\n\n  if (String(source.control_type || '').toLowerCase() === 'preventive') {\n    expanded.push({ json: normalize(source, source) });\n  }\n}\n\nreturn expanded;"
+      },
+      "id": "cd0b262a-273b-40d4-ad16-07a77e61b0fb",
+      "name": "Expand Preventiva",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function normalize(row, fallback = {}) {\n  const normalized = { ...row };\n  normalized.Contrato_ID = String(normalized.Contrato_ID ?? fallback.Contrato_ID ?? '').trim();\n  normalized.Fecha_Fin = String(normalized.Fecha_Fin ?? fallback.Fecha_Fin ?? '').trim();\n\n  const regexCanon = String(normalized.Regex_Anuncio ?? normalized.regex_pattern ?? fallback.Regex_Anuncio ?? fallback.regex_pattern ?? '').trim();\n  normalized.Regex_Anuncio = regexCanon;\n  normalized.regex_pattern = String(normalized.regex_pattern ?? regexCanon).trim();\n\n  return normalized;\n}\n\nconst expanded = [];\nfor (const item of items) {\n  const source = item.json ?? {};\n  const vencidos = Array.isArray(source.vencidos) ? source.vencidos : [];\n\n  if (vencidos.length > 0) {\n    for (const row of vencidos) {\n      if (!row || typeof row !== 'object') continue;\n      expanded.push({ json: normalize(row, source) });\n    }\n    continue;\n  }\n\n  if (String(source.control_type || '').toLowerCase() === 'expired') {\n    expanded.push({ json: normalize(source, source) });\n  }\n}\n\nreturn expanded;"
+      },
+      "id": "b1ff90da-f910-4b85-9486-f920fda8dd87",
+      "name": "Expand Vencidos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://168.138.125.21.nip.io:5678/webhook/mock/alerts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "e5da6bfa-d6d7-419c-8d3f-3a33ab278f34",
+      "name": "Emitir Alerta Operativa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1480,
+        -300
+      ],
+      "notes": "Canal Ãºnico de alertas en MVP (sin fallback Slack/Telegram)."
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=Contratos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": 0,
+            "Contrato_ID": "={{$json.Contrato_ID}}",
+            "Ad_ID": "={{ $json.Ad_ID }}",
+            "Notificado_Previo": "TRUE",
+            "Fecha_Notificado_Previo": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}",
+            "Updated_At": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}"
+          },
+          "matchingColumns": [
+            "Contrato_ID"
+          ],
+          "schema": [
+            {
+              "id": "Contrato_ID",
+              "displayName": "Contrato_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Regex_Anuncio",
+              "displayName": "Regex_Anuncio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ad_ID",
+              "displayName": "Ad_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ad_Name",
+              "displayName": "Ad_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Alta",
+              "displayName": "Fecha_Alta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Fin",
+              "displayName": "Fecha_Fin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status_Contrato",
+              "displayName": "Status_Contrato",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notificado_Previo",
+              "displayName": "Notificado_Previo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Notificado_Previo",
+              "displayName": "Fecha_Notificado_Previo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Finalizacion",
+              "displayName": "Fecha_Finalizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Updated_At",
+              "displayName": "Updated_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9e200fbf-0050-457f-bd49-c73766c61d46",
+      "name": "Sheets - Marcar Notificado_Previo",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2200,
+        -300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qIEJQ6Bbcg8r9QWG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.regexMatchesSheetName}}",
+              "value2": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "18b5dc8b-d51e-4367-bab4-f0c7577ee5f5",
+      "name": "Regex Coincide con Nombre (Sheet)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "92e6e644-9bf2-4f5f-80f2-4cb932e78687",
+              "name": "precheck_attempt",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "f7edfd6e-15ab-4294-bf87-2df4eb8746ff",
+              "name": "precheck_max_attempts",
+              "value": 3,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "0990e02a-4f15-4c57-a2d9-04efe0d0e1c1",
+      "name": "Init Retry Precheck",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1480,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'http://168.138.125.21.nip.io:5678/webhook/adskiller-local-meta-precheck/meta/precheck/' + $json.Ad_ID }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{$json.Ad_Name}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "996ef569-eca9-428c-9bd5-6b0c3b5904d2",
+      "name": "Meta - Precheck Estado Ad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1720,
+        120
+      ],
+      "notes": "Pre-check: continuar solo si Meta devuelve ACTIVE y nombre matchea regex case-insensitive."
+    },
+    {
+      "parameters": {
+        "jsCode": "function toFiniteNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\nreturn $input.all().map((item) => {\n  const raw = item.json ?? {};\n  const hasWrapper = Object.prototype.hasOwnProperty.call(raw, 'statusCode');\n  const statusFromWrapper = toFiniteNumber(raw.statusCode);\n  const statusFromCanonical = toFiniteNumber(raw.http_status);\n  const httpStatus = statusFromWrapper ?? statusFromCanonical ?? (hasWrapper ? 0 : 200);\n  const bodyCandidate = hasWrapper ? raw.body : (raw.http_body ?? raw);\n  const httpBody = bodyCandidate && typeof bodyCandidate === 'object' ? bodyCandidate : {};\n  const httpOk = httpStatus >= 200 && httpStatus < 300;\n  const retryable = [429, 500].includes(httpStatus);\n  return {\n    json: {\n      ...raw,\n      http_status: httpStatus,\n      http_body: httpBody,\n      http_ok: httpOk,\n      retryable,\n      statusCode: httpStatus,\n      body: httpBody\n    }\n  };\n});"
+      },
+      "id": "1dd56036-37db-4f5f-af9a-3c1221608f28",
+      "name": "Normalizar HTTP Precheck",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function getNodeJson(name, idx) {\n  try {\n    return $item(idx).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst inputItems = $input.all();\n\nreturn inputItems.map((inputItem, idx) => {\n  const response = inputItem.json || {};\n  const row = {\n    ...getNodeJson('Expand Vencidos', idx),\n    ...getNodeJson('Init Retry Precheck', idx),\n    ...getNodeJson('Wait 5m Precheck Retry', idx)\n  };\n\n  row.Contrato_ID = String(row.Contrato_ID || '').trim();\n  row.regex_pattern = String(row.regex_pattern || row.Regex_Anuncio || '').trim();\n\n  const attempt = Number(row.precheck_attempt || 1);\n  const maxAttempts = Number(row.precheck_max_attempts || 3);\n  const httpStatus = Number(response.http_status || 0);\n  const httpBody = response.http_body && typeof response.http_body === 'object' ? response.http_body : {};\n  const httpOk = Boolean(response.http_ok);\n  const retryable = Boolean(response.retryable);\n\n  if (retryable && attempt < maxAttempts) {\n    return {\n      json: {\n        ...row,\n        precheck_attempt: attempt + 1,\n        precheck_state: 'retry',\n        precheck_status_code: httpStatus,\n        precheck_http_ok: httpOk\n      }\n    };\n  }\n\n  if (!httpOk) {\n    return {\n      json: {\n        ...row,\n        precheck_state: 'failed',\n        precheck_status_code: httpStatus,\n        precheck_http_ok: httpOk,\n        precheck_reason: 'meta_precheck_non_2xx'\n      }\n    };\n  }\n\n  const adNameMeta = String(httpBody.name || '').trim();\n  const regexPattern = row.regex_pattern;\n  let regexMatchesMetaName = false;\n  try {\n    regexMatchesMetaName = !!regexPattern && new RegExp(regexPattern, 'i').test(adNameMeta);\n  } catch (_) {\n    regexMatchesMetaName = false;\n  }\n\n  const status = String(httpBody.status || httpBody.effective_status || '').toUpperCase();\n  const isActive = status === 'ACTIVE';\n\n  if (!isActive || !regexMatchesMetaName) {\n    return {\n      json: {\n        ...row,\n        precheck_state: 'not_actionable',\n        precheck_status_code: httpStatus,\n        precheck_http_ok: httpOk,\n        ad_status_meta: status || 'UNKNOWN',\n        regexMatchesMetaName,\n        ad_name_meta: adNameMeta\n      }\n    };\n  }\n\n  return {\n    json: {\n      ...row,\n      precheck_state: 'ready_to_pause',\n      precheck_status_code: httpStatus,\n      precheck_http_ok: httpOk,\n      ad_status_meta: status,\n      regexMatchesMetaName,\n      ad_name_meta: adNameMeta\n    }\n  };\n});\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "baacf0cc-c10f-4100-9710-eb0e4b0a6ce4",
+      "name": "Evaluar Precheck Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "1e4a8adc-4f0a-400a-8014-d16e2f820867",
+                    "leftValue": "={{ String($json.precheck_state || '').trim().toLowerCase() }}",
+                    "rightValue": "ready_to_pause",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "a4013fec-d220-46ec-9e10-a7ffea195f9e",
+                    "leftValue": "={{ String($json.precheck_state || '').trim().toLowerCase() }}",
+                    "rightValue": "retry",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "f4232937-2a90-49ec-801b-9100e5b7cfec",
+                    "leftValue": "={{ String($json.precheck_state || '').trim().toLowerCase() }}",
+                    "rightValue": "not_actionable",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "12747da9-d550-46c4-890a-85c6320a47e6",
+                    "leftValue": "={{ String($json.precheck_state || '').trim().toLowerCase() }}",
+                    "rightValue": "failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "da47451a-91f7-497e-937e-5340861c5eb7",
+      "name": "Rutear Estado Precheck",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        2440,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "minutes"
+      },
+      "id": "d40c1c23-2674-4c30-acc8-6dcf4783eea3",
+      "name": "Wait 5m Precheck Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2440,
+        340
+      ],
+      "webhookId": "102699c9-1c7f-4e7f-9b5e-6f0eb820e564"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "36714951-a53f-4ef8-a2c1-98f84d620806",
+              "name": "pause_attempt",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "6a88e977-ed8a-4fcb-89ab-8f48416c712b",
+              "name": "pause_max_attempts",
+              "value": 3,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "ee344ad2-a69a-4591-bf3d-21feabe572f0",
+      "name": "Init Retry Pausa",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2680,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{'http://168.138.125.21.nip.io:5678/webhook/adskiller-local-meta-pause/meta/pause/' + $json.Ad_ID}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "8cd2113e-cfd5-43f0-974d-f313e2118a7c",
+      "name": "Meta - Pausar Ad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2920,
+        120
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "Kill-switch: pausa SOLO a nivel Ad."
+    },
+    {
+      "parameters": {
+        "jsCode": "function toFiniteNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\n\nreturn $input.all().map((item) => {\n  const raw = item.json || {};\n\n  const hasWrapper = Object.prototype.hasOwnProperty.call(raw, 'statusCode');\n  const statusFromWrapper = toFiniteNumber(raw.statusCode);\n  const statusFromCanonical = toFiniteNumber(raw.http_status);\n  const httpStatus = statusFromWrapper ?? statusFromCanonical ?? (hasWrapper ? 0 : 200);\n\n  const bodyCandidate = hasWrapper ? raw.body : (raw.http_body ?? raw);\n  const httpBody = bodyCandidate && typeof bodyCandidate === 'object' ? bodyCandidate : {};\n\n  const httpOk = httpStatus >= 200 && httpStatus < 300;\n  const retryable = [429, 500].includes(httpStatus);\n\n  return {\n    json: {\n      ...raw,\n      http_status: httpStatus,\n      http_body: httpBody,\n      http_ok: httpOk,\n      retryable,\n      statusCode: httpStatus,\n      body: httpBody\n    }\n  };\n});\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "8487140c-62d7-4333-943e-2ba98155f60a",
+      "name": "Normalizar HTTP Pausa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3160,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function getNodeJson(name, idx) {\n  try {\n    return $item(idx).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst inputItems = $input.all();\n\nreturn inputItems.map((inputItem, idx) => {\n  const response = inputItem.json || {};\n  const row = {\n    ...getNodeJson('Expand Vencidos', idx),\n    ...getNodeJson('Init Retry Pausa', idx),\n    ...getNodeJson('Wait 5m Pausa Retry', idx)\n  };\n\n  row.Contrato_ID = String(row.Contrato_ID || '').trim();\n\n  const attempt = Number(row.pause_attempt || 1);\n  const maxAttempts = Number(row.pause_max_attempts || 3);\n  const httpStatus = Number(response.http_status || 0);\n  const httpOk = Boolean(response.http_ok);\n  const retryable = Boolean(response.retryable);\n\n  if (httpOk) {\n    return {\n      json: {\n        ...row,\n        pause_state: 'success',\n        pause_status_code: httpStatus,\n        pause_http_ok: httpOk\n      }\n    };\n  }\n\n  if (retryable && attempt < maxAttempts) {\n    return {\n      json: {\n        ...row,\n        pause_attempt: attempt + 1,\n        pause_state: 'retry',\n        pause_status_code: httpStatus,\n        pause_http_ok: httpOk\n      }\n    };\n  }\n\n  return {\n    json: {\n      ...row,\n      pause_state: 'failed',\n      pause_status_code: httpStatus,\n      pause_http_ok: httpOk,\n      pause_reason: retryable ? 'retry_exhausted' : 'non_retryable_meta_response'\n    }\n  };\n});\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "ad0c25a1-863f-49b2-bed2-c1fbf8434705",
+      "name": "Evaluar Pausa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3400,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "a286ee98-0bd6-4f2c-92bd-cae17b2d3032",
+                    "leftValue": "={{ String($json.pause_state || '').trim().toLowerCase() }}",
+                    "rightValue": "success",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "bed2435a-628f-43fb-9812-995766aaac2e",
+                    "leftValue": "={{ String($json.pause_state || '').trim().toLowerCase() }}",
+                    "rightValue": "retry",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "7cf15c2e-1450-4bf6-84a2-768e22780eb5",
+                    "leftValue": "={{ String($json.pause_state || '').trim().toLowerCase() }}",
+                    "rightValue": "failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "83a94fed-6aa4-475a-8451-963d3e1e2c9a",
+      "name": "Rutear Resultado Pausa",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        3640,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function getNodeJson(name, idx) {\n  try {\n    return $item(idx).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst nowIso = $now.setZone('America/Argentina/Buenos_Aires').toISO();\nconst inputItems = $input.all();\n\nreturn inputItems.map((inputItem, idx) => {\n  const merged = {\n    ...getNodeJson('Expand Vencidos', idx),\n    ...getNodeJson('Init Retry Pausa', idx),\n    ...(inputItem.json || {})\n  };\n\n  const contratoId = String(merged.Contrato_ID || '').trim();\n\n  return {\n    json: {\n      ...merged,\n      Contrato_ID: contratoId,\n      Status_Contrato: 'Finalizado',\n      Fecha_Finalizacion: nowIso,\n      Updated_At: nowIso\n    }\n  };\n});\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "3b3bb406-4da2-4e8d-93f0-0a5f541c0f64",
+      "name": "Build Finalizado Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3880,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.pause_state}}",
+              "operation": "equal",
+              "value2": "success"
+            },
+            {
+              "value1": "={{String($json.Contrato_ID || '').trim()}}",
+              "operation": "notEmpty"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "10e358eb-4194-46ca-8142-37dd9be46038",
+      "name": "Finalizado Payload Valido",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4120,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "minutes"
+      },
+      "id": "86490c96-29d9-4e27-b150-d424d9646a97",
+      "name": "Wait 5m Pausa Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3640,
+        340
+      ],
+      "webhookId": "52f3fd56-305c-49f8-bfb7-003b22189540"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=Contratos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status_Contrato": "={{$json.Status_Contrato}}",
+            "Fecha_Finalizacion": "={{$json.Fecha_Finalizacion}}",
+            "Updated_At": "={{$json.Updated_At}}",
+            "row_number": 0,
+            "Contrato_ID": "={{$json.Contrato_ID}}"
+          },
+          "matchingColumns": [
+            "Contrato_ID"
+          ],
+          "schema": [
+            {
+              "id": "Contrato_ID",
+              "displayName": "Contrato_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Regex_Anuncio",
+              "displayName": "Regex_Anuncio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ad_ID",
+              "displayName": "Ad_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ad_Name",
+              "displayName": "Ad_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Alta",
+              "displayName": "Fecha_Alta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Fin",
+              "displayName": "Fecha_Fin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status_Contrato",
+              "displayName": "Status_Contrato",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notificado_Previo",
+              "displayName": "Notificado_Previo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Notificado_Previo",
+              "displayName": "Fecha_Notificado_Previo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Finalizacion",
+              "displayName": "Fecha_Finalizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Updated_At",
+              "displayName": "Updated_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false,
+          "valueToMatch": "={{$json.Contrato_ID}}"
+        },
+        "options": {}
+      },
+      "id": "5ddff62b-ff28-465c-8af9-43b9df0779cf",
+      "name": "Sheets - Marcar Finalizado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        4360,
+        120
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qIEJQ6Bbcg8r9QWG",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Regla de dominio: solo pasar a Finalizado si la pausa en Meta fue exitosa."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d196474d-a324-4c80-b061-6888b2f74703",
+              "name": "alert_severity",
+              "value": "CRITICAL",
+              "type": "string"
+            },
+            {
+              "id": "1fbc27de-85f5-4496-a55f-f98bd9933632",
+              "name": "alert_type",
+              "value": "EXPIRED_NOT_PAUSED_REGEX_MISMATCH",
+              "type": "string"
+            },
+            {
+              "id": "6985ff70-ed54-49c2-a27f-e1db822849c0",
+              "name": "message",
+              "value": "=Contrato {{$json.Contrato_ID}} vencido no elegible para pausa: regex no matchea nombre de anuncio en Sheet.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3bcb8c20-38b4-4ba7-ad8d-8b8f6699291f",
+      "name": "Alerta CrÃ­tica - Regex invÃ¡lido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1480,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fbd8ed4b-2e5b-4917-8de6-e4ff34aa8fcb",
+              "name": "alert_severity",
+              "value": "CRITICAL",
+              "type": "string"
+            },
+            {
+              "id": "a318500e-8dcf-4f06-ae7b-e55358f91b89",
+              "name": "alert_type",
+              "value": "EXPIRED_NOT_PAUSED_PRECHECK_FAILED",
+              "type": "string"
+            },
+            {
+              "id": "7db057a5-852d-497b-ab95-ee238ad79ca6",
+              "name": "message",
+              "value": "=Contrato {{$json.Contrato_ID}} vencido sin pausa: precheck Meta fallÃ³ tras {{$json.precheck_max_attempts}} intentos (Ãºltimo status {{$json.precheck_status_code}}).",
+              "type": "string"
+            },
+            {
+              "id": "78f308ec-586d-4e7f-9766-8ef7ded9a561",
+              "name": "Contrato_ID",
+              "value": "={{$json.Contrato_ID}}",
+              "type": "string"
+            },
+            {
+              "id": "2dd10b8c-1728-48ca-9346-3d241a86f48f",
+              "name": "Ad_ID",
+              "value": "={{$json.Ad_ID}}",
+              "type": "string"
+            },
+            {
+              "id": "873f23d2-7659-4cc3-accf-7768a314f472",
+              "name": "correlation_id",
+              "value": "={{$json.correlation_id}}",
+              "type": "string"
+            },
+            {
+              "id": "a8259ef8-6b22-4f31-bb58-10fb9030cddf",
+              "name": "run_mode",
+              "value": "={{$json.run_mode}}",
+              "type": "string"
+            },
+            {
+              "id": "66b1a27c-ff88-4df7-b267-d6575da2f4db",
+              "name": "attempts",
+              "value": "={{$json.precheck_attempt \n\n $json.pause_attempt \n\n 0}}",
+              "type": "string"
+            },
+            {
+              "id": "3360f5fa-5325-4721-abde-9029a0a67cd4",
+              "name": "max_attempts",
+              "value": "={{$json.precheck_max_attempts \n\n $json.pause_max_attempts \n\n 0}}",
+              "type": "string"
+            },
+            {
+              "id": "710ac233-0382-4050-b8c5-5da60c00a98b",
+              "name": "status_code",
+              "value": "={{$json.precheck_status_code \n\n $json.pause_status_code \n\n 0}}",
+              "type": "string"
+            },
+            {
+              "id": "5c1172c8-8003-426f-8b76-dd75e187e17d",
+              "name": "timestamp",
+              "value": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7e3d0b9f-7531-4a3e-83bf-816bef1a283c",
+      "name": "Alerta CrÃ­tica - Precheck fallido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2680,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5c7dbe49-c7df-4a82-8f55-bff7891e2d65",
+              "name": "alert_severity",
+              "value": "CRITICAL",
+              "type": "string"
+            },
+            {
+              "id": "c5ff70d7-ebea-4a84-a90d-8118f07ab9a0",
+              "name": "alert_type",
+              "value": "EXPIRED_NOT_PAUSED_RETRY_EXHAUSTED",
+              "type": "string"
+            },
+            {
+              "id": "11282ef7-7c77-4ee7-866e-5045f0fc4f96",
+              "name": "message",
+              "value": "=Contrato {{$json.Contrato_ID}} vencido sin pausa: Meta respondiÃ³ {{$json.pause_status_code}} y se agotaron retries (3x cada 5m).",
+              "type": "string"
+            },
+            {
+              "id": "636cc602-3de4-466d-aa6a-0b527d152cfb",
+              "name": "Contrato_ID",
+              "value": "={{$json.Contrato_ID}}",
+              "type": "string"
+            },
+            {
+              "id": "b9669e01-9ea5-4d55-b019-0f42aedd615a",
+              "name": "Ad_ID",
+              "value": "={{$json.Ad_ID}}",
+              "type": "string"
+            },
+            {
+              "id": "81f3902d-e5d2-407b-8367-17c50328126a",
+              "name": "correlation_id",
+              "value": "={{$json.correlation_id}}",
+              "type": "string"
+            },
+            {
+              "id": "748c3425-8177-49f1-aa32-a5f88180f9cf",
+              "name": "run_mode",
+              "value": "={{$json.run_mode}}",
+              "type": "string"
+            },
+            {
+              "id": "7b0436d1-8b39-49d6-afe4-327bad778731",
+              "name": "attempts",
+              "value": "={{$json.precheck_attempt \n\n $json.pause_attempt \n\n 0}}",
+              "type": "string"
+            },
+            {
+              "id": "c3a7fc09-a72d-4744-9654-2877c436b14c",
+              "name": "max_attempts",
+              "value": "={{$json.precheck_max_attempts \n\n $json.pause_max_attempts \n\n 0}}",
+              "type": "string"
+            },
+            {
+              "id": "191b6fea-a5fc-43b1-8fd7-677ec867b175",
+              "name": "status_code",
+              "value": "={{$json.precheck_status_code \n\n $json.pause_status_code \n\n 0}}",
+              "type": "string"
+            },
+            {
+              "id": "a66c6d20-61c2-46eb-9d24-97e09a555918",
+              "name": "timestamp",
+              "value": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f20ee737-d32c-4289-848a-929fc03a8f42",
+      "name": "Alerta CrÃ­tica - Pausa fallida",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4120,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://168.138.125.21.nip.io:5678/webhook/mock/alerts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "7e866d66-ad16-452d-a1b7-d436bfae0a4f",
+      "name": "Emitir Alerta CrÃ­tica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4360,
+        620
+      ],
+      "notes": "Canal Ãºnico MVP para severidad CRITICAL."
+    },
+    {
+      "parameters": {
+        "errorMessage": "={{'AdsKiller CRITICAL: anuncio vencido no pausado. Contrato ' + ($item(0).$node[\"Alerta CrÃ­tica - Pausa fallida\"].json.Contrato_ID || 'N/A') + ', Ad ' + ($item(0).$node[\"Alerta CrÃ­tica - Pausa fallida\"].json.Ad_ID || 'N/A') + ', tipo ' + ($item(0).$node[\"Alerta CrÃ­tica - Pausa fallida\"].json.alert_type || 'N/A')}}"
+      },
+      "id": "ace071c0-8260-487f-9112-5b0edca357ab",
+      "name": "Stop and Error - Escalar Incidente",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        4600,
+        620
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        520
+      ],
+      "id": "94d508cc-f783-4929-882f-772609815dd5",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0f22d187-d9c5-4c5d-80a6-25bac56170e6",
+              "leftValue": "={{$json.statusCode >= 200 && $json.statusCode < 300}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1720,
+        -300
+      ],
+      "id": "70f666d6-68fe-4565-b86d-f13397571810",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1960,
+        -300
+      ],
+      "id": "35e3addd-9421-41ac-bba5-3bd024cea5dc",
+      "name": "Merge"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1960,
+        -460
+      ],
+      "id": "3e8fb544-7534-4426-8eb5-963c8ddb4921",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4ff45eb3-589f-4d2e-9025-6dd2fca9d3b5",
+              "name": "alert_severity",
+              "value": "WARNING",
+              "type": "string"
+            },
+            {
+              "id": "31f6397b-4ca6-4385-8e55-b96685541595",
+              "name": "alert_type",
+              "value": "PREVENTIVE_48H",
+              "type": "string"
+            },
+            {
+              "id": "53ab40f3-74f1-4ff4-ac94-566acb4c3528",
+              "name": "message",
+              "value": "=Contrato {{$json.Contrato_ID}} entra en ventana preventiva de 48h para anuncio {{$json.Ad_ID}}.",
+              "type": "string"
+            },
+            {
+              "id": "cc783101-17e3-4a04-b92d-ee6748d6d840",
+              "name": "Contrato_ID",
+              "value": "={{$json.Contrato_ID}}",
+              "type": "string"
+            },
+            {
+              "id": "8993e5d9-f5e9-4eb7-b585-c4ac7d2fcdce",
+              "name": "Ad_ID",
+              "value": "={{$json.Ad_ID}}",
+              "type": "string"
+            },
+            {
+              "id": "a95e6e71-0cd2-442a-a31d-dc55182f5936",
+              "name": "run_mode",
+              "value": "={{$json.run_mode}}",
+              "type": "string"
+            },
+            {
+              "id": "4d3cfea4-fe27-49db-ba3e-a8e9d33cc344",
+              "name": "correlation_id",
+              "value": "={{$json.correlation_id}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "22aaf72f-a7f7-458b-8231-a2ae87be1270",
+      "name": "Payload Alerta Preventiva",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1240,
+        -300
+      ]
+    }
+  ],
+  "connections": {
+    "Cron Diario 00:01": {
+      "main": [
+        [
+          {
+            "node": "Contexto Scheduled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Manual On-Demand": {
+      "main": [
+        [
+          {
+            "node": "Contexto Manual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contexto Scheduled": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Leer Contratos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contexto Manual": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Leer Contratos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Leer Contratos": {
+      "main": [
+        [
+          {
+            "node": "Clasificar Contratos (Activo / 48h / Vencido)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar Contratos (Activo / 48h / Vencido)": {
+      "main": [
+        [
+          {
+            "node": "Expand Preventiva",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Expand Vencidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Preventiva": {
+      "main": [
+        [
+          {
+            "node": "Payload Alerta Preventiva",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Vencidos": {
+      "main": [
+        [
+          {
+            "node": "Regex Coincide con Nombre (Sheet)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emitir Alerta Operativa": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Regex Coincide con Nombre (Sheet)": {
+      "main": [
+        [
+          {
+            "node": "Init Retry Precheck",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta CrÃ­tica - Regex invÃ¡lido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Retry Precheck": {
+      "main": [
+        [
+          {
+            "node": "Meta - Precheck Estado Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta - Precheck Estado Ad": {
+      "main": [
+        [
+          {
+            "node": "Normalizar HTTP Precheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar Precheck Meta": {
+      "main": [
+        [
+          {
+            "node": "Rutear Estado Precheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5m Precheck Retry": {
+      "main": [
+        [
+          {
+            "node": "Meta - Precheck Estado Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Retry Pausa": {
+      "main": [
+        [
+          {
+            "node": "Meta - Pausar Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta - Pausar Ad": {
+      "main": [
+        [
+          {
+            "node": "Normalizar HTTP Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar Pausa": {
+      "main": [
+        [
+          {
+            "node": "Rutear Resultado Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rutear Resultado Pausa": {
+      "main": [
+        [
+          {
+            "node": "Build Finalizado Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 5m Pausa Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta CrÃ­tica - Pausa fallida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Finalizado Payload": {
+      "main": [
+        [
+          {
+            "node": "Finalizado Payload Valido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalizado Payload Valido": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Marcar Finalizado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta CrÃ­tica - Pausa fallida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5m Pausa Retry": {
+      "main": [
+        [
+          {
+            "node": "Meta - Pausar Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta CrÃ­tica - Regex invÃ¡lido": {
+      "main": [
+        [
+          {
+            "node": "Emitir Alerta CrÃ­tica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta CrÃ­tica - Precheck fallido": {
+      "main": [
+        [
+          {
+            "node": "Emitir Alerta CrÃ­tica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta CrÃ­tica - Pausa fallida": {
+      "main": [
+        [
+          {
+            "node": "Emitir Alerta CrÃ­tica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emitir Alerta CrÃ­tica": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error - Escalar Incidente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rutear Estado Precheck": {
+      "main": [
+        [
+          {
+            "node": "Init Retry Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 5m Precheck Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta CrÃ­tica - Precheck fallido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar HTTP Precheck": {
+      "main": [
+        [
+          {
+            "node": "Evaluar Precheck Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar HTTP Pausa": {
+      "main": [
+        [
+          {
+            "node": "Evaluar Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Marcar Notificado_Previo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload Alerta Preventiva": {
+      "main": [
+        [
+          {
+            "node": "Emitir Alerta Operativa",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "6ecb5f91-af82-44dd-863e-ba11fa44a15b",
+  "activeVersionId": "6ecb5f91-af82-44dd-863e-ba11fa44a15b",
+  "versionCounter": 562,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-06T04:02:16.953Z",
+      "createdAt": "2026-04-06T04:02:16.953Z",
+      "role": "workflow:owner",
+      "workflowId": "8mlwAxLtJVrwpLhi",
+      "projectId": "Z0pgCY9RJ5VJF6JD",
+      "project": {
+        "updatedAt": "2026-03-13T00:12:04.657Z",
+        "createdAt": "2026-03-13T00:09:47.440Z",
+        "id": "Z0pgCY9RJ5VJF6JD",
+        "name": "Alexander Villa <alexandervilla.cuenta@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-15T14:04:37.835Z",
+    "createdAt": "2026-04-15T14:04:37.835Z",
+    "versionId": "6ecb5f91-af82-44dd-863e-ba11fa44a15b",
+    "workflowId": "8mlwAxLtJVrwpLhi",
+    "nodes": [
+      {
+        "parameters": {
+          "triggerTimes": {
+            "item": [
+              {
+                "mode": "custom",
+                "cronExpression": "1 0 * * *"
+              }
+            ]
+          }
+        },
+        "id": "712bba43-cd97-46c3-9455-41152512b137",
+        "name": "Cron Diario 00:01",
+        "type": "n8n-nodes-base.cron",
+        "typeVersion": 1,
+        "position": [
+          0,
+          -160
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "49fe0038-8b92-4214-be14-79e46158f75a",
+        "name": "Trigger Manual On-Demand",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { run_mode: 'scheduled' } }];"
+        },
+        "id": "59a6f606-1be2-4da0-91cf-27d9fdadfcd6",
+        "name": "Contexto Scheduled",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          240,
+          -160
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { run_mode: 'manual' } }];"
+        },
+        "id": "d421319a-abcf-467f-bf2c-1d99539043a0",
+        "name": "Contexto Manual",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          240,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "=Contratos",
+            "mode": "name"
+          },
+          "options": {}
+        },
+        "id": "70ed9a52-c2ef-4b38-bbd8-1a3f0001a602",
+        "name": "Sheets - Leer Contratos",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          480,
+          -80
+        ],
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "qIEJQ6Bbcg8r9QWG",
+            "name": "Google Sheets account"
+          }
+        },
+        "notes": "Fuente Ãºnica de contratos. Se esperan columnas: Contrato_ID, Status_Contrato, Fecha_Fin (YYYY-MM-DD), Ad_ID, Ad_Name, Regex_Anuncio, Notificado_Previo."
+      },
+      {
+        "parameters": {
+          "jsCode": "const TZ = 'America/Argentina/Buenos_Aires';\n\nfunction parseYMD(value) {\n  if (!value || typeof value !== 'string') return null;\n  const m = value.trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (!m) return null;\n  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);\n}\n\nfunction nowInTimezone(timeZone) {\n  return new Date(new Date().toLocaleString('en-US', { timeZone }));\n}\n\nfunction startOfDay(d) {\n  const x = new Date(d);\n  x.setHours(0, 0, 0, 0);\n  return x;\n}\n\nfunction daysBetween(a, b) {\n  const ms = 24 * 60 * 60 * 1000;\n  return Math.floor((b.getTime() - a.getTime()) / ms);\n}\n\nfunction toBool(v) {\n  if (typeof v === 'boolean') return v;\n  if (typeof v === 'number') return v !== 0;\n  if (typeof v !== 'string') return false;\n  return ['true', '1', 'si', 'sÃ­', 'yes', 'y', 'x'].includes(v.trim().toLowerCase());\n}\n\nfunction buildRegex(pattern, fallbackName) {\n  if (pattern && typeof pattern === 'string') {\n    try {\n      return new RegExp(pattern, 'i');\n    } catch (_) {}\n  }\n\n  const safe = String(fallbackName || '')\n    .trim()\n    .replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')\n    .replace(/\\s+/g, '.*');\n\n  return safe ? new RegExp(safe, 'i') : null;\n}\n\nconst today = startOfDay(nowInTimezone(TZ));\nconst runMode = $input.first()?.json?.run_mode || 'scheduled';\nconst runCorrelation = `ak-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;\n\nconst actionable = [];\n\nfor (const item of items) {\n  const row = item.json;\n  const status = String(row.Status_Contrato || '').trim().toLowerCase();\n  const isActiveContract = ['activo', 'active', 'activa'].includes(status);\n  if (!isActiveContract) continue;\n\n  const endDate = parseYMD(row.Fecha_Fin);\n  if (!endDate) continue;\n\n  const diffDays = daysBetween(today, endDate);\n  const isExpired = diffDays < 0;\n  const isPreventiveWindow = diffDays >= 0 && diffDays <= 2;\n  const alreadyNotified = toBool(row.Notificado_Previo);\n\n  const adName = String(row.Ad_Name || row.Ad_Name_Meta || row.Nombre_Anuncio || '').trim();\n  const regex = buildRegex(row.Regex_Anuncio || row.Regex_Anuncio, adName);\n  const regexMatchesSheetName = regex ? regex.test(adName) : false;\n\n  let controlType = null;\n  if (isExpired) controlType = 'expired';\n  if (isPreventiveWindow && !alreadyNotified) controlType = 'preventive';\n\n  if (!controlType) continue;\n\n  actionable.push({\n    json: {\n      ...row,\n      run_mode: runMode,\n      correlation_id: runCorrelation,\n      control_type: controlType,\n      days_to_end: diffDays,\n      timezone: TZ,\n      regex_pattern: regex ? regex.source : null,\n      regexMatchesSheetName\n    }\n  });\n}\n\nreturn actionable;"
+        },
+        "id": "e36b8d4e-31e3-4e3f-8dca-e0359ca625f5",
+        "name": "Clasificar Contratos (Activo / 48h / Vencido)",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          760,
+          -80
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "function normalize(row, fallback = {}) {\n  const normalized = { ...row };\n  normalized.Contrato_ID = String(normalized.Contrato_ID ?? fallback.Contrato_ID ?? '').trim();\n  normalized.Fecha_Fin = String(normalized.Fecha_Fin ?? fallback.Fecha_Fin ?? '').trim();\n\n  const regexCanon = String(normalized.Regex_Anuncio ?? normalized.regex_pattern ?? fallback.Regex_Anuncio ?? fallback.regex_pattern ?? '').trim();\n  normalized.Regex_Anuncio = regexCanon;\n  normalized.regex_pattern = String(normalized.regex_pattern ?? regexCanon).trim();\n\n  return normalized;\n}\n\nconst expanded = [];\nfor (const item of items) {\n  const source = item.json ?? {};\n  const preventiva = Array.isArray(source.preventiva) ? source.preventiva : [];\n\n  if (preventiva.length > 0) {\n    for (const row of preventiva) {\n      if (!row || typeof row !== 'object') continue;\n      expanded.push({ json: normalize(row, source) });\n    }\n    continue;\n  }\n\n  if (String(source.control_type || '').toLowerCase() === 'preventive') {\n    expanded.push({ json: normalize(source, source) });\n  }\n}\n\nreturn expanded;"
+        },
+        "id": "cd0b262a-273b-40d4-ad16-07a77e61b0fb",
+        "name": "Expand Preventiva",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1000,
+          -300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "function normalize(row, fallback = {}) {\n  const normalized = { ...row };\n  normalized.Contrato_ID = String(normalized.Contrato_ID ?? fallback.Contrato_ID ?? '').trim();\n  normalized.Fecha_Fin = String(normalized.Fecha_Fin ?? fallback.Fecha_Fin ?? '').trim();\n\n  const regexCanon = String(normalized.Regex_Anuncio ?? normalized.regex_pattern ?? fallback.Regex_Anuncio ?? fallback.regex_pattern ?? '').trim();\n  normalized.Regex_Anuncio = regexCanon;\n  normalized.regex_pattern = String(normalized.regex_pattern ?? regexCanon).trim();\n\n  return normalized;\n}\n\nconst expanded = [];\nfor (const item of items) {\n  const source = item.json ?? {};\n  const vencidos = Array.isArray(source.vencidos) ? source.vencidos : [];\n\n  if (vencidos.length > 0) {\n    for (const row of vencidos) {\n      if (!row || typeof row !== 'object') continue;\n      expanded.push({ json: normalize(row, source) });\n    }\n    continue;\n  }\n\n  if (String(source.control_type || '').toLowerCase() === 'expired') {\n    expanded.push({ json: normalize(source, source) });\n  }\n}\n\nreturn expanded;"
+        },
+        "id": "b1ff90da-f910-4b85-9486-f920fda8dd87",
+        "name": "Expand Vencidos",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1000,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "=http://168.138.125.21.nip.io:5678/webhook/mock/alerts",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{$json}}",
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": true
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        "id": "e5da6bfa-d6d7-419c-8d3f-3a33ab278f34",
+        "name": "Emitir Alerta Operativa",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1480,
+          -300
+        ],
+        "notes": "Canal Ãºnico de alertas en MVP (sin fallback Slack/Telegram)."
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "documentId": {
+            "__rl": true,
+            "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "=Contratos",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "row_number": 0,
+              "Contrato_ID": "={{$json.Contrato_ID}}",
+              "Ad_ID": "={{ $json.Ad_ID }}",
+              "Notificado_Previo": "TRUE",
+              "Fecha_Notificado_Previo": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}",
+              "Updated_At": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}"
+            },
+            "matchingColumns": [
+              "Contrato_ID"
+            ],
+            "schema": [
+              {
+                "id": "Contrato_ID",
+                "displayName": "Contrato_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Cliente",
+                "displayName": "Cliente",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Regex_Anuncio",
+                "displayName": "Regex_Anuncio",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Ad_ID",
+                "displayName": "Ad_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Ad_Name",
+                "displayName": "Ad_Name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Alta",
+                "displayName": "Fecha_Alta",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Fin",
+                "displayName": "Fecha_Fin",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Status_Contrato",
+                "displayName": "Status_Contrato",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Notificado_Previo",
+                "displayName": "Notificado_Previo",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Notificado_Previo",
+                "displayName": "Fecha_Notificado_Previo",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Finalizacion",
+                "displayName": "Fecha_Finalizacion",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Updated_At",
+                "displayName": "Updated_At",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "row_number",
+                "displayName": "row_number",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true,
+                "readOnly": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "id": "9e200fbf-0050-457f-bd49-c73766c61d46",
+        "name": "Sheets - Marcar Notificado_Previo",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          2200,
+          -300
+        ],
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "qIEJQ6Bbcg8r9QWG",
+            "name": "Google Sheets account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{$json.regexMatchesSheetName}}",
+                "value2": true
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "18b5dc8b-d51e-4367-bab4-f0c7577ee5f5",
+        "name": "Regex Coincide con Nombre (Sheet)",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1240,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "92e6e644-9bf2-4f5f-80f2-4cb932e78687",
+                "name": "precheck_attempt",
+                "value": 1,
+                "type": "number"
+              },
+              {
+                "id": "f7edfd6e-15ab-4294-bf87-2df4eb8746ff",
+                "name": "precheck_max_attempts",
+                "value": 3,
+                "type": "number"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        },
+        "id": "0990e02a-4f15-4c57-a2d9-04efe0d0e1c1",
+        "name": "Init Retry Precheck",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1480,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "url": "={{ 'http://168.138.125.21.nip.io:5678/webhook/adskiller-local-meta-precheck/meta/precheck/' + $json.Ad_ID }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "name",
+                "value": "={{$json.Ad_Name}}"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": true,
+                "neverError": true,
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        "id": "996ef569-eca9-428c-9bd5-6b0c3b5904d2",
+        "name": "Meta - Precheck Estado Ad",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1720,
+          120
+        ],
+        "notes": "Pre-check: continuar solo si Meta devuelve ACTIVE y nombre matchea regex case-insensitive."
+      },
+      {
+        "parameters": {
+          "jsCode": "function toFiniteNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\nreturn $input.all().map((item) => {\n  const raw = item.json ?? {};\n  const hasWrapper = Object.prototype.hasOwnProperty.call(raw, 'statusCode');\n  const statusFromWrapper = toFiniteNumber(raw.statusCode);\n  const statusFromCanonical = toFiniteNumber(raw.http_status);\n  const httpStatus = statusFromWrapper ?? statusFromCanonical ?? (hasWrapper ? 0 : 200);\n  const bodyCandidate = hasWrapper ? raw.body : (raw.http_body ?? raw);\n  const httpBody = bodyCandidate && typeof bodyCandidate === 'object' ? bodyCandidate : {};\n  const httpOk = httpStatus >= 200 && httpStatus < 300;\n  const retryable = [429, 500].includes(httpStatus);\n  return {\n    json: {\n      ...raw,\n      http_status: httpStatus,\n      http_body: httpBody,\n      http_ok: httpOk,\n      retryable,\n      statusCode: httpStatus,\n      body: httpBody\n    }\n  };\n});"
+        },
+        "id": "1dd56036-37db-4f5f-af9a-3c1221608f28",
+        "name": "Normalizar HTTP Precheck",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1960,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "function getNodeJson(name, idx) {\n  try {\n    return $item(idx).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst inputItems = $input.all();\n\nreturn inputItems.map((inputItem, idx) => {\n  const response = inputItem.json || {};\n  const row = {\n    ...getNodeJson('Expand Vencidos', idx),\n    ...getNodeJson('Init Retry Precheck', idx),\n    ...getNodeJson('Wait 5m Precheck Retry', idx)\n  };\n\n  row.Contrato_ID = String(row.Contrato_ID || '').trim();\n  row.regex_pattern = String(row.regex_pattern || row.Regex_Anuncio || '').trim();\n\n  const attempt = Number(row.precheck_attempt || 1);\n  const maxAttempts = Number(row.precheck_max_attempts || 3);\n  const httpStatus = Number(response.http_status || 0);\n  const httpBody = response.http_body && typeof response.http_body === 'object' ? response.http_body : {};\n  const httpOk = Boolean(response.http_ok);\n  const retryable = Boolean(response.retryable);\n\n  if (retryable && attempt < maxAttempts) {\n    return {\n      json: {\n        ...row,\n        precheck_attempt: attempt + 1,\n        precheck_state: 'retry',\n        precheck_status_code: httpStatus,\n        precheck_http_ok: httpOk\n      }\n    };\n  }\n\n  if (!httpOk) {\n    return {\n      json: {\n        ...row,\n        precheck_state: 'failed',\n        precheck_status_code: httpStatus,\n        precheck_http_ok: httpOk,\n        precheck_reason: 'meta_precheck_non_2xx'\n      }\n    };\n  }\n\n  const adNameMeta = String(httpBody.name || '').trim();\n  const regexPattern = row.regex_pattern;\n  let regexMatchesMetaName = false;\n  try {\n    regexMatchesMetaName = !!regexPattern && new RegExp(regexPattern, 'i').test(adNameMeta);\n  } catch (_) {\n    regexMatchesMetaName = false;\n  }\n\n  const status = String(httpBody.status || httpBody.effective_status || '').toUpperCase();\n  const isActive = status === 'ACTIVE';\n\n  if (!isActive || !regexMatchesMetaName) {\n    return {\n      json: {\n        ...row,\n        precheck_state: 'not_actionable',\n        precheck_status_code: httpStatus,\n        precheck_http_ok: httpOk,\n        ad_status_meta: status || 'UNKNOWN',\n        regexMatchesMetaName,\n        ad_name_meta: adNameMeta\n      }\n    };\n  }\n\n  return {\n    json: {\n      ...row,\n      precheck_state: 'ready_to_pause',\n      precheck_status_code: httpStatus,\n      precheck_http_ok: httpOk,\n      ad_status_meta: status,\n      regexMatchesMetaName,\n      ad_name_meta: adNameMeta\n    }\n  };\n});\n",
+          "mode": "runOnceForAllItems"
+        },
+        "id": "baacf0cc-c10f-4100-9710-eb0e4b0a6ce4",
+        "name": "Evaluar Precheck Meta",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2200,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "id": "1e4a8adc-4f0a-400a-8014-d16e2f820867",
+                      "leftValue": "={{ String($json.precheck_state || '').trim().toLowerCase() }}",
+                      "rightValue": "ready_to_pause",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "id": "a4013fec-d220-46ec-9e10-a7ffea195f9e",
+                      "leftValue": "={{ String($json.precheck_state || '').trim().toLowerCase() }}",
+                      "rightValue": "retry",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals",
+                        "name": "filter.operator.equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "id": "f4232937-2a90-49ec-801b-9100e5b7cfec",
+                      "leftValue": "={{ String($json.precheck_state || '').trim().toLowerCase() }}",
+                      "rightValue": "not_actionable",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals",
+                        "name": "filter.operator.equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "id": "12747da9-d550-46c4-890a-85c6320a47e6",
+                      "leftValue": "={{ String($json.precheck_state || '').trim().toLowerCase() }}",
+                      "rightValue": "failed",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals",
+                        "name": "filter.operator.equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "da47451a-91f7-497e-937e-5340861c5eb7",
+        "name": "Rutear Estado Precheck",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3,
+        "position": [
+          2440,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "amount": 5,
+          "unit": "minutes"
+        },
+        "id": "d40c1c23-2674-4c30-acc8-6dcf4783eea3",
+        "name": "Wait 5m Precheck Retry",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          2440,
+          340
+        ],
+        "webhookId": "102699c9-1c7f-4e7f-9b5e-6f0eb820e564"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "36714951-a53f-4ef8-a2c1-98f84d620806",
+                "name": "pause_attempt",
+                "value": 1,
+                "type": "number"
+              },
+              {
+                "id": "6a88e977-ed8a-4fcb-89ab-8f48416c712b",
+                "name": "pause_max_attempts",
+                "value": 3,
+                "type": "number"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        },
+        "id": "ee344ad2-a69a-4591-bf3d-21feabe572f0",
+        "name": "Init Retry Pausa",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          2680,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{'http://168.138.125.21.nip.io:5678/webhook/adskiller-local-meta-pause/meta/pause/' + $json.Ad_ID}}",
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": []
+          },
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": true,
+                "neverError": true,
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        "id": "8cd2113e-cfd5-43f0-974d-f313e2118a7c",
+        "name": "Meta - Pausar Ad",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2920,
+          120
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Kill-switch: pausa SOLO a nivel Ad."
+      },
+      {
+        "parameters": {
+          "jsCode": "function toFiniteNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\n\nreturn $input.all().map((item) => {\n  const raw = item.json || {};\n\n  const hasWrapper = Object.prototype.hasOwnProperty.call(raw, 'statusCode');\n  const statusFromWrapper = toFiniteNumber(raw.statusCode);\n  const statusFromCanonical = toFiniteNumber(raw.http_status);\n  const httpStatus = statusFromWrapper ?? statusFromCanonical ?? (hasWrapper ? 0 : 200);\n\n  const bodyCandidate = hasWrapper ? raw.body : (raw.http_body ?? raw);\n  const httpBody = bodyCandidate && typeof bodyCandidate === 'object' ? bodyCandidate : {};\n\n  const httpOk = httpStatus >= 200 && httpStatus < 300;\n  const retryable = [429, 500].includes(httpStatus);\n\n  return {\n    json: {\n      ...raw,\n      http_status: httpStatus,\n      http_body: httpBody,\n      http_ok: httpOk,\n      retryable,\n      statusCode: httpStatus,\n      body: httpBody\n    }\n  };\n});\n",
+          "mode": "runOnceForAllItems"
+        },
+        "id": "8487140c-62d7-4333-943e-2ba98155f60a",
+        "name": "Normalizar HTTP Pausa",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3160,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "function getNodeJson(name, idx) {\n  try {\n    return $item(idx).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst inputItems = $input.all();\n\nreturn inputItems.map((inputItem, idx) => {\n  const response = inputItem.json || {};\n  const row = {\n    ...getNodeJson('Expand Vencidos', idx),\n    ...getNodeJson('Init Retry Pausa', idx),\n    ...getNodeJson('Wait 5m Pausa Retry', idx)\n  };\n\n  row.Contrato_ID = String(row.Contrato_ID || '').trim();\n\n  const attempt = Number(row.pause_attempt || 1);\n  const maxAttempts = Number(row.pause_max_attempts || 3);\n  const httpStatus = Number(response.http_status || 0);\n  const httpOk = Boolean(response.http_ok);\n  const retryable = Boolean(response.retryable);\n\n  if (httpOk) {\n    return {\n      json: {\n        ...row,\n        pause_state: 'success',\n        pause_status_code: httpStatus,\n        pause_http_ok: httpOk\n      }\n    };\n  }\n\n  if (retryable && attempt < maxAttempts) {\n    return {\n      json: {\n        ...row,\n        pause_attempt: attempt + 1,\n        pause_state: 'retry',\n        pause_status_code: httpStatus,\n        pause_http_ok: httpOk\n      }\n    };\n  }\n\n  return {\n    json: {\n      ...row,\n      pause_state: 'failed',\n      pause_status_code: httpStatus,\n      pause_http_ok: httpOk,\n      pause_reason: retryable ? 'retry_exhausted' : 'non_retryable_meta_response'\n    }\n  };\n});\n",
+          "mode": "runOnceForAllItems"
+        },
+        "id": "ad0c25a1-863f-49b2-bed2-c1fbf8434705",
+        "name": "Evaluar Pausa",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3400,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "id": "a286ee98-0bd6-4f2c-92bd-cae17b2d3032",
+                      "leftValue": "={{ String($json.pause_state || '').trim().toLowerCase() }}",
+                      "rightValue": "success",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals",
+                        "name": "filter.operator.equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "id": "bed2435a-628f-43fb-9812-995766aaac2e",
+                      "leftValue": "={{ String($json.pause_state || '').trim().toLowerCase() }}",
+                      "rightValue": "retry",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals",
+                        "name": "filter.operator.equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "id": "7cf15c2e-1450-4bf6-84a2-768e22780eb5",
+                      "leftValue": "={{ String($json.pause_state || '').trim().toLowerCase() }}",
+                      "rightValue": "failed",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals",
+                        "name": "filter.operator.equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "83a94fed-6aa4-475a-8451-963d3e1e2c9a",
+        "name": "Rutear Resultado Pausa",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3,
+        "position": [
+          3640,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "function getNodeJson(name, idx) {\n  try {\n    return $item(idx).$node[name].json || {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst nowIso = $now.setZone('America/Argentina/Buenos_Aires').toISO();\nconst inputItems = $input.all();\n\nreturn inputItems.map((inputItem, idx) => {\n  const merged = {\n    ...getNodeJson('Expand Vencidos', idx),\n    ...getNodeJson('Init Retry Pausa', idx),\n    ...(inputItem.json || {})\n  };\n\n  const contratoId = String(merged.Contrato_ID || '').trim();\n\n  return {\n    json: {\n      ...merged,\n      Contrato_ID: contratoId,\n      Status_Contrato: 'Finalizado',\n      Fecha_Finalizacion: nowIso,\n      Updated_At: nowIso\n    }\n  };\n});\n",
+          "mode": "runOnceForAllItems"
+        },
+        "id": "3b3bb406-4da2-4e8d-93f0-0a5f541c0f64",
+        "name": "Build Finalizado Payload",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3880,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "={{$json.pause_state}}",
+                "operation": "equal",
+                "value2": "success"
+              },
+              {
+                "value1": "={{String($json.Contrato_ID || '').trim()}}",
+                "operation": "notEmpty"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "10e358eb-4194-46ca-8142-37dd9be46038",
+        "name": "Finalizado Payload Valido",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          4120,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "amount": 5,
+          "unit": "minutes"
+        },
+        "id": "86490c96-29d9-4e27-b150-d424d9646a97",
+        "name": "Wait 5m Pausa Retry",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          3640,
+          340
+        ],
+        "webhookId": "52f3fd56-305c-49f8-bfb7-003b22189540"
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "documentId": {
+            "__rl": true,
+            "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "=Contratos",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Status_Contrato": "={{$json.Status_Contrato}}",
+              "Fecha_Finalizacion": "={{$json.Fecha_Finalizacion}}",
+              "Updated_At": "={{$json.Updated_At}}",
+              "row_number": 0,
+              "Contrato_ID": "={{$json.Contrato_ID}}"
+            },
+            "matchingColumns": [
+              "Contrato_ID"
+            ],
+            "schema": [
+              {
+                "id": "Contrato_ID",
+                "displayName": "Contrato_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Cliente",
+                "displayName": "Cliente",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Regex_Anuncio",
+                "displayName": "Regex_Anuncio",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Ad_ID",
+                "displayName": "Ad_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Ad_Name",
+                "displayName": "Ad_Name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Alta",
+                "displayName": "Fecha_Alta",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Fin",
+                "displayName": "Fecha_Fin",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Status_Contrato",
+                "displayName": "Status_Contrato",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Notificado_Previo",
+                "displayName": "Notificado_Previo",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Notificado_Previo",
+                "displayName": "Fecha_Notificado_Previo",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Finalizacion",
+                "displayName": "Fecha_Finalizacion",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Updated_At",
+                "displayName": "Updated_At",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "row_number",
+                "displayName": "row_number",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true,
+                "readOnly": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false,
+            "valueToMatch": "={{$json.Contrato_ID}}"
+          },
+          "options": {}
+        },
+        "id": "5ddff62b-ff28-465c-8af9-43b9df0779cf",
+        "name": "Sheets - Marcar Finalizado",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          4360,
+          120
+        ],
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "qIEJQ6Bbcg8r9QWG",
+            "name": "Google Sheets account"
+          }
+        },
+        "notes": "Regla de dominio: solo pasar a Finalizado si la pausa en Meta fue exitosa."
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "d196474d-a324-4c80-b061-6888b2f74703",
+                "name": "alert_severity",
+                "value": "CRITICAL",
+                "type": "string"
+              },
+              {
+                "id": "1fbc27de-85f5-4496-a55f-f98bd9933632",
+                "name": "alert_type",
+                "value": "EXPIRED_NOT_PAUSED_REGEX_MISMATCH",
+                "type": "string"
+              },
+              {
+                "id": "6985ff70-ed54-49c2-a27f-e1db822849c0",
+                "name": "message",
+                "value": "=Contrato {{$json.Contrato_ID}} vencido no elegible para pausa: regex no matchea nombre de anuncio en Sheet.",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "3bcb8c20-38b4-4ba7-ad8d-8b8f6699291f",
+        "name": "Alerta CrÃ­tica - Regex invÃ¡lido",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1480,
+          620
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "fbd8ed4b-2e5b-4917-8de6-e4ff34aa8fcb",
+                "name": "alert_severity",
+                "value": "CRITICAL",
+                "type": "string"
+              },
+              {
+                "id": "a318500e-8dcf-4f06-ae7b-e55358f91b89",
+                "name": "alert_type",
+                "value": "EXPIRED_NOT_PAUSED_PRECHECK_FAILED",
+                "type": "string"
+              },
+              {
+                "id": "7db057a5-852d-497b-ab95-ee238ad79ca6",
+                "name": "message",
+                "value": "=Contrato {{$json.Contrato_ID}} vencido sin pausa: precheck Meta fallÃ³ tras {{$json.precheck_max_attempts}} intentos (Ãºltimo status {{$json.precheck_status_code}}).",
+                "type": "string"
+              },
+              {
+                "id": "78f308ec-586d-4e7f-9766-8ef7ded9a561",
+                "name": "Contrato_ID",
+                "value": "={{$json.Contrato_ID}}",
+                "type": "string"
+              },
+              {
+                "id": "2dd10b8c-1728-48ca-9346-3d241a86f48f",
+                "name": "Ad_ID",
+                "value": "={{$json.Ad_ID}}",
+                "type": "string"
+              },
+              {
+                "id": "873f23d2-7659-4cc3-accf-7768a314f472",
+                "name": "correlation_id",
+                "value": "={{$json.correlation_id}}",
+                "type": "string"
+              },
+              {
+                "id": "a8259ef8-6b22-4f31-bb58-10fb9030cddf",
+                "name": "run_mode",
+                "value": "={{$json.run_mode}}",
+                "type": "string"
+              },
+              {
+                "id": "66b1a27c-ff88-4df7-b267-d6575da2f4db",
+                "name": "attempts",
+                "value": "={{$json.precheck_attempt \n\n $json.pause_attempt \n\n 0}}",
+                "type": "string"
+              },
+              {
+                "id": "3360f5fa-5325-4721-abde-9029a0a67cd4",
+                "name": "max_attempts",
+                "value": "={{$json.precheck_max_attempts \n\n $json.pause_max_attempts \n\n 0}}",
+                "type": "string"
+              },
+              {
+                "id": "710ac233-0382-4050-b8c5-5da60c00a98b",
+                "name": "status_code",
+                "value": "={{$json.precheck_status_code \n\n $json.pause_status_code \n\n 0}}",
+                "type": "string"
+              },
+              {
+                "id": "5c1172c8-8003-426f-8b76-dd75e187e17d",
+                "name": "timestamp",
+                "value": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "7e3d0b9f-7531-4a3e-83bf-816bef1a283c",
+        "name": "Alerta CrÃ­tica - Precheck fallido",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          2680,
+          620
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "5c7dbe49-c7df-4a82-8f55-bff7891e2d65",
+                "name": "alert_severity",
+                "value": "CRITICAL",
+                "type": "string"
+              },
+              {
+                "id": "c5ff70d7-ebea-4a84-a90d-8118f07ab9a0",
+                "name": "alert_type",
+                "value": "EXPIRED_NOT_PAUSED_RETRY_EXHAUSTED",
+                "type": "string"
+              },
+              {
+                "id": "11282ef7-7c77-4ee7-866e-5045f0fc4f96",
+                "name": "message",
+                "value": "=Contrato {{$json.Contrato_ID}} vencido sin pausa: Meta respondiÃ³ {{$json.pause_status_code}} y se agotaron retries (3x cada 5m).",
+                "type": "string"
+              },
+              {
+                "id": "636cc602-3de4-466d-aa6a-0b527d152cfb",
+                "name": "Contrato_ID",
+                "value": "={{$json.Contrato_ID}}",
+                "type": "string"
+              },
+              {
+                "id": "b9669e01-9ea5-4d55-b019-0f42aedd615a",
+                "name": "Ad_ID",
+                "value": "={{$json.Ad_ID}}",
+                "type": "string"
+              },
+              {
+                "id": "81f3902d-e5d2-407b-8367-17c50328126a",
+                "name": "correlation_id",
+                "value": "={{$json.correlation_id}}",
+                "type": "string"
+              },
+              {
+                "id": "748c3425-8177-49f1-aa32-a5f88180f9cf",
+                "name": "run_mode",
+                "value": "={{$json.run_mode}}",
+                "type": "string"
+              },
+              {
+                "id": "7b0436d1-8b39-49d6-afe4-327bad778731",
+                "name": "attempts",
+                "value": "={{$json.precheck_attempt \n\n $json.pause_attempt \n\n 0}}",
+                "type": "string"
+              },
+              {
+                "id": "c3a7fc09-a72d-4744-9654-2877c436b14c",
+                "name": "max_attempts",
+                "value": "={{$json.precheck_max_attempts \n\n $json.pause_max_attempts \n\n 0}}",
+                "type": "string"
+              },
+              {
+                "id": "191b6fea-a5fc-43b1-8fd7-677ec867b175",
+                "name": "status_code",
+                "value": "={{$json.precheck_status_code \n\n $json.pause_status_code \n\n 0}}",
+                "type": "string"
+              },
+              {
+                "id": "a66c6d20-61c2-46eb-9d24-97e09a555918",
+                "name": "timestamp",
+                "value": "={{$now.setZone('America/Argentina/Buenos_Aires').toISO()}}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "f20ee737-d32c-4289-848a-929fc03a8f42",
+        "name": "Alerta CrÃ­tica - Pausa fallida",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          4120,
+          620
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "=http://168.138.125.21.nip.io:5678/webhook/mock/alerts",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{$json}}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        "id": "7e866d66-ad16-452d-a1b7-d436bfae0a4f",
+        "name": "Emitir Alerta CrÃ­tica",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          4360,
+          620
+        ],
+        "notes": "Canal Ãºnico MVP para severidad CRITICAL."
+      },
+      {
+        "parameters": {
+          "errorMessage": "={{'AdsKiller CRITICAL: anuncio vencido no pausado. Contrato ' + ($item(0).$node[\"Alerta CrÃ­tica - Pausa fallida\"].json.Contrato_ID || 'N/A') + ', Ad ' + ($item(0).$node[\"Alerta CrÃ­tica - Pausa fallida\"].json.Ad_ID || 'N/A') + ', tipo ' + ($item(0).$node[\"Alerta CrÃ­tica - Pausa fallida\"].json.alert_type || 'N/A')}}"
+        },
+        "id": "ace071c0-8260-487f-9112-5b0edca357ab",
+        "name": "Stop and Error - Escalar Incidente",
+        "type": "n8n-nodes-base.stopAndError",
+        "typeVersion": 1,
+        "position": [
+          4600,
+          620
+        ]
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          2440,
+          520
+        ],
+        "id": "94d508cc-f783-4929-882f-772609815dd5",
+        "name": "No Operation, do nothing"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "0f22d187-d9c5-4c5d-80a6-25bac56170e6",
+                "leftValue": "={{$json.statusCode >= 200 && $json.statusCode < 300}}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          1720,
+          -300
+        ],
+        "id": "70f666d6-68fe-4565-b86d-f13397571810",
+        "name": "If"
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combineBy": "combineByPosition",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.2,
+        "position": [
+          1960,
+          -300
+        ],
+        "id": "35e3addd-9421-41ac-bba5-3bd024cea5dc",
+        "name": "Merge"
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          1960,
+          -460
+        ],
+        "id": "3e8fb544-7534-4426-8eb5-963c8ddb4921",
+        "name": "No Operation, do nothing1"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "4ff45eb3-589f-4d2e-9025-6dd2fca9d3b5",
+                "name": "alert_severity",
+                "value": "WARNING",
+                "type": "string"
+              },
+              {
+                "id": "31f6397b-4ca6-4385-8e55-b96685541595",
+                "name": "alert_type",
+                "value": "PREVENTIVE_48H",
+                "type": "string"
+              },
+              {
+                "id": "53ab40f3-74f1-4ff4-ac94-566acb4c3528",
+                "name": "message",
+                "value": "=Contrato {{$json.Contrato_ID}} entra en ventana preventiva de 48h para anuncio {{$json.Ad_ID}}.",
+                "type": "string"
+              },
+              {
+                "id": "cc783101-17e3-4a04-b92d-ee6748d6d840",
+                "name": "Contrato_ID",
+                "value": "={{$json.Contrato_ID}}",
+                "type": "string"
+              },
+              {
+                "id": "8993e5d9-f5e9-4eb7-b585-c4ac7d2fcdce",
+                "name": "Ad_ID",
+                "value": "={{$json.Ad_ID}}",
+                "type": "string"
+              },
+              {
+                "id": "a95e6e71-0cd2-442a-a31d-dc55182f5936",
+                "name": "run_mode",
+                "value": "={{$json.run_mode}}",
+                "type": "string"
+              },
+              {
+                "id": "4d3cfea4-fe27-49db-ba3e-a8e9d33cc344",
+                "name": "correlation_id",
+                "value": "={{$json.correlation_id}}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "22aaf72f-a7f7-458b-8231-a2ae87be1270",
+        "name": "Payload Alerta Preventiva",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1240,
+          -300
+        ]
+      }
+    ],
+    "connections": {
+      "Cron Diario 00:01": {
+        "main": [
+          [
+            {
+              "node": "Contexto Scheduled",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger Manual On-Demand": {
+        "main": [
+          [
+            {
+              "node": "Contexto Manual",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Contexto Scheduled": {
+        "main": [
+          [
+            {
+              "node": "Sheets - Leer Contratos",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Contexto Manual": {
+        "main": [
+          [
+            {
+              "node": "Sheets - Leer Contratos",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sheets - Leer Contratos": {
+        "main": [
+          [
+            {
+              "node": "Clasificar Contratos (Activo / 48h / Vencido)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clasificar Contratos (Activo / 48h / Vencido)": {
+        "main": [
+          [
+            {
+              "node": "Expand Preventiva",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Expand Vencidos",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Expand Preventiva": {
+        "main": [
+          [
+            {
+              "node": "Payload Alerta Preventiva",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Expand Vencidos": {
+        "main": [
+          [
+            {
+              "node": "Regex Coincide con Nombre (Sheet)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Emitir Alerta Operativa": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Regex Coincide con Nombre (Sheet)": {
+        "main": [
+          [
+            {
+              "node": "Init Retry Precheck",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Alerta CrÃ­tica - Regex invÃ¡lido",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Init Retry Precheck": {
+        "main": [
+          [
+            {
+              "node": "Meta - Precheck Estado Ad",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meta - Precheck Estado Ad": {
+        "main": [
+          [
+            {
+              "node": "Normalizar HTTP Precheck",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Evaluar Precheck Meta": {
+        "main": [
+          [
+            {
+              "node": "Rutear Estado Precheck",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait 5m Precheck Retry": {
+        "main": [
+          [
+            {
+              "node": "Meta - Precheck Estado Ad",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Init Retry Pausa": {
+        "main": [
+          [
+            {
+              "node": "Meta - Pausar Ad",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meta - Pausar Ad": {
+        "main": [
+          [
+            {
+              "node": "Normalizar HTTP Pausa",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Evaluar Pausa": {
+        "main": [
+          [
+            {
+              "node": "Rutear Resultado Pausa",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rutear Resultado Pausa": {
+        "main": [
+          [
+            {
+              "node": "Build Finalizado Payload",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait 5m Pausa Retry",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Alerta CrÃ­tica - Pausa fallida",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Finalizado Payload": {
+        "main": [
+          [
+            {
+              "node": "Finalizado Payload Valido",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Finalizado Payload Valido": {
+        "main": [
+          [
+            {
+              "node": "Sheets - Marcar Finalizado",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Alerta CrÃ­tica - Pausa fallida",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait 5m Pausa Retry": {
+        "main": [
+          [
+            {
+              "node": "Meta - Pausar Ad",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alerta CrÃ­tica - Regex invÃ¡lido": {
+        "main": [
+          [
+            {
+              "node": "Emitir Alerta CrÃ­tica",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alerta CrÃ­tica - Precheck fallido": {
+        "main": [
+          [
+            {
+              "node": "Emitir Alerta CrÃ­tica",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alerta CrÃ­tica - Pausa fallida": {
+        "main": [
+          [
+            {
+              "node": "Emitir Alerta CrÃ­tica",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Emitir Alerta CrÃ­tica": {
+        "main": [
+          [
+            {
+              "node": "Stop and Error - Escalar Incidente",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rutear Estado Precheck": {
+        "main": [
+          [
+            {
+              "node": "Init Retry Pausa",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait 5m Precheck Retry",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "No Operation, do nothing",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Alerta CrÃ­tica - Precheck fallido",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalizar HTTP Precheck": {
+        "main": [
+          [
+            {
+              "node": "Evaluar Precheck Meta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalizar HTTP Pausa": {
+        "main": [
+          [
+            {
+              "node": "Evaluar Pausa",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ],
+          [
+            {
+              "node": "No Operation, do nothing1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Sheets - Marcar Notificado_Previo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Payload Alerta Preventiva": {
+        "main": [
+          [
+            {
+              "node": "Emitir Alerta Operativa",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alexander Villa",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-15T14:04:37.905Z",
+        "id": 275,
+        "workflowId": "8mlwAxLtJVrwpLhi",
+        "versionId": "6ecb5f91-af82-44dd-863e-ba11fa44a15b",
+        "event": "activated",
+        "userId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      },
+      {
+        "createdAt": "2026-04-15T14:04:37.880Z",
+        "id": 274,
+        "workflowId": "8mlwAxLtJVrwpLhi",
+        "versionId": "6ecb5f91-af82-44dd-863e-ba11fa44a15b",
+        "event": "deactivated",
+        "userId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      }
+    ]
+  }
+}

@@ -1,0 +1,3877 @@
+{
+  "updatedAt": "2026-04-16T00:41:02.462Z",
+  "createdAt": "2026-04-13T16:26:01.150Z",
+  "id": "cFBr6GavlSWDsUFz",
+  "name": "contract-ui-management-v2",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contract-ui-management-v2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "212c6fff-1165-430c-8508-da382d068955",
+      "name": "Webhook UI",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "contract-ui-management-v2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.body ?? $json;\nconst action = String(payload.action ?? '').trim().toLowerCase();\nconst timezone = 'America/Argentina/Buenos_Aires';\n\nfunction nowDateInTZ(tz) {\n  const fmt = new Intl.DateTimeFormat('en-CA', {\n    timeZone: tz,\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n  });\n  return fmt.format(new Date()); // YYYY-MM-DD\n}\n\nreturn [\n  {\n    json: {\n      ...payload,\n      action,\n      timezone,\n      request_ts: new Date().toISOString(),\n      today_tz: nowDateInTZ(timezone),\n    },\n  },\n];"
+      },
+      "id": "4d5aac85-74d4-401f-8c8b-b0f373198174",
+      "name": "Normalize Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\nconst allowedActions = new Set(['alta','search', 'influencers_search', 'consulta', 'extension', 'baja_manual', 'listar_ads', 'run_now', 'history', 'pause_ad', 'pause_active']);\n\nfunction isValidDateFormat(value) {\n  if (typeof value !== 'string') return false;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;\n  const [y, m, d] = value.split('-').map(Number);\n  const dt = new Date(Date.UTC(y, m - 1, d));\n  return dt.getUTCFullYear() === y && dt.getUTCMonth() === (m - 1) && dt.getUTCDate() === d;\n}\n\nfunction toBool(value, fallback = false) {\n  if (value === undefined || value === null || value === '') return fallback;\n  if (typeof value === 'boolean') return value;\n  if (typeof value === 'number') return value !== 0;\n  const normalized = String(value).trim().toLowerCase();\n  return ['1', 'true', 'si', 'yes', 'y'].includes(normalized);\n}\n\nfunction normalizeB64(value) {\n  const raw = String(value || '').trim().replace(/-/g, '+').replace(/_/g, '/');\n  const padding = raw.length % 4;\n  return padding ? raw + '='.repeat(4 - padding) : raw;\n}\n\nfunction badRequest(message, details = {}) {\n  const err = new Error(message);\n  err.name = 'ValidationError';\n  err.details = details;\n  throw err;\n}\n\nif (!allowedActions.has(input.action)) {\n  badRequest('`action` invalida. Usar: alta | search | consulta | extension | baja_manual | listar_ads | run_now | history | pause_ad | pause_active', { action: input.action });\n}\n\ninput.actor = String(input.requested_by ?? input.actor ?? 'ops@adskiller').trim();\ninput.correlation_id = String(input.correlation_id ?? `ak-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\n\n// ── Normalizar aliases de campo del frontend hacia nombres internos GS ──────────\n// Frontend envía: influencer_name, end_date\n// GS espera:      Cliente,          Fecha_Fin\nif (input.influencer_name && !input.Cliente) input.Cliente = input.influencer_name;\nif (input.end_date && !input.Fecha_Fin)      input.Fecha_Fin = input.end_date;\nif (input.new_end_date && !input.Nueva_Fecha_Fin) input.Nueva_Fecha_Fin = input.new_end_date;\nif (input.contract_id && !input.Contrato_ID) input.Contrato_ID = input.contract_id;\nif (input.ad_id && !input.Ad_ID)             input.Ad_ID = input.ad_id;\n\nif (input.action === 'alta') {\n  // Solo requiere nombre del influencer y fecha fin.\n  // Contrato_ID y Regex_Anuncio se auto-generan en Prepare Alta Row.\n  if (!String(input.Cliente ?? '').trim()) {\n    badRequest('influencer_name (o Cliente) es obligatorio para alta');\n  }\n  if (!String(input.Fecha_Fin ?? '').trim()) {\n    badRequest('end_date (o Fecha_Fin) es obligatorio para alta');\n  }\n  if (!isValidDateFormat(input.Fecha_Fin)) {\n    badRequest('end_date invalido. Formato requerido: YYYY-MM-DD');\n  }\n  const endDateObj = new Date(input.Fecha_Fin + 'T00:00:00Z');\n  if (endDateObj <= new Date()) {\n    badRequest('end_date debe ser una fecha futura');\n  }\n}\n\nif (input.action === 'extension') {\n  if (!String(input.Contrato_ID ?? '').trim()) badRequest('contract_id es obligatorio para extension');\n  if (!String(input.Nueva_Fecha_Fin ?? '').trim()) badRequest('new_end_date es obligatorio para extension');\n  if (!isValidDateFormat(input.Nueva_Fecha_Fin)) badRequest('new_end_date invalido. Formato requerido: YYYY-MM-DD');\n}\n\nif (input.action === 'search') {\n  if (!String(input.q ?? '').trim()) badRequest('q es obligatorio para search');\n  input.q = String(input.q).trim();\n}\n\nif (input.action === 'consulta') {\n  // show_all=true devuelve todos los contratos sin filtrar por fecha ni status\n  const showAll = input.show_all === true || String(input.show_all ?? '').toLowerCase() === 'true';\n  input.show_all = showAll;\n  if (!showAll) {\n    const dias = Number(input.dias_proximos ?? 60);\n    if (!Number.isInteger(dias) || dias < 1 || dias > 365) badRequest('dias_proximos invalido. Debe ser entero entre 1 y 365');\n    input.dias_proximos = dias;\n  }\n}\n\nif (input.action === 'baja_manual' || input.action === 'listar_ads' || input.action === 'pause_ad' || input.action === 'pause_active') {\n  if (!String(input.Contrato_ID ?? '').trim()) badRequest('contract_id es obligatorio para esta accion');\n}\n\nif (input.action === 'pause_ad' && !String(input.Ad_ID ?? '').trim()) {\n  badRequest('ad_id es obligatorio para pause_ad');\n}\n\nif (input.action === 'pause_active') {\n  const dryRun = toBool(input.dry_run, true);\n  const maxBatchSize = Number(input.max_batch_size ?? input.batch_limit ?? 20);\n  if (!Number.isInteger(maxBatchSize) || maxBatchSize < 1 || maxBatchSize > 100) {\n    badRequest('max_batch_size invalido. Debe ser entero entre 1 y 100');\n  }\n  input.dry_run = dryRun;\n  input.max_batch_size = maxBatchSize;\n  input.batch_limit = maxBatchSize;\n\n  if (dryRun) {\n    input.action = 'pause_active_preview';\n  } else {\n    const confirmToken = String(input.confirm_token ?? '').trim();\n    if (!confirmToken) badRequest('confirm_token es obligatorio cuando dry_run=false');\n    try {\n      const decoded = JSON.parse(Buffer.from(normalizeB64(confirmToken), 'base64').toString('utf8'));\n      const tokenContractId = String(decoded.contract_id ?? '').trim();\n      const tokenBatchSize = Number(decoded.max_batch_size ?? 0);\n      const expiresAt = Number(decoded.expires_at_epoch_ms ?? 0);\n      if (!tokenContractId || tokenContractId !== String(input.Contrato_ID).trim()) badRequest('confirm_token no corresponde al contract_id enviado');\n      if (!Number.isInteger(tokenBatchSize) || tokenBatchSize !== maxBatchSize) badRequest('confirm_token no corresponde al max_batch_size enviado');\n      if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) badRequest('confirm_token vencido');\n    } catch (err) {\n      badRequest('confirm_token invalido', { reason: String(err?.message ?? err) });\n    }\n    input.confirm_token = confirmToken;\n    input.confirm = true;\n  }\n}\n\nif (input.action === 'history') {\n  const page = Number(input.page ?? 1);\n  const pageSize = Number(input.page_size ?? 25);\n  if (!Number.isInteger(page) || page < 1) badRequest('page invalido. Minimo 1');\n  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) badRequest('page_size invalido. Debe ser 1..100');\n  input.page = page;\n  input.page_size = pageSize;\n}\n\nreturn [{ json: input }];"
+      },
+      "id": "a2f9503e-7ace-4dda-bb96-4581b1d73eaa",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "alta",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "consulta",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "extension",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "baja_manual",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "listar_ads",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "run_now",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "history",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "pause_ad",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "pause_active_preview",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "pause_active",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "search",
+                    "leftValue": "={{ $json.action }}"
+                  }
+                ],
+                "options": {
+                  "typeValidation": "strict",
+                  "leftValue": "",
+                  "caseSensitive": false
+                }
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0e362cd6-7793-4017-bc91-ebfc40c2400d",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        840,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// A1: Auto-generar Contrato_ID\nconst stamp = new Date().toISOString().slice(0,10);\nconst suffix = Math.random().toString(36).slice(2,6).toUpperCase();\nconst contratoId = `AK-${stamp}-${suffix}`;\n\n// A2: Auto-derivar Regex_Anuncio del nombre del influencer\n// \"Farid Dieck\" → \"farid|dieck|fariddieck\"\nconst nombreRaw = String($json.Cliente ?? '').trim();\nconst words = nombreRaw.toLowerCase()\n  .replace(/[^a-z0-9\\s]/g, '')\n  .trim()\n  .split(/\\s+/)\n  .filter(Boolean);\n\nlet regexAnuncio;\nif (words.length === 0) {\n  regexAnuncio = 'sin-patron';\n} else if (words.length === 1) {\n  regexAnuncio = words[0];\n} else {\n  const parts = [...words, words.join('')];\n  regexAnuncio = [...new Set(parts)].join('|');\n}\n\nreturn [{\n  json: {\n    Contrato_ID:          contratoId,\n    Cliente:              String($json.Cliente).trim(),\n    Regex_Anuncio:        regexAnuncio,\n    Fecha_Alta:           String($json.today_tz),\n    Fecha_Fin:            String($json.Fecha_Fin),\n    Status_Contrato:      'Activo',\n    Notificado_Previo:    false,\n    Ad_ID:                String($json.Ad_ID ?? ''),\n    Ad_Name:              String($json.Ad_Name ?? ''),\n    Fecha_Notificado_Previo: '',\n    Fecha_Finalizacion:   '',\n    Updated_At:           $json.request_ts,\n  },\n}];"
+      },
+      "id": "f0ced59d-5704-494f-8075-8f2292a2e180",
+      "name": "Prepare Alta Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Contrato_ID",
+              "displayName": "Contrato_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Regex_Anuncio",
+              "displayName": "Regex_Anuncio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ad_ID",
+              "displayName": "Ad_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ad_Name",
+              "displayName": "Ad_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Alta",
+              "displayName": "Fecha_Alta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Fin",
+              "displayName": "Fecha_Fin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status_Contrato",
+              "displayName": "Status_Contrato",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notificado_Previo",
+              "displayName": "Notificado_Previo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Notificado_Previo",
+              "displayName": "Fecha_Notificado_Previo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Finalizacion",
+              "displayName": "Fecha_Finalizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Updated_At",
+              "displayName": "Updated_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "53246fe3-a9ef-4164-8e52-50653a674496",
+      "name": "GS Append Alta",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1400,
+        220
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'alta', message: 'Contrato creado', data: $json } }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "1fb1bb9e-9a51-4045-a93f-320ffa4aa6e8",
+      "name": "Respond Alta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "3b239429-147d-4a6b-831b-4a473055206e",
+      "name": "GS Read Contratos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        440
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $items('Validate Input', 0, 0)[0].json;\nconst showAll = trigger.show_all === true;\n\nif (showAll) {\n  // Devolver todos los rows de GS sin filtrar\n  const all = items.map(item => ({ json: item.json }));\n  all.sort((a, b) => String(a.json.Fecha_Fin ?? '').localeCompare(String(b.json.Fecha_Fin ?? '')));\n  return all;\n}\n\n// Comportamiento original: filtrar por dias_proximos y Status_Contrato=Activo\nconst dias = Number(trigger.dias_proximos ?? 7);\n\nfunction parseYmd(ymd) {\n  const [y, m, d] = String(ymd).split('-').map(Number);\n  return new Date(Date.UTC(y, m - 1, d));\n}\n\nconst today = parseYmd(trigger.today_tz);\nconst maxDate = new Date(today.getTime() + dias * 24 * 60 * 60 * 1000);\n\nconst out = [];\nfor (const item of items) {\n  const row = item.json;\n  const exp = String(row.Fecha_Fin ?? '').trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(exp)) continue;\n  const expDate = parseYmd(exp);\n  if (row.Status_Contrato === 'Finalizado') continue;\n  if (expDate >= today && expDate <= maxDate) {\n    out.push({ json: row });\n  }\n}\n\nout.sort((a, b) => String(a.json.Fecha_Fin).localeCompare(String(b.json.Fecha_Fin)));\nreturn out;"
+      },
+      "id": "03edbf6e-41ff-47d0-a0a0-67b5ae58cf34",
+      "name": "Filter Proximos Vencer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'consulta', dias_proximos: $items('Validate Input', 0, 0)[0].json.dias_proximos, total: $items('Filter Proximos Vencer').length, data: $items('Filter Proximos Vencer').map(i => i.json) } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "c4b8ba2a-e77e-4352-8555-125cd51f7ce6",
+      "name": "Respond Consulta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "362a2bb5-5730-401a-9aba-5099c4d56034",
+      "name": "GS Read For Extension",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        660
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\n\nif (!found) {\n  const err = new Error('Contrato no encontrado para extension');\n  err.name = 'NotFoundError';\n  err.details = { Contrato_ID: idContrato };\n  throw err;\n}\n\nreturn [{\n  json: {\n    ...found.json,\n    Contrato_ID: idContrato,\n    Fecha_Fin: String(req.Nueva_Fecha_Fin),\n    Notificado_Previo: false,\n    Updated_At: req.request_ts,\n  },\n}];"
+      },
+      "id": "272dc9ea-2f4c-40ee-855a-9f4abb8f7753",
+      "name": "Prepare Extension Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Contrato_ID"
+          ],
+          "schema": [
+            {
+              "id": "Contrato_ID",
+              "displayName": "Contrato_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Regex_Anuncio",
+              "displayName": "Regex_Anuncio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ad_ID",
+              "displayName": "Ad_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ad_Name",
+              "displayName": "Ad_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Alta",
+              "displayName": "Fecha_Alta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Fin",
+              "displayName": "Fecha_Fin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status_Contrato",
+              "displayName": "Status_Contrato",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notificado_Previo",
+              "displayName": "Notificado_Previo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Notificado_Previo",
+              "displayName": "Fecha_Notificado_Previo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Finalizacion",
+              "displayName": "Fecha_Finalizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Updated_At",
+              "displayName": "Updated_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "208f2697-785b-4011-8eed-2e81dd752cbc",
+      "name": "GS Update Extension",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1680,
+        660
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'extension', message: 'Contrato extendido y Notificado_Previo reseteado', data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7a43b90d-5d9f-43dd-a35c-ae7dd3ebc8f6",
+      "name": "Respond Extension",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1960,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\nconst safeAction = String(input.action ?? 'unknown').trim().toLowerCase();\nconst correlationId = String(input.correlation_id ?? `ak-f1-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\nconst logicalExecutionId = String(input.logical_execution_id ?? `${correlationId}:f1:${safeAction}`);\n\nreturn [{\n  json: {\n    schema_version: '1.0.0',\n    event_type: 'contract.ui.action',\n    source_workflow: 'contract-ui-management-v2',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires'),\n    correlation_id: correlationId,\n    logical_execution_id: logicalExecutionId,\n    execution: {\n      n8n_execution_id: String($execution?.id ?? ''),\n      run_type: 'internal_execute_workflow',\n      status: 'queued'\n    },\n    payload: {\n      action: safeAction,\n      run_mode: String(input.run_mode ?? 'manual'),\n      actor: String(input.actor ?? 'ops@adskiller'),\n      tracking_id: String(input.tracking_id ?? ''),\n      Contrato_ID: String(input.Contrato_ID ?? ''),\n      Ad_ID: String(input.Ad_ID ?? ''),\n      Fecha_Fin: String(input.Fecha_Fin ?? ''),\n      Nueva_Fecha_Fin: String(input.Nueva_Fecha_Fin ?? ''),\n      Regex_Anuncio: String(input.Regex_Anuncio ?? ''),\n      request_ts: String(input.requested_at ?? input.request_ts ?? nowIso),\n      requested_at: String(input.requested_at ?? input.request_ts ?? nowIso),\n      today_tz: String(input.today_tz ?? ''),\n      timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires'),\n      dry_run: Boolean(input.dry_run ?? false),\n      confirm: Boolean(input.confirm ?? false),\n      confirm_token: String(input.confirm_token ?? ''),\n      max_batch_size: Number(input.max_batch_size ?? input.batch_limit ?? 20),\n      batch_limit: Number(input.batch_limit ?? input.max_batch_size ?? 20)\n    },\n    dispatched_at: nowIso\n  }\n}];"
+      },
+      "id": "c93c73ee-7992-422b-a6cd-2ee1d538bf0f",
+      "name": "Build Internal Payload F1->F2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1540
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8mlwAxLtJVrwpLhi",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "e12bb2c9-f9c3-4a07-8343-22fb618b1818",
+      "name": "Execute F2 Internal",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        1540
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json ?? {};\nreturn [{\n  json: {\n    event: 'internal_chain_dispatch_ok',\n    source_workflow: 'contract-ui-management',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    correlation_id: String(source.correlation_id ?? ''),\n    logical_execution_id: String(source.logical_execution_id ?? ''),\n    status: 'dispatched',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "aa6324b9-7bb9-4ddd-b7fc-4768c4cdbc32",
+      "name": "Log F1 Chain Dispatch OK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json ?? {};\nreturn [{\n  json: {\n    event: 'internal_chain_dispatch_error',\n    source_workflow: 'contract-ui-management',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    correlation_id: String(source.correlation_id ?? ''),\n    logical_execution_id: String(source.logical_execution_id ?? ''),\n    status: 'error',\n    error: String(source.error?.message ?? source.message ?? 'unknown_execute_workflow_error'),\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "b02fb3fe-abc7-4f9d-9725-50d879731d80",
+      "name": "Log F1 Chain Dispatch Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        1640
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: 'ValidationError', message: 'Input invalido' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "7eb41b01-059e-4bdf-b39b-58c3ebb53085",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "31b6e26e-e03d-49db-9822-cba48f1160d8",
+      "name": "GS Read For Baja",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        880
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst actor = String(req.actor ?? 'ops@adskiller');\nconst reason = String(req.reason ?? 'Cierre manual por operacion').trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\nif (!found) { const err = new Error('Contrato no encontrado para baja_manual'); err.name = 'NotFoundError'; err.details = { Contrato_ID: idContrato }; throw err; }\nreturn [{ json: { ...found.json, Contrato_ID: idContrato, Status_Contrato: 'Finalizado', Fecha_Finalizacion: req.request_ts, Updated_At: req.request_ts, Finalizado_By: actor, Finalizado_Reason: reason } }];"
+      },
+      "id": "6b613cc2-7b6f-41f9-96be-1642bfbe30c3",
+      "name": "Prepare Baja Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Contrato_ID"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "8d6a23eb-b501-48f5-a9c6-26d9b36d02f8",
+      "name": "GS Update Baja",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1680,
+        880
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'baja_manual', message: 'Contrato finalizado manualmente', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ab755116-78ce-4b12-af1e-556471aa7e5c",
+      "name": "Respond Baja Manual",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1960,
+        880
+      ]
+    },
+    {
+      "id": "8b4c6b0c-facb-4040-9d43-f8d3d24c41cc",
+      "name": "GS Read For Listar Ads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        1100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://168.138.125.21:5678/webhook/ak-meta-list-v1",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pattern",
+              "value": "={{ $('Validate Input').item.json.Regex_Anuncio ?? '' }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Response from Meta mock: { data: [{id, name, status, effective_status, campaign_name}], paging: {...} }\nconst req      = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID || req.contract_id || '').trim();\nconst mockBody = $input.first()?.json ?? {};\nconst rawAds   = mockBody.data ?? [];\n\nconst ads = rawAds.map(ad => ({\n  ad_id:         String(ad.id   ?? ''),\n  ad_name:       String(ad.name ?? ''),\n  ad_status:     String(ad.effective_status ?? ad.status ?? 'UNKNOWN').toUpperCase(),\n  campaign_name: String(ad.campaign_name ?? ''),\n})).filter(a => a.ad_id);\n\nreturn [{ json: { contract_id: idContrato, total: ads.length, items: ads } }];"
+      },
+      "id": "cb9d9cf2-95b3-45f8-8656-058ebfef0eb3",
+      "name": "Build Listar Ads Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'listar_ads', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "331618dd-7a70-4c56-93f8-af083e9def8a",
+      "name": "Respond Listar Ads",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst nowIso = new Date().toISOString();\nconst trackingId = String(req.tracking_id ?? `trk-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);\nconst normalizedAction = String(req.action || '').trim();\nconst dispatchAction = normalizedAction === 'pause_active_preview' ? 'pause_active' : normalizedAction;\nconst maxBatchSize = Number(req.max_batch_size ?? req.batch_limit ?? 0);\nreturn [{\n  json: {\n    tracking_id: trackingId,\n    correlation_id: String(req.correlation_id),\n    logical_execution_id: `${trackingId}:f1:${dispatchAction}`,\n    action: dispatchAction,\n    run_mode: 'manual',\n    actor: String(req.actor ?? 'ops@adskiller'),\n    requested_at: req.request_ts ?? nowIso,\n    execution_id: String($execution?.id ?? ''),\n    status: 'accepted',\n    Contrato_ID: String(req.Contrato_ID ?? ''),\n    Ad_ID: String(req.Ad_ID ?? ''),\n    dry_run: Boolean(req.dry_run ?? false),\n    confirm: Boolean(req.confirm ?? false),\n    confirm_token: String(req.confirm_token ?? ''),\n    max_batch_size: Number.isInteger(maxBatchSize) ? maxBatchSize : 0,\n    batch_limit: Number.isInteger(maxBatchSize) ? maxBatchSize : Number(req.batch_limit ?? 0),\n    reason: String(req.reason ?? ''),\n    timezone: String(req.timezone ?? 'America/Argentina/Buenos_Aires')\n  }\n}];"
+      },
+      "id": "c6b64940-c53f-4d5e-a507-e601769f089c",
+      "name": "Build Operation Tracking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Operations_Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "correlation_id",
+              "displayName": "correlation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "result",
+              "displayName": "result",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_workflow",
+              "displayName": "source_workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tracking_id",
+              "displayName": "tracking_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "logical_execution_id",
+              "displayName": "logical_execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_mode",
+              "displayName": "run_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "actor",
+              "displayName": "actor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "requested_at",
+              "displayName": "requested_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contrato_ID",
+              "displayName": "Contrato_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ad_ID",
+              "displayName": "Ad_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dry_run",
+              "displayName": "dry_run",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "confirm",
+              "displayName": "confirm",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "confirm_token",
+              "displayName": "confirm_token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "max_batch_size",
+              "displayName": "max_batch_size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "batch_limit",
+              "displayName": "batch_limit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "timezone",
+              "displayName": "timezone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "2e2430c6-d772-4fd4-ad7e-4603d09178f5",
+      "name": "GS Append Operation Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1400,
+        1320
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: $json.action, data: { accepted: true, tracking_id: $json.tracking_id, correlation_id: $json.correlation_id, status: 'queued' }, meta: { execution_id: $json.execution_id || $execution.id, actor: $json.actor, timestamp: $json.requested_at } } }}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "9e3d278b-53dc-4716-acd1-c1ad8e334c71",
+      "name": "Respond Operation Accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Operations_Log",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "42b92982-a990-4b5a-a112-7ebbbc29a342",
+      "name": "GS Read Operations History",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        1760
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst page = Number(req.page ?? 1);\nconst pageSize = Number(req.page_size ?? 25);\nconst from = String(req.from ?? '').trim();\nconst to = String(req.to ?? '').trim();\nconst resultFilter = String(req.result ?? '').trim().toLowerCase();\nconst runModeFilter = String(req.run_mode ?? '').trim().toLowerCase();\nconst executionFilter = String(req.execution_id ?? '').trim();\nconst correlationFilter = String(req.correlation_id_filter ?? req.correlation_id_query ?? '').trim();\nconst parseTs = (v) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d; };\nconst fromDate = from ? parseTs(from) : null;\nconst toDate = to ? parseTs(to) : null;\nlet rows = items.map((i) => i.json || {});\nrows = rows.filter((row) => {\n  const ts = parseTs(row.requested_at ?? row.timestamp ?? row.executed_at ?? '');\n  if (fromDate && (!ts || ts < fromDate)) return false;\n  if (toDate && (!ts || ts > toDate)) return false;\n  if (resultFilter && String(row.status ?? row.result ?? '').toLowerCase() !== resultFilter) return false;\n  if (runModeFilter && String(row.run_mode ?? '').toLowerCase() !== runModeFilter) return false;\n  if (executionFilter && String(row.execution_id ?? '') !== executionFilter) return false;\n  if (correlationFilter && String(row.correlation_id ?? '') !== correlationFilter) return false;\n  return true;\n});\nrows.sort((a, b) => String(b.requested_at ?? b.timestamp ?? '').localeCompare(String(a.requested_at ?? a.timestamp ?? '')));\nconst total = rows.length;\nconst start = (page - 1) * pageSize;\nconst paged = rows.slice(start, start + pageSize).map((row) => ({ execution_id: String(row.execution_id ?? ''), tracking_id: String(row.tracking_id ?? ''), correlation_id: String(row.correlation_id ?? ''), action: String(row.action ?? ''), run_mode: String(row.run_mode ?? ''), result: String(row.status ?? row.result ?? ''), actor: String(row.actor ?? ''), executed_at: String(row.requested_at ?? row.timestamp ?? row.executed_at ?? '') }));\nreturn [{ json: { total, page, page_size: pageSize, items: paged } }];"
+      },
+      "id": "08e18cad-57d7-4046-83dc-04923181d1ec",
+      "name": "Build History Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1760
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'history', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "e199a9ba-3ae3-4e69-8091-4737fd724dee",
+      "name": "Respond History",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1760
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "111611f8-7c4f-43ed-afdc-c6621f4b99fb",
+      "name": "GS Read For Pause Active Preview",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        1980
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst contractId = String(req.Contrato_ID ?? '').trim();\nconst maxBatchSize = Number(req.max_batch_size ?? req.batch_limit ?? 20);\nconst actor = String(req.actor ?? 'ops@adskiller').trim();\nconst ttlMs = 10 * 60 * 1000;\n\nfunction encodeBase64Url(value) {\n  return Buffer.from(value, 'utf8')\n    .toString('base64')\n    .replace(/\\+/g, '-')\n    .replace(/\\//g, '_')\n    .replace(/=+$/g, '');\n}\n\nconst candidates = items\n  .filter((i) => String(i.json.Contrato_ID ?? '').trim() === contractId)\n  .filter((i) => String(i.json.Status_Contrato ?? '').trim().toLowerCase() === 'activo')\n  .slice(0, maxBatchSize)\n  .map((i) => ({\n    ad_id: String(i.json.Ad_ID ?? ''),\n    ad_name: String(i.json.Ad_Name ?? ''),\n    contract_id: contractId\n  }));\n\nconst nowMs = Date.now();\nconst expiresAt = nowMs + ttlMs;\nconst tokenPayload = {\n  contract_id: contractId,\n  actor,\n  max_batch_size: maxBatchSize,\n  issued_at_epoch_ms: nowMs,\n  expires_at_epoch_ms: expiresAt,\n  candidate_count: candidates.filter((x) => x.ad_id).length\n};\nconst confirmToken = encodeBase64Url(JSON.stringify(tokenPayload));\n\nreturn [{\n  json: {\n    dry_run: true,\n    contract_id: contractId,\n    max_batch_size: maxBatchSize,\n    total_candidates: candidates.length,\n    would_pause: candidates.filter((x) => x.ad_id).length,\n    confirm_token: confirmToken,\n    confirm_token_expires_at: new Date(expiresAt).toISOString(),\n    items: candidates\n  }\n}];"
+      },
+      "id": "7b4fbd01-5bbf-405c-887f-c910c438178c",
+      "name": "Build Pause Active Preview",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1980
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'pause_active', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "07788f04-5abb-4d60-aefd-7b3a206d6c61",
+      "name": "Respond Pause Active Preview",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1980
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "operation": "in",
+              "value2": "run_now,pause_ad,pause_active"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "249436da-6236-4369-b8dc-e15c179aa080",
+      "name": "Should Dispatch F2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1540
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "mode": "id",
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+        },
+        "sheetName": {
+          "mode": "name",
+          "__rl": true,
+          "value": "Contratos"
+        },
+        "options": {}
+      },
+      "id": "58261ffd-dca9-4bcb-8974-5a037395ef79",
+      "name": "GS Read For Search",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1120,
+        2200
+      ],
+      "typeVersion": 4.5,
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = String($('Validate Input').first().json.q ?? '').toLowerCase().trim();\nconst allItems = $input.all();\nconst matches = allItems.filter(item => {\n  const cliente = String(item.json.Cliente ?? '').toLowerCase();\n  return !query || cliente.includes(query);\n});\nreturn [{ json: {\n  ok: true,\n  action: 'search',\n  query: query,\n  total: matches.length,\n  data: matches.map(i => i.json),\n  correlation_id: $('Validate Input').first().json.correlation_id,\n  execution_id: $execution.id\n} }];"
+      },
+      "id": "31865952-4069-40d2-9591-a91c96af5272",
+      "name": "Filter Search Results",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1400,
+        2200
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: $json.ok, action: $json.action, query: $json.query, total: $json.total, data: $json.data, meta: { execution_id: $json.execution_id, correlation_id: $json.correlation_id } } }}",
+        "options": {}
+      },
+      "id": "61d85248-aca7-4685-af11-7600958dd103",
+      "name": "Respond Search",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1680,
+        2200
+      ],
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Webhook UI": {
+      "main": [
+        [
+          {
+            "node": "Normalize Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Request": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Prepare Alta Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read Contratos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Extension",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Baja",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Listar Ads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Operation Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read Operations History",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Operation Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Pause Active Preview",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Operation Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Alta Row": {
+      "main": [
+        [
+          {
+            "node": "GS Append Alta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Append Alta": {
+      "main": [
+        [
+          {
+            "node": "Respond Alta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read Contratos": {
+      "main": [
+        [
+          {
+            "node": "Filter Proximos Vencer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Proximos Vencer": {
+      "main": [
+        [
+          {
+            "node": "Respond Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read For Extension": {
+      "main": [
+        [
+          {
+            "node": "Prepare Extension Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Extension Row": {
+      "main": [
+        [
+          {
+            "node": "GS Update Extension",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Update Extension": {
+      "main": [
+        [
+          {
+            "node": "Respond Extension",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Internal Payload F1->F2": {
+      "main": [
+        [
+          {
+            "node": "Should Dispatch F2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute F2 Internal": {
+      "main": [
+        [
+          {
+            "node": "Log F1 Chain Dispatch OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log F1 Chain Dispatch Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Dispatch F2": {
+      "main": [
+        [
+          {
+            "node": "Execute F2 Internal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "GS Read For Baja": {
+      "main": [
+        [
+          {
+            "node": "Prepare Baja Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Baja Row": {
+      "main": [
+        [
+          {
+            "node": "GS Update Baja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Update Baja": {
+      "main": [
+        [
+          {
+            "node": "Respond Baja Manual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read For Listar Ads": {
+      "main": [
+        [
+          {
+            "node": "Build Listar Ads Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Listar Ads Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Listar Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Operation Tracking": {
+      "main": [
+        [
+          {
+            "node": "GS Append Operation Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Internal Payload F1->F2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Append Operation Log": {
+      "main": [
+        [
+          {
+            "node": "Respond Operation Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Operation Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read Operations History": {
+      "main": [
+        [
+          {
+            "node": "Build History Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build History Response": {
+      "main": [
+        [
+          {
+            "node": "Respond History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read For Pause Active Preview": {
+      "main": [
+        [
+          {
+            "node": "Build Pause Active Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pause Active Preview": {
+      "main": [
+        [
+          {
+            "node": "Respond Pause Active Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Search Results": {
+      "main": [
+        [
+          {
+            "node": "Respond Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read For Search": {
+      "main": [
+        [
+          {
+            "node": "Filter Search Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "b4ede4ac-0949-42ae-bb97-816a450ebfcb",
+  "activeVersionId": "b4ede4ac-0949-42ae-bb97-816a450ebfcb",
+  "versionCounter": 160,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-13T16:26:01.152Z",
+      "createdAt": "2026-04-13T16:26:01.152Z",
+      "role": "workflow:owner",
+      "workflowId": "cFBr6GavlSWDsUFz",
+      "projectId": "Z0pgCY9RJ5VJF6JD",
+      "project": {
+        "updatedAt": "2026-03-13T00:12:04.657Z",
+        "createdAt": "2026-03-13T00:09:47.440Z",
+        "id": "Z0pgCY9RJ5VJF6JD",
+        "name": "Alexander Villa <alexandervilla.cuenta@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-16T00:41:02.464Z",
+    "createdAt": "2026-04-16T00:41:02.464Z",
+    "versionId": "b4ede4ac-0949-42ae-bb97-816a450ebfcb",
+    "workflowId": "cFBr6GavlSWDsUFz",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "contract-ui-management-v2",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "212c6fff-1165-430c-8508-da382d068955",
+        "name": "Webhook UI",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "contract-ui-management-v2"
+      },
+      {
+        "parameters": {
+          "jsCode": "const payload = $json.body ?? $json;\nconst action = String(payload.action ?? '').trim().toLowerCase();\nconst timezone = 'America/Argentina/Buenos_Aires';\n\nfunction nowDateInTZ(tz) {\n  const fmt = new Intl.DateTimeFormat('en-CA', {\n    timeZone: tz,\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n  });\n  return fmt.format(new Date()); // YYYY-MM-DD\n}\n\nreturn [\n  {\n    json: {\n      ...payload,\n      action,\n      timezone,\n      request_ts: new Date().toISOString(),\n      today_tz: nowDateInTZ(timezone),\n    },\n  },\n];"
+        },
+        "id": "4d5aac85-74d4-401f-8c8b-b0f373198174",
+        "name": "Normalize Request",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          280,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $json;\nconst allowedActions = new Set(['alta','search', 'influencers_search', 'consulta', 'extension', 'baja_manual', 'listar_ads', 'run_now', 'history', 'pause_ad', 'pause_active']);\n\nfunction isValidDateFormat(value) {\n  if (typeof value !== 'string') return false;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;\n  const [y, m, d] = value.split('-').map(Number);\n  const dt = new Date(Date.UTC(y, m - 1, d));\n  return dt.getUTCFullYear() === y && dt.getUTCMonth() === (m - 1) && dt.getUTCDate() === d;\n}\n\nfunction toBool(value, fallback = false) {\n  if (value === undefined || value === null || value === '') return fallback;\n  if (typeof value === 'boolean') return value;\n  if (typeof value === 'number') return value !== 0;\n  const normalized = String(value).trim().toLowerCase();\n  return ['1', 'true', 'si', 'yes', 'y'].includes(normalized);\n}\n\nfunction normalizeB64(value) {\n  const raw = String(value || '').trim().replace(/-/g, '+').replace(/_/g, '/');\n  const padding = raw.length % 4;\n  return padding ? raw + '='.repeat(4 - padding) : raw;\n}\n\nfunction badRequest(message, details = {}) {\n  const err = new Error(message);\n  err.name = 'ValidationError';\n  err.details = details;\n  throw err;\n}\n\nif (!allowedActions.has(input.action)) {\n  badRequest('`action` invalida. Usar: alta | search | consulta | extension | baja_manual | listar_ads | run_now | history | pause_ad | pause_active', { action: input.action });\n}\n\ninput.actor = String(input.requested_by ?? input.actor ?? 'ops@adskiller').trim();\ninput.correlation_id = String(input.correlation_id ?? `ak-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\n\n// ── Normalizar aliases de campo del frontend hacia nombres internos GS ──────────\n// Frontend envía: influencer_name, end_date\n// GS espera:      Cliente,          Fecha_Fin\nif (input.influencer_name && !input.Cliente) input.Cliente = input.influencer_name;\nif (input.end_date && !input.Fecha_Fin)      input.Fecha_Fin = input.end_date;\nif (input.new_end_date && !input.Nueva_Fecha_Fin) input.Nueva_Fecha_Fin = input.new_end_date;\nif (input.contract_id && !input.Contrato_ID) input.Contrato_ID = input.contract_id;\nif (input.ad_id && !input.Ad_ID)             input.Ad_ID = input.ad_id;\n\nif (input.action === 'alta') {\n  // Solo requiere nombre del influencer y fecha fin.\n  // Contrato_ID y Regex_Anuncio se auto-generan en Prepare Alta Row.\n  if (!String(input.Cliente ?? '').trim()) {\n    badRequest('influencer_name (o Cliente) es obligatorio para alta');\n  }\n  if (!String(input.Fecha_Fin ?? '').trim()) {\n    badRequest('end_date (o Fecha_Fin) es obligatorio para alta');\n  }\n  if (!isValidDateFormat(input.Fecha_Fin)) {\n    badRequest('end_date invalido. Formato requerido: YYYY-MM-DD');\n  }\n  const endDateObj = new Date(input.Fecha_Fin + 'T00:00:00Z');\n  if (endDateObj <= new Date()) {\n    badRequest('end_date debe ser una fecha futura');\n  }\n}\n\nif (input.action === 'extension') {\n  if (!String(input.Contrato_ID ?? '').trim()) badRequest('contract_id es obligatorio para extension');\n  if (!String(input.Nueva_Fecha_Fin ?? '').trim()) badRequest('new_end_date es obligatorio para extension');\n  if (!isValidDateFormat(input.Nueva_Fecha_Fin)) badRequest('new_end_date invalido. Formato requerido: YYYY-MM-DD');\n}\n\nif (input.action === 'search') {\n  if (!String(input.q ?? '').trim()) badRequest('q es obligatorio para search');\n  input.q = String(input.q).trim();\n}\n\nif (input.action === 'consulta') {\n  // show_all=true devuelve todos los contratos sin filtrar por fecha ni status\n  const showAll = input.show_all === true || String(input.show_all ?? '').toLowerCase() === 'true';\n  input.show_all = showAll;\n  if (!showAll) {\n    const dias = Number(input.dias_proximos ?? 60);\n    if (!Number.isInteger(dias) || dias < 1 || dias > 365) badRequest('dias_proximos invalido. Debe ser entero entre 1 y 365');\n    input.dias_proximos = dias;\n  }\n}\n\nif (input.action === 'baja_manual' || input.action === 'listar_ads' || input.action === 'pause_ad' || input.action === 'pause_active') {\n  if (!String(input.Contrato_ID ?? '').trim()) badRequest('contract_id es obligatorio para esta accion');\n}\n\nif (input.action === 'pause_ad' && !String(input.Ad_ID ?? '').trim()) {\n  badRequest('ad_id es obligatorio para pause_ad');\n}\n\nif (input.action === 'pause_active') {\n  const dryRun = toBool(input.dry_run, true);\n  const maxBatchSize = Number(input.max_batch_size ?? input.batch_limit ?? 20);\n  if (!Number.isInteger(maxBatchSize) || maxBatchSize < 1 || maxBatchSize > 100) {\n    badRequest('max_batch_size invalido. Debe ser entero entre 1 y 100');\n  }\n  input.dry_run = dryRun;\n  input.max_batch_size = maxBatchSize;\n  input.batch_limit = maxBatchSize;\n\n  if (dryRun) {\n    input.action = 'pause_active_preview';\n  } else {\n    const confirmToken = String(input.confirm_token ?? '').trim();\n    if (!confirmToken) badRequest('confirm_token es obligatorio cuando dry_run=false');\n    try {\n      const decoded = JSON.parse(Buffer.from(normalizeB64(confirmToken), 'base64').toString('utf8'));\n      const tokenContractId = String(decoded.contract_id ?? '').trim();\n      const tokenBatchSize = Number(decoded.max_batch_size ?? 0);\n      const expiresAt = Number(decoded.expires_at_epoch_ms ?? 0);\n      if (!tokenContractId || tokenContractId !== String(input.Contrato_ID).trim()) badRequest('confirm_token no corresponde al contract_id enviado');\n      if (!Number.isInteger(tokenBatchSize) || tokenBatchSize !== maxBatchSize) badRequest('confirm_token no corresponde al max_batch_size enviado');\n      if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) badRequest('confirm_token vencido');\n    } catch (err) {\n      badRequest('confirm_token invalido', { reason: String(err?.message ?? err) });\n    }\n    input.confirm_token = confirmToken;\n    input.confirm = true;\n  }\n}\n\nif (input.action === 'history') {\n  const page = Number(input.page ?? 1);\n  const pageSize = Number(input.page_size ?? 25);\n  if (!Number.isInteger(page) || page < 1) badRequest('page invalido. Minimo 1');\n  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) badRequest('page_size invalido. Debe ser 1..100');\n  input.page = page;\n  input.page_size = pageSize;\n}\n\nreturn [{ json: input }];"
+        },
+        "id": "a2f9503e-7ace-4dda-bb96-4581b1d73eaa",
+        "name": "Validate Input",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          560,
+          0
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "alta",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "consulta",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "extension",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "baja_manual",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "listar_ads",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "run_now",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "history",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "pause_ad",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "pause_active_preview",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "pause_active",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "conditions": [
+                    {
+                      "operator": {
+                        "operation": "equals",
+                        "type": "string"
+                      },
+                      "rightValue": "search",
+                      "leftValue": "={{ $json.action }}"
+                    }
+                  ],
+                  "options": {
+                    "typeValidation": "strict",
+                    "leftValue": "",
+                    "caseSensitive": false
+                  }
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "0e362cd6-7793-4017-bc91-ebfc40c2400d",
+        "name": "Route Action",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          840,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// A1: Auto-generar Contrato_ID\nconst stamp = new Date().toISOString().slice(0,10);\nconst suffix = Math.random().toString(36).slice(2,6).toUpperCase();\nconst contratoId = `AK-${stamp}-${suffix}`;\n\n// A2: Auto-derivar Regex_Anuncio del nombre del influencer\n// \"Farid Dieck\" → \"farid|dieck|fariddieck\"\nconst nombreRaw = String($json.Cliente ?? '').trim();\nconst words = nombreRaw.toLowerCase()\n  .replace(/[^a-z0-9\\s]/g, '')\n  .trim()\n  .split(/\\s+/)\n  .filter(Boolean);\n\nlet regexAnuncio;\nif (words.length === 0) {\n  regexAnuncio = 'sin-patron';\n} else if (words.length === 1) {\n  regexAnuncio = words[0];\n} else {\n  const parts = [...words, words.join('')];\n  regexAnuncio = [...new Set(parts)].join('|');\n}\n\nreturn [{\n  json: {\n    Contrato_ID:          contratoId,\n    Cliente:              String($json.Cliente).trim(),\n    Regex_Anuncio:        regexAnuncio,\n    Fecha_Alta:           String($json.today_tz),\n    Fecha_Fin:            String($json.Fecha_Fin),\n    Status_Contrato:      'Activo',\n    Notificado_Previo:    false,\n    Ad_ID:                String($json.Ad_ID ?? ''),\n    Ad_Name:              String($json.Ad_Name ?? ''),\n    Fecha_Notificado_Previo: '',\n    Fecha_Finalizacion:   '',\n    Updated_At:           $json.request_ts,\n  },\n}];"
+        },
+        "id": "f0ced59d-5704-494f-8075-8f2292a2e180",
+        "name": "Prepare Alta Row",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          220
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "Contrato_ID",
+                "displayName": "Contrato_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Cliente",
+                "displayName": "Cliente",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Regex_Anuncio",
+                "displayName": "Regex_Anuncio",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Ad_ID",
+                "displayName": "Ad_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Ad_Name",
+                "displayName": "Ad_Name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Alta",
+                "displayName": "Fecha_Alta",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Fin",
+                "displayName": "Fecha_Fin",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Status_Contrato",
+                "displayName": "Status_Contrato",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Notificado_Previo",
+                "displayName": "Notificado_Previo",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Notificado_Previo",
+                "displayName": "Fecha_Notificado_Previo",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Finalizacion",
+                "displayName": "Fecha_Finalizacion",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Updated_At",
+                "displayName": "Updated_At",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "id": "53246fe3-a9ef-4164-8e52-50653a674496",
+        "name": "GS Append Alta",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1400,
+          220
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'alta', message: 'Contrato creado', data: $json } }}",
+          "options": {
+            "responseCode": 201
+          }
+        },
+        "id": "1fb1bb9e-9a51-4045-a93f-320ffa4aa6e8",
+        "name": "Respond Alta",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1680,
+          220
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "options": {}
+        },
+        "id": "3b239429-147d-4a6b-831b-4a473055206e",
+        "name": "GS Read Contratos",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1120,
+          440
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const trigger = $items('Validate Input', 0, 0)[0].json;\nconst showAll = trigger.show_all === true;\n\nif (showAll) {\n  // Devolver todos los rows de GS sin filtrar\n  const all = items.map(item => ({ json: item.json }));\n  all.sort((a, b) => String(a.json.Fecha_Fin ?? '').localeCompare(String(b.json.Fecha_Fin ?? '')));\n  return all;\n}\n\n// Comportamiento original: filtrar por dias_proximos y Status_Contrato=Activo\nconst dias = Number(trigger.dias_proximos ?? 7);\n\nfunction parseYmd(ymd) {\n  const [y, m, d] = String(ymd).split('-').map(Number);\n  return new Date(Date.UTC(y, m - 1, d));\n}\n\nconst today = parseYmd(trigger.today_tz);\nconst maxDate = new Date(today.getTime() + dias * 24 * 60 * 60 * 1000);\n\nconst out = [];\nfor (const item of items) {\n  const row = item.json;\n  const exp = String(row.Fecha_Fin ?? '').trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(exp)) continue;\n  const expDate = parseYmd(exp);\n  if (row.Status_Contrato === 'Finalizado') continue;\n  if (expDate >= today && expDate <= maxDate) {\n    out.push({ json: row });\n  }\n}\n\nout.sort((a, b) => String(a.json.Fecha_Fin).localeCompare(String(b.json.Fecha_Fin)));\nreturn out;"
+        },
+        "id": "03edbf6e-41ff-47d0-a0a0-67b5ae58cf34",
+        "name": "Filter Proximos Vencer",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1400,
+          440
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'consulta', dias_proximos: $items('Validate Input', 0, 0)[0].json.dias_proximos, total: $items('Filter Proximos Vencer').length, data: $items('Filter Proximos Vencer').map(i => i.json) } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "c4b8ba2a-e77e-4352-8555-125cd51f7ce6",
+        "name": "Respond Consulta",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1680,
+          440
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "documentId": {
+            "__rl": true,
+            "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "options": {}
+        },
+        "id": "362a2bb5-5730-401a-9aba-5099c4d56034",
+        "name": "GS Read For Extension",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1120,
+          660
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\n\nif (!found) {\n  const err = new Error('Contrato no encontrado para extension');\n  err.name = 'NotFoundError';\n  err.details = { Contrato_ID: idContrato };\n  throw err;\n}\n\nreturn [{\n  json: {\n    ...found.json,\n    Contrato_ID: idContrato,\n    Fecha_Fin: String(req.Nueva_Fecha_Fin),\n    Notificado_Previo: false,\n    Updated_At: req.request_ts,\n  },\n}];"
+        },
+        "id": "272dc9ea-2f4c-40ee-855a-9f4abb8f7753",
+        "name": "Prepare Extension Row",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1400,
+          660
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "operation": "appendOrUpdate",
+          "documentId": {
+            "__rl": true,
+            "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [
+              "Contrato_ID"
+            ],
+            "schema": [
+              {
+                "id": "Contrato_ID",
+                "displayName": "Contrato_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Cliente",
+                "displayName": "Cliente",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Regex_Anuncio",
+                "displayName": "Regex_Anuncio",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Ad_ID",
+                "displayName": "Ad_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Ad_Name",
+                "displayName": "Ad_Name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Alta",
+                "displayName": "Fecha_Alta",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Fin",
+                "displayName": "Fecha_Fin",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Status_Contrato",
+                "displayName": "Status_Contrato",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Notificado_Previo",
+                "displayName": "Notificado_Previo",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Notificado_Previo",
+                "displayName": "Fecha_Notificado_Previo",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Fecha_Finalizacion",
+                "displayName": "Fecha_Finalizacion",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Updated_At",
+                "displayName": "Updated_At",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "id": "208f2697-785b-4011-8eed-2e81dd752cbc",
+        "name": "GS Update Extension",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1680,
+          660
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'extension', message: 'Contrato extendido y Notificado_Previo reseteado', data: $json } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "7a43b90d-5d9f-43dd-a35c-ae7dd3ebc8f6",
+        "name": "Respond Extension",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1960,
+          660
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\nconst safeAction = String(input.action ?? 'unknown').trim().toLowerCase();\nconst correlationId = String(input.correlation_id ?? `ak-f1-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\nconst logicalExecutionId = String(input.logical_execution_id ?? `${correlationId}:f1:${safeAction}`);\n\nreturn [{\n  json: {\n    schema_version: '1.0.0',\n    event_type: 'contract.ui.action',\n    source_workflow: 'contract-ui-management-v2',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires'),\n    correlation_id: correlationId,\n    logical_execution_id: logicalExecutionId,\n    execution: {\n      n8n_execution_id: String($execution?.id ?? ''),\n      run_type: 'internal_execute_workflow',\n      status: 'queued'\n    },\n    payload: {\n      action: safeAction,\n      run_mode: String(input.run_mode ?? 'manual'),\n      actor: String(input.actor ?? 'ops@adskiller'),\n      tracking_id: String(input.tracking_id ?? ''),\n      Contrato_ID: String(input.Contrato_ID ?? ''),\n      Ad_ID: String(input.Ad_ID ?? ''),\n      Fecha_Fin: String(input.Fecha_Fin ?? ''),\n      Nueva_Fecha_Fin: String(input.Nueva_Fecha_Fin ?? ''),\n      Regex_Anuncio: String(input.Regex_Anuncio ?? ''),\n      request_ts: String(input.requested_at ?? input.request_ts ?? nowIso),\n      requested_at: String(input.requested_at ?? input.request_ts ?? nowIso),\n      today_tz: String(input.today_tz ?? ''),\n      timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires'),\n      dry_run: Boolean(input.dry_run ?? false),\n      confirm: Boolean(input.confirm ?? false),\n      confirm_token: String(input.confirm_token ?? ''),\n      max_batch_size: Number(input.max_batch_size ?? input.batch_limit ?? 20),\n      batch_limit: Number(input.batch_limit ?? input.max_batch_size ?? 20)\n    },\n    dispatched_at: nowIso\n  }\n}];"
+        },
+        "id": "c93c73ee-7992-422b-a6cd-2ee1d538bf0f",
+        "name": "Build Internal Payload F1->F2",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          1540
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "8mlwAxLtJVrwpLhi",
+            "mode": "id"
+          },
+          "options": {
+            "waitForSubWorkflow": true
+          }
+        },
+        "id": "e12bb2c9-f9c3-4a07-8343-22fb618b1818",
+        "name": "Execute F2 Internal",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          1680,
+          1540
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "const source = $json ?? {};\nreturn [{\n  json: {\n    event: 'internal_chain_dispatch_ok',\n    source_workflow: 'contract-ui-management',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    correlation_id: String(source.correlation_id ?? ''),\n    logical_execution_id: String(source.logical_execution_id ?? ''),\n    status: 'dispatched',\n    timestamp: new Date().toISOString()\n  }\n}];"
+        },
+        "id": "aa6324b9-7bb9-4ddd-b7fc-4768c4cdbc32",
+        "name": "Log F1 Chain Dispatch OK",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1960,
+          1440
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const source = $json ?? {};\nreturn [{\n  json: {\n    event: 'internal_chain_dispatch_error',\n    source_workflow: 'contract-ui-management',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    correlation_id: String(source.correlation_id ?? ''),\n    logical_execution_id: String(source.logical_execution_id ?? ''),\n    status: 'error',\n    error: String(source.error?.message ?? source.message ?? 'unknown_execute_workflow_error'),\n    timestamp: new Date().toISOString()\n  }\n}];"
+        },
+        "id": "b02fb3fe-abc7-4f9d-9725-50d879731d80",
+        "name": "Log F1 Chain Dispatch Error",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1960,
+          1640
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: false, error: 'ValidationError', message: 'Input invalido' } }}",
+          "options": {
+            "responseCode": 400
+          }
+        },
+        "id": "7eb41b01-059e-4bdf-b39b-58c3ebb53085",
+        "name": "Respond Validation Error",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          560,
+          -220
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "options": {}
+        },
+        "id": "31b6e26e-e03d-49db-9822-cba48f1160d8",
+        "name": "GS Read For Baja",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1120,
+          880
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst actor = String(req.actor ?? 'ops@adskiller');\nconst reason = String(req.reason ?? 'Cierre manual por operacion').trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\nif (!found) { const err = new Error('Contrato no encontrado para baja_manual'); err.name = 'NotFoundError'; err.details = { Contrato_ID: idContrato }; throw err; }\nreturn [{ json: { ...found.json, Contrato_ID: idContrato, Status_Contrato: 'Finalizado', Fecha_Finalizacion: req.request_ts, Updated_At: req.request_ts, Finalizado_By: actor, Finalizado_Reason: reason } }];"
+        },
+        "id": "6b613cc2-7b6f-41f9-96be-1642bfbe30c3",
+        "name": "Prepare Baja Row",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1400,
+          880
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "operation": "appendOrUpdate",
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [
+              "Contrato_ID"
+            ],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "id": "8d6a23eb-b501-48f5-a9c6-26d9b36d02f8",
+        "name": "GS Update Baja",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1680,
+          880
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'baja_manual', message: 'Contrato finalizado manualmente', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "ab755116-78ce-4b12-af1e-556471aa7e5c",
+        "name": "Respond Baja Manual",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1960,
+          880
+        ]
+      },
+      {
+        "id": "8b4c6b0c-facb-4040-9d43-f8d3d24c41cc",
+        "name": "GS Read For Listar Ads",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1120,
+          1100
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "http://168.138.125.21:5678/webhook/ak-meta-list-v1",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "pattern",
+                "value": "={{ $('Validate Input').item.json.Regex_Anuncio ?? '' }}"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "fullResponse": false,
+                "neverError": true,
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 30000
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Response from Meta mock: { data: [{id, name, status, effective_status, campaign_name}], paging: {...} }\nconst req      = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID || req.contract_id || '').trim();\nconst mockBody = $input.first()?.json ?? {};\nconst rawAds   = mockBody.data ?? [];\n\nconst ads = rawAds.map(ad => ({\n  ad_id:         String(ad.id   ?? ''),\n  ad_name:       String(ad.name ?? ''),\n  ad_status:     String(ad.effective_status ?? ad.status ?? 'UNKNOWN').toUpperCase(),\n  campaign_name: String(ad.campaign_name ?? ''),\n})).filter(a => a.ad_id);\n\nreturn [{ json: { contract_id: idContrato, total: ads.length, items: ads } }];"
+        },
+        "id": "cb9d9cf2-95b3-45f8-8656-058ebfef0eb3",
+        "name": "Build Listar Ads Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1400,
+          1100
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'listar_ads', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "331618dd-7a70-4c56-93f8-af083e9def8a",
+        "name": "Respond Listar Ads",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1680,
+          1100
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst nowIso = new Date().toISOString();\nconst trackingId = String(req.tracking_id ?? `trk-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);\nconst normalizedAction = String(req.action || '').trim();\nconst dispatchAction = normalizedAction === 'pause_active_preview' ? 'pause_active' : normalizedAction;\nconst maxBatchSize = Number(req.max_batch_size ?? req.batch_limit ?? 0);\nreturn [{\n  json: {\n    tracking_id: trackingId,\n    correlation_id: String(req.correlation_id),\n    logical_execution_id: `${trackingId}:f1:${dispatchAction}`,\n    action: dispatchAction,\n    run_mode: 'manual',\n    actor: String(req.actor ?? 'ops@adskiller'),\n    requested_at: req.request_ts ?? nowIso,\n    execution_id: String($execution?.id ?? ''),\n    status: 'accepted',\n    Contrato_ID: String(req.Contrato_ID ?? ''),\n    Ad_ID: String(req.Ad_ID ?? ''),\n    dry_run: Boolean(req.dry_run ?? false),\n    confirm: Boolean(req.confirm ?? false),\n    confirm_token: String(req.confirm_token ?? ''),\n    max_batch_size: Number.isInteger(maxBatchSize) ? maxBatchSize : 0,\n    batch_limit: Number.isInteger(maxBatchSize) ? maxBatchSize : Number(req.batch_limit ?? 0),\n    reason: String(req.reason ?? ''),\n    timezone: String(req.timezone ?? 'America/Argentina/Buenos_Aires')\n  }\n}];"
+        },
+        "id": "c6b64940-c53f-4d5e-a507-e601769f089c",
+        "name": "Build Operation Tracking",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          1320
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Operations_Log",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "execution_id",
+                "displayName": "execution_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "correlation_id",
+                "displayName": "correlation_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "action",
+                "displayName": "action",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "event_type",
+                "displayName": "event_type",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "result",
+                "displayName": "result",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "channel",
+                "displayName": "channel",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "severity",
+                "displayName": "severity",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "timestamp",
+                "displayName": "timestamp",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "source_workflow",
+                "displayName": "source_workflow",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "tracking_id",
+                "displayName": "tracking_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "logical_execution_id",
+                "displayName": "logical_execution_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "run_mode",
+                "displayName": "run_mode",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "actor",
+                "displayName": "actor",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "requested_at",
+                "displayName": "requested_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Contrato_ID",
+                "displayName": "Contrato_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Ad_ID",
+                "displayName": "Ad_ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "dry_run",
+                "displayName": "dry_run",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "confirm",
+                "displayName": "confirm",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "confirm_token",
+                "displayName": "confirm_token",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "max_batch_size",
+                "displayName": "max_batch_size",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "batch_limit",
+                "displayName": "batch_limit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "reason",
+                "displayName": "reason",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "timezone",
+                "displayName": "timezone",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "id": "2e2430c6-d772-4fd4-ad7e-4603d09178f5",
+        "name": "GS Append Operation Log",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1400,
+          1320
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        },
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: $json.action, data: { accepted: true, tracking_id: $json.tracking_id, correlation_id: $json.correlation_id, status: 'queued' }, meta: { execution_id: $json.execution_id || $execution.id, actor: $json.actor, timestamp: $json.requested_at } } }}",
+          "options": {
+            "responseCode": 202
+          }
+        },
+        "id": "9e3d278b-53dc-4716-acd1-c1ad8e334c71",
+        "name": "Respond Operation Accepted",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1680,
+          1320
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Operations_Log",
+            "mode": "name"
+          },
+          "options": {}
+        },
+        "id": "42b92982-a990-4b5a-a112-7ebbbc29a342",
+        "name": "GS Read Operations History",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1120,
+          1760
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst page = Number(req.page ?? 1);\nconst pageSize = Number(req.page_size ?? 25);\nconst from = String(req.from ?? '').trim();\nconst to = String(req.to ?? '').trim();\nconst resultFilter = String(req.result ?? '').trim().toLowerCase();\nconst runModeFilter = String(req.run_mode ?? '').trim().toLowerCase();\nconst executionFilter = String(req.execution_id ?? '').trim();\nconst correlationFilter = String(req.correlation_id_filter ?? req.correlation_id_query ?? '').trim();\nconst parseTs = (v) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d; };\nconst fromDate = from ? parseTs(from) : null;\nconst toDate = to ? parseTs(to) : null;\nlet rows = items.map((i) => i.json || {});\nrows = rows.filter((row) => {\n  const ts = parseTs(row.requested_at ?? row.timestamp ?? row.executed_at ?? '');\n  if (fromDate && (!ts || ts < fromDate)) return false;\n  if (toDate && (!ts || ts > toDate)) return false;\n  if (resultFilter && String(row.status ?? row.result ?? '').toLowerCase() !== resultFilter) return false;\n  if (runModeFilter && String(row.run_mode ?? '').toLowerCase() !== runModeFilter) return false;\n  if (executionFilter && String(row.execution_id ?? '') !== executionFilter) return false;\n  if (correlationFilter && String(row.correlation_id ?? '') !== correlationFilter) return false;\n  return true;\n});\nrows.sort((a, b) => String(b.requested_at ?? b.timestamp ?? '').localeCompare(String(a.requested_at ?? a.timestamp ?? '')));\nconst total = rows.length;\nconst start = (page - 1) * pageSize;\nconst paged = rows.slice(start, start + pageSize).map((row) => ({ execution_id: String(row.execution_id ?? ''), tracking_id: String(row.tracking_id ?? ''), correlation_id: String(row.correlation_id ?? ''), action: String(row.action ?? ''), run_mode: String(row.run_mode ?? ''), result: String(row.status ?? row.result ?? ''), actor: String(row.actor ?? ''), executed_at: String(row.requested_at ?? row.timestamp ?? row.executed_at ?? '') }));\nreturn [{ json: { total, page, page_size: pageSize, items: paged } }];"
+        },
+        "id": "08e18cad-57d7-4046-83dc-04923181d1ec",
+        "name": "Build History Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1400,
+          1760
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'history', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "e199a9ba-3ae3-4e69-8091-4737fd724dee",
+        "name": "Respond History",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1680,
+          1760
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "options": {}
+        },
+        "id": "111611f8-7c4f-43ed-afdc-c6621f4b99fb",
+        "name": "GS Read For Pause Active Preview",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1120,
+          1980
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst contractId = String(req.Contrato_ID ?? '').trim();\nconst maxBatchSize = Number(req.max_batch_size ?? req.batch_limit ?? 20);\nconst actor = String(req.actor ?? 'ops@adskiller').trim();\nconst ttlMs = 10 * 60 * 1000;\n\nfunction encodeBase64Url(value) {\n  return Buffer.from(value, 'utf8')\n    .toString('base64')\n    .replace(/\\+/g, '-')\n    .replace(/\\//g, '_')\n    .replace(/=+$/g, '');\n}\n\nconst candidates = items\n  .filter((i) => String(i.json.Contrato_ID ?? '').trim() === contractId)\n  .filter((i) => String(i.json.Status_Contrato ?? '').trim().toLowerCase() === 'activo')\n  .slice(0, maxBatchSize)\n  .map((i) => ({\n    ad_id: String(i.json.Ad_ID ?? ''),\n    ad_name: String(i.json.Ad_Name ?? ''),\n    contract_id: contractId\n  }));\n\nconst nowMs = Date.now();\nconst expiresAt = nowMs + ttlMs;\nconst tokenPayload = {\n  contract_id: contractId,\n  actor,\n  max_batch_size: maxBatchSize,\n  issued_at_epoch_ms: nowMs,\n  expires_at_epoch_ms: expiresAt,\n  candidate_count: candidates.filter((x) => x.ad_id).length\n};\nconst confirmToken = encodeBase64Url(JSON.stringify(tokenPayload));\n\nreturn [{\n  json: {\n    dry_run: true,\n    contract_id: contractId,\n    max_batch_size: maxBatchSize,\n    total_candidates: candidates.length,\n    would_pause: candidates.filter((x) => x.ad_id).length,\n    confirm_token: confirmToken,\n    confirm_token_expires_at: new Date(expiresAt).toISOString(),\n    items: candidates\n  }\n}];"
+        },
+        "id": "7b4fbd01-5bbf-405c-887f-c910c438178c",
+        "name": "Build Pause Active Preview",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1400,
+          1980
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'pause_active', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "07788f04-5abb-4d60-aefd-7b3a206d6c61",
+        "name": "Respond Pause Active Preview",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1680,
+          1980
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "={{$json.action}}",
+                "operation": "in",
+                "value2": "run_now,pause_ad,pause_active"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "249436da-6236-4369-b8dc-e15c179aa080",
+        "name": "Should Dispatch F2",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1400,
+          1540
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "documentId": {
+            "mode": "id",
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+          },
+          "sheetName": {
+            "mode": "name",
+            "__rl": true,
+            "value": "Contratos"
+          },
+          "options": {}
+        },
+        "id": "58261ffd-dca9-4bcb-8974-5a037395ef79",
+        "name": "GS Read For Search",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1120,
+          2200
+        ],
+        "typeVersion": 4.5,
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const query = String($('Validate Input').first().json.q ?? '').toLowerCase().trim();\nconst allItems = $input.all();\nconst matches = allItems.filter(item => {\n  const cliente = String(item.json.Cliente ?? '').toLowerCase();\n  return !query || cliente.includes(query);\n});\nreturn [{ json: {\n  ok: true,\n  action: 'search',\n  query: query,\n  total: matches.length,\n  data: matches.map(i => i.json),\n  correlation_id: $('Validate Input').first().json.correlation_id,\n  execution_id: $execution.id\n} }];"
+        },
+        "id": "31865952-4069-40d2-9591-a91c96af5272",
+        "name": "Filter Search Results",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1400,
+          2200
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: $json.ok, action: $json.action, query: $json.query, total: $json.total, data: $json.data, meta: { execution_id: $json.execution_id, correlation_id: $json.correlation_id } } }}",
+          "options": {}
+        },
+        "id": "61d85248-aca7-4685-af11-7600958dd103",
+        "name": "Respond Search",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          1680,
+          2200
+        ],
+        "typeVersion": 1.1
+      }
+    ],
+    "connections": {
+      "Webhook UI": {
+        "main": [
+          [
+            {
+              "node": "Normalize Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Request": {
+        "main": [
+          [
+            {
+              "node": "Validate Input",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Input": {
+        "main": [
+          [
+            {
+              "node": "Route Action",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond Validation Error",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route Action": {
+        "main": [
+          [
+            {
+              "node": "Prepare Alta Row",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read Contratos",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Extension",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Baja",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Listar Ads",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build Operation Tracking",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read Operations History",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build Operation Tracking",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Pause Active Preview",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build Operation Tracking",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Alta Row": {
+        "main": [
+          [
+            {
+              "node": "GS Append Alta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Append Alta": {
+        "main": [
+          [
+            {
+              "node": "Respond Alta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read Contratos": {
+        "main": [
+          [
+            {
+              "node": "Filter Proximos Vencer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Proximos Vencer": {
+        "main": [
+          [
+            {
+              "node": "Respond Consulta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read For Extension": {
+        "main": [
+          [
+            {
+              "node": "Prepare Extension Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Extension Row": {
+        "main": [
+          [
+            {
+              "node": "GS Update Extension",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Update Extension": {
+        "main": [
+          [
+            {
+              "node": "Respond Extension",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Internal Payload F1->F2": {
+        "main": [
+          [
+            {
+              "node": "Should Dispatch F2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute F2 Internal": {
+        "main": [
+          [
+            {
+              "node": "Log F1 Chain Dispatch OK",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log F1 Chain Dispatch Error",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Should Dispatch F2": {
+        "main": [
+          [
+            {
+              "node": "Execute F2 Internal",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "GS Read For Baja": {
+        "main": [
+          [
+            {
+              "node": "Prepare Baja Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Baja Row": {
+        "main": [
+          [
+            {
+              "node": "GS Update Baja",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Update Baja": {
+        "main": [
+          [
+            {
+              "node": "Respond Baja Manual",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read For Listar Ads": {
+        "main": [
+          [
+            {
+              "node": "Build Listar Ads Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Listar Ads Response": {
+        "main": [
+          [
+            {
+              "node": "Respond Listar Ads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Operation Tracking": {
+        "main": [
+          [
+            {
+              "node": "GS Append Operation Log",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Build Internal Payload F1->F2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Append Operation Log": {
+        "main": [
+          [
+            {
+              "node": "Respond Operation Accepted",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond Operation Accepted",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read Operations History": {
+        "main": [
+          [
+            {
+              "node": "Build History Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build History Response": {
+        "main": [
+          [
+            {
+              "node": "Respond History",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read For Pause Active Preview": {
+        "main": [
+          [
+            {
+              "node": "Build Pause Active Preview",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Pause Active Preview": {
+        "main": [
+          [
+            {
+              "node": "Respond Pause Active Preview",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Search Results": {
+        "main": [
+          [
+            {
+              "node": "Respond Search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read For Search": {
+        "main": [
+          [
+            {
+              "node": "Filter Search Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alexander Villa",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-16T00:41:02.610Z",
+        "id": 298,
+        "workflowId": "cFBr6GavlSWDsUFz",
+        "versionId": "b4ede4ac-0949-42ae-bb97-816a450ebfcb",
+        "event": "activated",
+        "userId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      },
+      {
+        "createdAt": "2026-04-16T00:41:02.578Z",
+        "id": 297,
+        "workflowId": "cFBr6GavlSWDsUFz",
+        "versionId": "b4ede4ac-0949-42ae-bb97-816a450ebfcb",
+        "event": "deactivated",
+        "userId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      }
+    ]
+  }
+}

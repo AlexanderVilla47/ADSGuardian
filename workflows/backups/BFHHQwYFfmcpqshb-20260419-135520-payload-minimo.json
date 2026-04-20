@@ -1,0 +1,617 @@
+{
+    "staticData":  {
+
+                   },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate",
+                     "availableInMCP":  false,
+                     "callerPolicy":  "workflowsFromSameOwner",
+                     "timezone":  "America/Argentina/Buenos_Aires"
+                 },
+    "name":  "AdsKiller - Ops Reporting \u0026 Alerts (MVP)",
+    "connections":  {
+                        "Is_TelegramChannel":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Send_TelegramNotification",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ],
+                                                                [
+                                                                    {
+                                                                        "node":  "Log_UnsupportedChannel",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Send_TelegramNotification":  {
+                                                          "main":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "Log_TelegramSent",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ],
+                                                                       [
+                                                                           {
+                                                                               "node":  "Log_ChannelSendFailure",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                                      },
+                        "Normalize_InternalExecuteTrigger":  {
+                                                                 "main":  [
+                                                                              [
+                                                                                  {
+                                                                                      "node":  "Normalize_Payload",
+                                                                                      "type":  "main",
+                                                                                      "index":  0
+                                                                                  }
+                                                                              ]
+                                                                          ]
+                                                             },
+                        "Build_CriticalMessage":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Is_SlackChannel",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       },
+                                                                       {
+                                                                           "node":  "Is_TelegramChannel",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       },
+                                                                       {
+                                                                           "node":  "Build Alert Row F3",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  },
+                        "Is_SlackChannel":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Send_SlackNotification",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ],
+                                                             [
+
+                                                             ]
+                                                         ]
+                                            },
+                        "Normalize_KillSwitchResultWebhook":  {
+                                                                  "main":  [
+                                                                               [
+                                                                                   {
+                                                                                       "node":  "Normalize_Payload",
+                                                                                       "type":  "main",
+                                                                                       "index":  0
+                                                                                   }
+                                                                               ]
+                                                                           ]
+                                                              },
+                        "Normalize_Payload":  {
+                                                  "main":  [
+                                                               [
+                                                                   {
+                                                                       "node":  "Is_CriticalAlert",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   }
+                                                               ]
+                                                           ]
+                                              },
+                        "Is_CriticalAlert":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Build_CriticalMessage",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ],
+                                                              [
+                                                                  {
+                                                                      "node":  "Build_InfoWarnMessage",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Build_InfoWarnMessage":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Is_SlackChannel",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       },
+                                                                       {
+                                                                           "node":  "Is_TelegramChannel",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  },
+                        "Send_SlackNotification":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Log_SlackSent",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ],
+                                                                    [
+                                                                        {
+                                                                            "node":  "Log_ChannelSendFailure",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Log_SlackSent":  {
+                                              "main":  [
+                                                           [
+                                                               {
+                                                                   "node":  "Build OpsLog Row F3",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ]
+                                                       ]
+                                          },
+                        "Log_TelegramSent":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Build OpsLog Row F3",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Log_ChannelSendFailure":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Build OpsLog Row F3",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Log_UnsupportedChannel":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Build OpsLog Row F3",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Build OpsLog Row F3":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "GS Append Operations Log F3",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Build Alert Row F3":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "GS Append Alertas F3",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               }
+                    },
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "ops-reporting-alerts",
+                                         "responseMode":  "onReceived",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "1",
+                      "name":  "Normalize_KillSwitchResultWebhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       0,
+                                       220
+                                   ],
+                      "webhookId":  "ops-reporting-alerts"
+                  },
+                  {
+                      "parameters":  {
+                                         "inputSource":  "passthrough"
+                                     },
+                      "id":  "14",
+                      "name":  "Normalize_InternalExecuteTrigger",
+                      "type":  "n8n-nodes-base.executeWorkflowTrigger",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       0,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "﻿const input = $json.body ?? $json;\nconst metricsIn = input.metrics ?? {};\nconst incidents = Array.isArray(input.incidents) ? input.incidents : [];\n\nconst fallbackNotification = {\n  channel: \u0027both\u0027,\n  slack: {\n    webhook_url: \u0027__REDACTED_SLACK_WEBHOOK__\u0027\n  },\n  telegram: {\n    bot_token: \u0027__REDACTED_TELEGRAM_BOT_TOKEN__\u0027,\n    chat_id: \u0027__REDACTED_TELEGRAM_CHAT_ID__\u0027\n  }\n};\n\nfunction pickNonEmpty(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    const text = String(value).trim();\n    if (text) return text;\n  }\n  return \u0027\u0027;\n}\n\nconst incomingNotification = input.notification ?? {};\nconst incomingChannel = String(incomingNotification.channel ?? \u0027\u0027).trim().toLowerCase();\nconst resolvedChannel = incomingChannel || fallbackNotification.channel;\nconst wantsSlack = resolvedChannel === \u0027slack\u0027 || resolvedChannel === \u0027both\u0027;\nconst wantsTelegram = resolvedChannel === \u0027telegram\u0027 || resolvedChannel === \u0027both\u0027;\n\nconst notification = {\n  channel: resolvedChannel,\n  slack: {\n    webhook_url: wantsSlack\n      ? pickNonEmpty(incomingNotification?.slack?.webhook_url, fallbackNotification.slack.webhook_url)\n      : \u0027\u0027\n  },\n  telegram: {\n    bot_token: wantsTelegram\n      ? pickNonEmpty(incomingNotification?.telegram?.bot_token, fallbackNotification.telegram.bot_token)\n      : \u0027\u0027,\n    chat_id: wantsTelegram\n      ? pickNonEmpty(incomingNotification?.telegram?.chat_id, fallbackNotification.telegram.chat_id)\n      : \u0027\u0027\n  }\n};\n\nconst metrics = {\n  contracts_evaluated: Number(metricsIn.contracts_evaluated ?? 0),\n  ads_evaluated: Number(metricsIn.ads_evaluated ?? 0),\n  paused_success_count: Number(metricsIn.paused_success_count ?? 0),\n  paused_error_count: Number(metricsIn.paused_error_count ?? 0),\n  expired_unpaused_count: Number(metricsIn.expired_unpaused_count ?? 0),\n  preventive_48h_count: Number(metricsIn.preventive_48h_count ?? 0),\n  duration_ms: Number(metricsIn.duration_ms ?? 0)\n};\n\nconst executionStatus = String(input.execution_status ?? input.status ?? \u0027unknown\u0027).toLowerCase();\nconst isCritical = metrics.expired_unpaused_count \u003e 0;\nconst hasWarnSignals = metrics.preventive_48h_count \u003e 0 || executionStatus !== \u0027success\u0027 || metrics.paused_error_count \u003e 0 || incidents.length \u003e 0;\n\nlet severity = \u0027INFO\u0027;\nif (isCritical) {\n  severity = \u0027CRITICAL\u0027;\n} else if (hasWarnSignals) {\n  severity = \u0027WARN\u0027;\n}\n\nconst correlationId = String(input.correlation_id ?? input.execution_id ?? (\u0027ops-\u0027 + Date.now()));\nconst timezone = input.timezone ?? \u0027America/Argentina/Buenos_Aires\u0027;\n\nreturn [{\n  json: {\n    ...input,\n    correlation_id: correlationId,\n    execution_status: executionStatus,\n    timezone,\n    incidents,\n    metrics,\n    notification,\n    derived: {\n      severity,\n      is_critical: isCritical,\n      execution_mode: String(input.execution_mode ?? \u0027scheduled\u0027).toLowerCase(),\n      executed_at: input.executed_at ?? new Date().toISOString()\n    }\n  }\n}];\r\n"
+                                     },
+                      "id":  "2",
+                      "name":  "Normalize_Payload",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       380,
+                                       110
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  false,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "loose"
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "leftValue":  "={{ $json.derived.severity }}",
+                                                                                   "rightValue":  "CRITICAL",
+                                                                                   "operator":  {
+                                                                                                    "type":  "string",
+                                                                                                    "operation":  "equals",
+                                                                                                    "rightType":  "string"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        }
+                                     },
+                      "id":  "3",
+                      "name":  "Is_CriticalAlert",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2,
+                      "position":  [
+                                       760,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "﻿const m = $json.metrics ?? {};\nconst incidents = Array.isArray($json.incidents) ? $json.incidents : [];\n\nconst pausedOk = Number(m.paused_success_count ?? 0);\nconst pausedErr = Number(m.paused_error_count ?? 0);\nconst contractsReviewed = Number(m.contracts_evaluated ?? 0);\nconst durationSec = (Number(m.duration_ms ?? 0) / 1000).toFixed(1);\n\nfunction uniq(values) {\n  return [...new Set(values.filter(Boolean))];\n}\n\nconst incidentInfluencers = incidents\n  .map((it) =\u003e String(it?.influencer ?? \u0027\u0027).trim())\n  .filter(Boolean);\nconst contextInfluencers = Array.isArray($json.context?.influencers)\n  ? $json.context.influencers.map((x) =\u003e String(x || \u0027\u0027).trim())\n  : [];\nconst influencers = uniq([...contextInfluencers, ...incidentInfluencers]);\n\nconst expiredInfluencersCount = influencers.length || Number(m.expired_unpaused_count ?? 0);\nconst influencersInline = influencers.length\n  ? ` (${influencers.map((name) =\u003e `${name.replace(/^@/, \u0027\u0027)}`).join(\u0027, \u0027)})`\n  : \u0027\u0027;\n\nconst firstFailure = incidents.find((it) =\u003e {\n  const code = String(it?.code ?? \u0027\u0027).trim();\n  const type = String(it?.type ?? \u0027\u0027).toLowerCase();\n  return code || type.includes(\u0027error\u0027) || type.includes(\u0027fail\u0027);\n}) ?? incidents[0] ?? {};\n\nconst failureInfluencer = String(firstFailure.influencer ?? \u0027\u0027).trim();\nconst failureInfluencerText = failureInfluencer ? ` (Influencer: ${failureInfluencer.replace(/^@/, \u0027\u0027)})` : \u0027\u0027;\nconst reasonCode = pausedErr \u003e 0 ? String(firstFailure.code ?? \u0027UNKNOWN_ERROR\u0027) : \u0027SIN_ERRORES_REPORTADOS\u0027;\n\nconst executionId = String($json.execution_id ?? \u0027N/A\u0027);\nconst correlationId = String($json.correlation_id ?? \u0027N/A\u0027);\n\nconst telegramText = [\n  \u0027\u003cb\u003eADSGuardian: ALERTA CRITICA\u003c/b\u003e\u0027,\n  \u0027\u0027,\n  \u0027\u003cb\u003eResumen de Accion:\u003c/b\u003e\u0027,\n  `Ads Pausadas: ${pausedOk}`,\n  `Influencers Vencidos: ${expiredInfluencersCount}${influencersInline}`,\n  \u0027\u0027,\n  \u0027\u003cb\u003eEstado de errores:\u003c/b\u003e\u0027,\n  `Fallas al pausar: ${pausedErr} Ad${pausedErr === 1 ? \u0027\u0027 : \u0027s\u0027}${failureInfluencerText}`,\n  `Motivo: ${reasonCode}`,\n  \u0027\u0027,\n  \u0027\u003cb\u003eMetricas de sesion:\u003c/b\u003e\u0027,\n  `- Total contratos revisados: ${contractsReviewed}`,\n  `- Duracion: ${durationSec}s`,\n  \u0027\u0027,\n  `Scan ID: \u003ccode\u003e${executionId}\u003c/code\u003e`,\n  `Correlation ID: \u003ccode\u003e${correlationId}\u003c/code\u003e`\n].join(\u0027\\n\u0027);\n\nconst slackPayload = {\n  text: \u0027ADSGuardian: ALERTA CRITICA\u0027,\n  blocks: [\n    { type: \u0027header\u0027, text: { type: \u0027plain_text\u0027, text: \u0027ADSGuardian: ALERTA CRITICA\u0027, emoji: false } },\n    {\n      type: \u0027section\u0027,\n      text: {\n        type: \u0027mrkdwn\u0027,\n        text: [\n          \u0027*Resumen de Accion:*\u0027,\n          `Ads Pausadas: ${pausedOk}`,\n          `Influencers Vencidos: ${expiredInfluencersCount}${influencersInline}`\n        ].join(\u0027\\n\u0027)\n      }\n    },\n    {\n      type: \u0027section\u0027,\n      text: {\n        type: \u0027mrkdwn\u0027,\n        text: [\n          \u0027*Estado de errores:*\u0027,\n          `Fallas al pausar: ${pausedErr} Ad${pausedErr === 1 ? \u0027\u0027 : \u0027s\u0027}${failureInfluencerText}`,\n          `Motivo: ${reasonCode}`\n        ].join(\u0027\\n\u0027)\n      }\n    },\n    {\n      type: \u0027section\u0027,\n      text: {\n        type: \u0027mrkdwn\u0027,\n        text: [\n          \u0027*Metricas de sesion:*\u0027,\n          `- Total contratos revisados: ${contractsReviewed}`,\n          `- Duracion: ${durationSec}s`\n        ].join(\u0027\\n\u0027)\n      }\n    },\n    {\n      type: \u0027context\u0027,\n      elements: [\n        { type: \u0027mrkdwn\u0027, text: `Scan ID: \\`${executionId}\\` | Correlation: \\`${correlationId}\\`` }\n      ]\n    }\n  ]\n};\n\nreturn [{\n  json: {\n    ...$json,\n    message_text: telegramText,\n    message_slack: slackPayload,\n    message_telegram: telegramText\n  }\n}];\r\n"
+                                     },
+                      "id":  "4",
+                      "name":  "Build_CriticalMessage",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1140,
+                                       -110
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "﻿const m = $json.metrics ?? {};\nconst incidents = Array.isArray($json.incidents) ? $json.incidents : [];\nconst severity = String($json.derived?.severity ?? \u0027INFO\u0027).toUpperCase();\n\nconst executionId = String($json.execution_id ?? \u0027N/A\u0027);\nconst correlationId = String($json.correlation_id ?? \u0027N/A\u0027);\nconst preventiveCount = Number(m.preventive_48h_count ?? 0);\n\nfunction uniq(values) {\n  return [...new Set(values.filter(Boolean))];\n}\n\nconst contextInfluencers = Array.isArray($json.context?.influencers)\n  ? $json.context.influencers.map((x) =\u003e String(x || \u0027\u0027).trim())\n  : [];\nconst incidentInfluencers = incidents\n  .map((it) =\u003e String(it?.influencer ?? \u0027\u0027).trim())\n  .filter(Boolean);\nconst influencers = uniq([...contextInfluencers, ...incidentInfluencers]);\n\nconst pausedByInfluencerRaw = Array.isArray($json.context?.paused_by_influencer)\n  ? $json.context.paused_by_influencer\n  : [];\nconst pausedByInfluencer = pausedByInfluencerRaw\n  .map((it) =\u003e ({\n    influencer: String(it?.influencer ?? \u0027\u0027).trim().replace(/^@/, \u0027\u0027),\n    ads_paused: Number(it?.ads_paused ?? 0)\n  }))\n  .filter((it) =\u003e it.influencer \u0026\u0026 Number.isFinite(it.ads_paused) \u0026\u0026 it.ads_paused \u003e 0);\nconst pausedSummaryLines = pausedByInfluencer.length\n  ? pausedByInfluencer.map((it) =\u003e `- Se pausaron exitosamente ${it.ads_paused} ads del influencer ${it.influencer}`).join(\u0027\\n\u0027)\n  : \u0027\u0027;\n\nconst influencersTelegram = influencers.length\n  ? influencers.map((name) =\u003e `- ${name.replace(/^@/, \u0027\u0027)}`).join(\u0027\\n\u0027)\n  : \u0027- Sin detalle de influencers\u0027;\n\nconst influencersSlack = influencers.length\n  ? influencers.map((name) =\u003e `- ${name.replace(/^@/, \u0027\u0027)}`).join(\u0027\\n\u0027)\n  : \u0027- Sin detalle de influencers\u0027;\n\nconst crmUrl = String($json.context?.crm_url ?? $json.context?.sheet_url ?? \u0027\u0027).trim();\nconst telegramLinkLine = crmUrl ? `Ver en CRM/Sheet: ${crmUrl}` : \u0027Ver en CRM/Sheet\u0027;\nconst slackLinkLine = crmUrl ? `\u003c${crmUrl}|Ver en CRM/Sheet\u003e` : \u0027Ver en CRM/Sheet\u0027;\n\nlet telegramText;\nlet slackPayload;\n\nif (severity === \u0027INFO\u0027) {\n  if (pausedSummaryLines) {\n    telegramText = [\n      \u0027\u003cb\u003eADSGuardian: Sistema OK\u003c/b\u003e\u0027,\n      \u0027\u0027,\n      pausedSummaryLines,\n      \u0027\u0027,\n      `Scan finalizado | ID: \u003ccode\u003e${executionId}\u003c/code\u003e`\n    ].join(\u0027\\n\u0027);\n  } else {\n    telegramText = [\n      \u0027\u003cb\u003eADSGuardian: Sistema OK\u003c/b\u003e\u0027,\n      \u0027\u0027,\n      \u0027Estado: Sin novedades.\u0027,\n      \u0027\u0027,\n      \u0027No se detectaron contratos vencidos ni proximos a vencer.\u0027,\n      \u0027\u0027,\n      `Scan finalizado | ID: \u003ccode\u003e${executionId}\u003c/code\u003e`\n    ].join(\u0027\\n\u0027);\n  }\n\n  slackPayload = {\n    text: \u0027ADSGuardian: Sistema OK\u0027,\n    blocks: [\n      { type: \u0027header\u0027, text: { type: \u0027plain_text\u0027, text: \u0027ADSGuardian: Sistema OK\u0027, emoji: false } },\n      {\n        type: \u0027section\u0027,\n        text: {\n          type: \u0027mrkdwn\u0027,\n          text: pausedSummaryLines\n            ? [\n              pausedSummaryLines\n            ].join(\u0027\\n\u0027)\n            : [\n              \u0027Estado: Sin novedades.\u0027,\n              \u0027No se detectaron contratos vencidos ni proximos a vencer.\u0027\n            ].join(\u0027\\n\u0027)\n        }\n      },\n      { type: \u0027context\u0027, elements: [{ type: \u0027mrkdwn\u0027, text: `Scan finalizado | ID: \\`${executionId}\\`` }] }\n    ]\n  };\n} else {\n  const contractsAtRisk = preventiveCount \u003e 0 ? preventiveCount : influencers.length;\n\n  telegramText = [\n    \u0027\u003cb\u003eADSGuardian: Alerta de Vencimiento (48h)\u003c/b\u003e\u0027,\n    \u0027\u0027,\n    `Contratos proximos a expirar: \u003cb\u003e${contractsAtRisk}\u003c/b\u003e`,\n    \u0027\u0027,\n    \u0027\u003cb\u003eInfluencers en riesgo:\u003c/b\u003e\u0027,\n    influencersTelegram,\n    \u0027\u0027,\n    \u0027Tenes 48 horas para renovar el contrato o actualizar la fecha en el sistema para evitar la pausa automatica.\u0027,\n    \u0027\u0027,\n    telegramLinkLine,\n    \u0027\u0027,\n    `Scan finalizado | ID: \u003ccode\u003e${executionId}\u003c/code\u003e`,\n    `Correlation ID: \u003ccode\u003e${correlationId}\u003c/code\u003e`\n  ].join(\u0027\\n\u0027);\n\n  slackPayload = {\n    text: \u0027ADSGuardian: Alerta de Vencimiento (48h)\u0027,\n    blocks: [\n      { type: \u0027header\u0027, text: { type: \u0027plain_text\u0027, text: \u0027ADSGuardian: Alerta de Vencimiento (48h)\u0027, emoji: false } },\n      { type: \u0027section\u0027, text: { type: \u0027mrkdwn\u0027, text: `*Contratos proximos a expirar:* ${contractsAtRisk}` } },\n      { type: \u0027section\u0027, text: { type: \u0027mrkdwn\u0027, text: `*Influencers en riesgo:*\\n${influencersSlack}` } },\n      {\n        type: \u0027section\u0027,\n        text: {\n          type: \u0027mrkdwn\u0027,\n          text: \u0027Tenes 48 horas para renovar el contrato o actualizar la fecha en el sistema para evitar la pausa automatica.\u0027\n        }\n      },\n      { type: \u0027section\u0027, text: { type: \u0027mrkdwn\u0027, text: slackLinkLine } },\n      { type: \u0027context\u0027, elements: [{ type: \u0027mrkdwn\u0027, text: `Scan ID: \\`${executionId}\\` | Correlation: \\`${correlationId}\\`` }] }\n    ]\n  };\n}\n\nreturn [{\n  json: {\n    ...$json,\n    message_text: telegramText,\n    message_slack: slackPayload,\n    message_telegram: telegramText\n  }\n}];\r\n"
+                                     },
+                      "id":  "5",
+                      "name":  "Build_InfoWarnMessage",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1140,
+                                       110
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  false,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "loose"
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "leftValue":  "={{ $json.notification.slack.webhook_url }}",
+                                                                                   "rightValue":  "",
+                                                                                   "operator":  {
+                                                                                                    "type":  "string",
+                                                                                                    "operation":  "notEmpty"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        }
+                                     },
+                      "id":  "6",
+                      "name":  "Is_SlackChannel",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1520,
+                                       -110
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "={{ $json.notification.slack.webhook_url }}",
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ $json.message_slack }}",
+                                         "options":  {
+                                                         "timeout":  30000
+                                                     }
+                                     },
+                      "id":  "7",
+                      "name":  "Send_SlackNotification",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       1900,
+                                       -220
+                                   ],
+                      "onError":  "continueErrorOutput"
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  false,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "loose"
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "leftValue":  "={{ $json.notification.telegram.bot_token }}",
+                                                                                   "rightValue":  "",
+                                                                                   "operator":  {
+                                                                                                    "type":  "string",
+                                                                                                    "operation":  "notEmpty"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        }
+                                     },
+                      "id":  "8",
+                      "name":  "Is_TelegramChannel",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1520,
+                                       110
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "={{ `https://api.telegram.org/bot${$json.notification.telegram.bot_token}/sendMessage` }}",
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ { chat_id: $json.notification.telegram.chat_id, text: $json.message_telegram, parse_mode: \"HTML\" } }}",
+                                         "options":  {
+                                                         "timeout":  30000
+                                                     }
+                                     },
+                      "id":  "9",
+                      "name":  "Send_TelegramNotification",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       1900,
+                                       0
+                                   ],
+                      "onError":  "continueErrorOutput"
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "return [{\n  json: {\n    event: \u0027ops_notification_channel_error\u0027,\n    channel: String($json.notification?.channel ?? \u0027unknown\u0027).toLowerCase(),\n    severity: $json.derived?.severity ?? \u0027WARN\u0027,\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: \u0027Fallo de env?o de notificaci?n. MVP sin fallback autom?tico entre canales.\u0027,\n    timestamp: new Date().toISOString()\n  }\n}];"
+                                     },
+                      "id":  "10",
+                      "name":  "Log_ChannelSendFailure",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2280,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "return [{\n  json: {\n    event: \u0027ops_notification_sent\u0027,\n    channel: \u0027slack\u0027,\n    severity: $json.derived?.severity ?? \u0027INFO\u0027,\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: \u0027Notificaci?n enviada por Slack.\u0027,\n    timestamp: new Date().toISOString()\n  }\n}];"
+                                     },
+                      "id":  "11",
+                      "name":  "Log_SlackSent",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2280,
+                                       -220
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "return [{\n  json: {\n    event: \u0027ops_notification_sent\u0027,\n    channel: \u0027telegram\u0027,\n    severity: $json.derived?.severity ?? \u0027INFO\u0027,\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: \u0027Notificaci?n enviada por Telegram.\u0027,\n    timestamp: new Date().toISOString()\n  }\n}];"
+                                     },
+                      "id":  "12",
+                      "name":  "Log_TelegramSent",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2280,
+                                       220
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "return [{\n  json: {\n    event: \u0027ops_notification_channel_unsupported\u0027,\n    channel: String($json.notification?.channel ?? \u0027undefined\u0027).toLowerCase(),\n    severity: \u0027ERROR\u0027,\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: \u0027Canal no soportado. Solo Slack o Telegram en MVP.\u0027,\n    timestamp: new Date().toISOString()\n  }\n}];"
+                                     },
+                      "id":  "13",
+                      "name":  "Log_UnsupportedChannel",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1900,
+                                       220
+                                   ]
+                  },
+                  {
+                      "id":  "b45c2238-c016-4e99-a52d-92731729b827",
+                      "name":  "Build OpsLog Row F3",
+                      "type":  "n8n-nodes-base.code",
+                      "position":  [
+                                       2660,
+                                       0
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\n\nconst eventType = String(input.event_type ?? input.event ?? input.action ?? \"ops_notification_event\").trim() || \"ops_notification_event\";\nconst statusRaw = String(input.status ?? input.result ?? \"\").trim();\n\nlet resultValue = statusRaw ? statusRaw.toLowerCase() : \"\";\nif (!resultValue) {\n  if (eventType.includes(\"sent\")) resultValue = \"success\";\n  else if (eventType.includes(\"error\") || eventType.includes(\"unsupported\")) resultValue = \"error\";\n  else resultValue = \"unknown\";\n}\n\nconst executionId = String(\n  input.execution_id\n  ?? input.logical_execution_id\n  ?? input.meta?.execution_id\n  ?? input.execution?.id\n  ?? $execution?.id\n  ?? \"\"\n);\n\nconst channelValue = String(\n  input.channel\n  ?? input.notification?.channel\n  ?? \"\"\n).trim().toLowerCase();\n\nconst severityValue = String(\n  input.severity\n  ?? input.derived?.severity\n  ?? \"\"\n).trim().toUpperCase();\n\nreturn [{\n  json: {\n    execution_id: executionId,\n    correlation_id: String(input.correlation_id ?? \"\"),\n    action: eventType,\n    event_type: eventType,\n    status: resultValue,\n    result: resultValue,\n    channel: channelValue,\n    severity: severityValue,\n    timestamp: String(input.timestamp ?? nowIso),\n    source_workflow: \"ops-reporting-alerts\"\n  }\n}];"
+                                     },
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "db2741a4-fba6-4be4-b291-961bd28cea4f",
+                      "name":  "GS Append Operations Log F3",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "credentials":  {
+                                          "googleApi":  {
+                                                            "id":  "BtY3uGIkB5umd39o",
+                                                            "name":  "Google Service Account account"
+                                                        }
+                                      },
+                      "typeVersion":  4.5,
+                      "onError":  "continueErrorOutput",
+                      "parameters":  {
+                                         "sheetName":  {
+                                                           "mode":  "name",
+                                                           "__rl":  true,
+                                                           "value":  "Operations_Log"
+                                                       },
+                                         "columns":  {
+                                                         "value":  {
+
+                                                                   },
+                                                         "mappingMode":  "autoMapInputData",
+                                                         "schema":  [
+
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "documentId":  {
+                                                            "mode":  "id",
+                                                            "__rl":  true,
+                                                            "value":  "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+                                                        },
+                                         "authentication":  "serviceAccount",
+                                         "options":  {
+
+                                                     },
+                                         "operation":  "append"
+                                     },
+                      "position":  [
+                                       3040,
+                                       0
+                                   ]
+                  },
+                  {
+                      "id":  "8d1db5be-b064-4d75-bc88-1b8d2a8f2f7a",
+                      "name":  "Build Alert Row F3",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       0,
+                                       -220
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\nconst severity = String(input.severity ?? input.derived?.severity ?? \u0027CRITICAL\u0027).trim().toUpperCase() || \u0027CRITICAL\u0027;\nconst eventType = String(input.event_type ?? input.event ?? input.action ?? \u0027ops_alert_critical\u0027).trim() || \u0027ops_alert_critical\u0027;\nconst correlationId = String(input.correlation_id ?? input.execution_id ?? input.logical_execution_id ?? \u0027\u0027).trim();\nconst executionId = String(input.execution_id ?? input.logical_execution_id ?? input.meta?.execution_id ?? \u0027\u0027).trim();\nconst contractId = String(input.Contrato_ID ?? input.contract_id ?? input.contractId ?? input.contracto_id ?? input.contract ?? \u0027\u0027).trim();\nconst adId = String(input.Ad_ID ?? input.ad_id ?? input.adId ?? \u0027\u0027).trim();\nconst motive = String(input.message_text ?? input.message ?? input.derived?.reason ?? input.derived?.alert_reason ?? \u0027\u0027).trim() || \u0027CRITICAL: vencidos sin pausar\u0027;\nconst createdAt = String(input.timestamp ?? input.created_at ?? input.derived?.executed_at ?? nowIso);\nconst alertId = String(input.alert_id ?? input.Alerta_ID ?? `${correlationId || executionId || \u0027ops\u0027}-${Date.now()}`);\n\nreturn [{\n  json: {\n    Alerta_ID: alertId,\n    Severidad: severity,\n    Contrato_ID: contractId,\n    Ad_ID: adId,\n    Motivo: motive,\n    Correlation_ID: correlationId,\n    Creada_At: createdAt,\n    Estado: \u0027Abierta\u0027,\n    source_workflow: \u0027ops-reporting-alerts\u0027,\n    event_type: eventType,\n    execution_id: executionId\n  }\n}];"
+                                     }
+                  },
+                  {
+                      "id":  "8ce24a6f-2f4c-4cf8-8d1f-8f4f4a3c4d2e",
+                      "name":  "GS Append Alertas F3",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       380,
+                                       -110
+                                   ],
+                      "credentials":  {
+                                          "googleApi":  {
+                                                            "id":  "BtY3uGIkB5umd39o",
+                                                            "name":  "Google Service Account account"
+                                                        }
+                                      },
+                      "onError":  "continueErrorOutput",
+                      "parameters":  {
+                                         "operation":  "append",
+                                         "documentId":  {
+                                                            "mode":  "id",
+                                                            "__rl":  true,
+                                                            "value":  "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+                                                        },
+                                         "sheetName":  {
+                                                           "mode":  "name",
+                                                           "__rl":  true,
+                                                           "value":  "Alertas"
+                                                       },
+                                         "columns":  {
+                                                         "value":  {
+
+                                                                   },
+                                                         "mappingMode":  "autoMapInputData",
+                                                         "schema":  [
+
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "authentication":  "serviceAccount",
+                                         "options":  {
+
+                                                     }
+                                     }
+                  }
+              ]
+}
