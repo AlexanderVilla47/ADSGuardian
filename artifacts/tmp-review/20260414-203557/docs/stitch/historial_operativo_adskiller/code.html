@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Historial Operativo - AdsKiller</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed-variant": "#5a4300",
+                    "on-secondary-fixed": "#320046",
+                    "inverse-primary": "#ecb2ff",
+                    "primary": "#7c00a9",
+                    "on-background": "#201922",
+                    "tertiary-fixed-dim": "#eac162",
+                    "on-secondary-fixed-variant": "#633178",
+                    "on-secondary-container": "#6e3b83",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed": "#251a00",
+                    "background": "#fff7fb",
+                    "surface-container-low": "#feeffd",
+                    "on-secondary": "#ffffff",
+                    "tertiary": "#614800",
+                    "primary-fixed-dim": "#ecb2ff",
+                    "inverse-on-surface": "#fbecfa",
+                    "secondary-fixed-dim": "#ecb2ff",
+                    "secondary-container": "#eaaeff",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#ecdeec",
+                    "on-surface": "#201922",
+                    "outline": "#817284",
+                    "error-container": "#ffdad6",
+                    "surface-variant": "#ecdeec",
+                    "tertiary-fixed": "#ffdf9a",
+                    "secondary-fixed": "#f8d8ff",
+                    "on-tertiary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "on-tertiary-container": "#ffdd93",
+                    "surface-bright": "#fff7fb",
+                    "secondary": "#7d4992",
+                    "outline-variant": "#d3c1d4",
+                    "primary-fixed": "#f8d8ff",
+                    "surface-dim": "#e4d6e3",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed": "#320046",
+                    "surface-container": "#f8eaf7",
+                    "inverse-surface": "#362e38",
+                    "surface-container-high": "#f2e4f1",
+                    "tertiary-container": "#7e5f00",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-container": "#9a28c9",
+                    "surface-tint": "#9420c3",
+                    "on-primary-container": "#f7d6ff",
+                    "on-surface-variant": "#4f4252",
+                    "on-primary-fixed-variant": "#75009f",
+                    "surface": "#fff7fb"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-manrope { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- SideNavBar (Execution from JSON) -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-50 dark:bg-slate-950 flex flex-col p-4 space-y-2 z-50">
+<div class="mb-8 px-2 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" data-icon="shield_with_heart" style="font-variation-settings: 'FILL' 1;">shield_with_heart</span>
+</div>
+<div>
+<h1 class="text-xl font-extrabold text-purple-700 dark:text-purple-300 tracking-tighter">AdsKiller</h1>
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Contract Ops</p>
+</div>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all duration-300 ease-in-out font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all duration-300 ease-in-out font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Contratos</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/40 rounded-xl transition-all duration-300 ease-in-out font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="history_toggle_off">history_toggle_off</span>
+<span>Historial Operativo</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all duration-300 ease-in-out font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Configuración</span>
+</a>
+</nav>
+<div class="mt-auto p-4 bg-surface-container-low rounded-xl border border-outline-variant/10">
+<div class="flex items-center gap-3">
+<img alt="AdsKiller Operations" class="w-8 h-8 rounded-full object-cover" data-alt="professional portrait of a confident operations manager in a modern office environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBj-IloNo1Zs3R7fkQkGzrcGggj6XyGfIW7Ge8jumaoXntRERvzmcJEXJw-T0EgGaVbrqE809DcodQQ6ieZitPbEHjtubV_N1sclHMvhU1oHSZbyigsjSA3J0zIZjNWFHzyW0wJG6_QvMuBzlLm0PdQgpZAfGpL0-pk2ZpUfEty9V-gOfHqVqSpeXeQzvu7D1fB1bich8iN4UWxJLZcOB22AgtJQcUwzHPRibLBezsuFl_kcODXl76Yg7QV0BRmIzY1nW8_N25h0EA"/>
+<div class="overflow-hidden">
+<p class="text-xs font-bold truncate">Operations Admin</p>
+<p class="text-[10px] text-on-surface-variant truncate">ops-center-01</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 min-h-screen">
+<!-- TopAppBar (Execution from JSON) -->
+<header class="bg-white/60 dark:bg-purple-950/60 backdrop-blur-xl flex justify-between items-center w-full px-6 py-3 sticky top-0 z-40 shadow-sm dark:shadow-none">
+<div class="flex items-center gap-6">
+<h2 class="text-xl font-bold font-manrope text-purple-700 dark:text-purple-300">Historial Operativo</h2>
+<div class="relative hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" data-icon="search">search</span>
+<input class="bg-surface-container border-none rounded-full py-1.5 pl-9 pr-4 text-sm w-64 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Buscar corrida..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-purple-50 dark:hover:bg-purple-900/50 rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-purple-50 dark:hover:bg-purple-900/50 rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="h-8 w-px bg-outline-variant/30 mx-1"></div>
+<img alt="User Profile" class="w-8 h-8 rounded-full border-2 border-primary/20" data-alt="minimalist studio headshot of a person with friendly expression, soft lighting, clean background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjetQXLsCZ3ssepuhM7CNpZdNQjyjNXh0DGZn0EVgzC-ca3pEreSo-N0r7iqWDiOB3vilN_E2-4SqfMHqyk3tUlSO1exX83VLaCH3XirVfTP-tWFNyKpbvVDtknLbNkwQf8hYsV7IdOJdY_CIN5LEbOs8mYXHOq97I3bes4br-rwHucQjE9mgt8-bEh5leMoVRuDxlbllyx5OIPCGCfikfdXAS4TupPdXB-GG3ZJrQOJ4NobZCVF9eb5AEwBSvrnaGXmlJPeR5nio"/>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-8 max-w-[1440px] mx-auto">
+<!-- Quick Stats Bento -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+<div class="bg-surface-container-lowest p-6 rounded-full border-l-4 border-primary shadow-sm">
+<p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Corridas (24h)</p>
+<p class="text-3xl font-bold font-manrope text-primary">24</p>
+<div class="mt-2 flex items-center text-[10px] text-green-600 font-bold">
+<span class="material-symbols-outlined text-xs mr-1" data-icon="trending_up">trending_up</span>
+                        +12% vs ayer
+                    </div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-full border-l-4 border-green-500 shadow-sm">
+<p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Tasa de Éxito</p>
+<p class="text-3xl font-bold font-manrope text-on-surface">98.2%</p>
+<p class="text-[10px] text-on-surface-variant mt-2">Promedio semanal</p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-full border-l-4 border-tertiary shadow-sm">
+<p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Contratos Evaluados</p>
+<p class="text-3xl font-bold font-manrope text-on-surface">1,402</p>
+<p class="text-[10px] text-on-surface-variant mt-2">Total período actual</p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-full border-l-4 border-error shadow-sm">
+<p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Errores Canal</p>
+<p class="text-3xl font-bold font-manrope text-on-surface">3</p>
+<p class="text-[10px] text-error font-medium mt-2">Requiere revisión manual</p>
+</div>
+</div>
+<!-- Main Data Table Container -->
+<div class="bg-surface-container-low rounded-full overflow-hidden">
+<div class="px-8 py-6 flex justify-between items-center bg-surface-container-lowest/50">
+<div>
+<h3 class="text-lg font-bold font-manrope">Corridas Globales</h3>
+<p class="text-sm text-on-surface-variant">Registro detallado de ejecuciones del sistema</p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest rounded-full text-xs font-semibold hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span>
+                            Filtrar
+                        </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-full text-xs font-semibold hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm" data-icon="refresh">refresh</span>
+                            Ejecutar Ahora
+                        </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-highest/30">
+<th class="px-8 py-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Fecha/Hora</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Tipo</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Estado</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant text-center">Contratos</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant text-center">Pausados OK</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant text-center">Vencidos</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant text-center">Errores</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">ID Ejecución</th>
+<th class="px-8 py-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant text-right">Acción</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1: Success -->
+<tr class="bg-surface-container-lowest hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-8 py-5">
+<div class="text-sm font-semibold">24 Oct, 2023</div>
+<div class="text-[10px] text-on-surface-variant">14:30:12</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-sm text-slate-400" data-icon="schedule">schedule</span>
+                                        Scheduler
+                                    </div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                        SUCCESS
+                                    </span>
+</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm">124</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm text-green-600">12</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm">0</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm">0</td>
+<td class="px-6 py-5">
+<span class="text-[10px] font-mono bg-surface-container px-2 py-1 rounded-lg text-on-surface-variant">EXE-9283-X1</span>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="text-primary hover:underline text-xs font-bold flex items-center gap-1 ml-auto">
+                                        Ver detalle
+                                        <span class="material-symbols-outlined text-sm" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Partial -->
+<tr class="bg-surface hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-8 py-5">
+<div class="text-sm font-semibold">24 Oct, 2023</div>
+<div class="text-[10px] text-on-surface-variant">10:15:00</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-sm text-slate-400" data-icon="touch_app">touch_app</span>
+                                        Manual
+                                    </div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                        PARTIAL
+                                    </span>
+</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm">85</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm text-green-600">5</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm text-amber-600">2</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm">0</td>
+<td class="px-6 py-5">
+<span class="text-[10px] font-mono bg-surface-container px-2 py-1 rounded-lg text-on-surface-variant">EXE-9280-M5</span>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="text-primary hover:underline text-xs font-bold flex items-center gap-1 ml-auto">
+                                        Ver detalle
+                                        <span class="material-symbols-outlined text-sm" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Failed -->
+<tr class="bg-surface-container-lowest hover:bg-primary-fixed/20 transition-colors group border-l-4 border-error/20">
+<td class="px-8 py-5">
+<div class="text-sm font-semibold">23 Oct, 2023</div>
+<div class="text-[10px] text-on-surface-variant">22:00:05</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-sm text-slate-400" data-icon="schedule">schedule</span>
+                                        Scheduler
+                                    </div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                        FAILED
+                                    </span>
+</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm opacity-50">--</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm opacity-50">--</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm opacity-50">--</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm text-red-600">1</td>
+<td class="px-6 py-5">
+<span class="text-[10px] font-mono bg-surface-container px-2 py-1 rounded-lg text-on-surface-variant">EXE-9275-X1</span>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="text-primary hover:underline text-xs font-bold flex items-center gap-1 ml-auto">
+                                        Ver detalle
+                                        <span class="material-symbols-outlined text-sm" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: Success -->
+<tr class="bg-surface hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-8 py-5">
+<div class="text-sm font-semibold">23 Oct, 2023</div>
+<div class="text-[10px] text-on-surface-variant">14:30:08</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-sm text-slate-400" data-icon="schedule">schedule</span>
+                                        Scheduler
+                                    </div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                        SUCCESS
+                                    </span>
+</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm">119</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm text-green-600">8</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm">0</td>
+<td class="px-6 py-5 text-center font-manrope font-bold text-sm">0</td>
+<td class="px-6 py-5">
+<span class="text-[10px] font-mono bg-surface-container px-2 py-1 rounded-lg text-on-surface-variant">EXE-9272-X1</span>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="text-primary hover:underline text-xs font-bold flex items-center gap-1 ml-auto">
+                                        Ver detalle
+                                        <span class="material-symbols-outlined text-sm" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination / Footer -->
+<div class="px-8 py-4 bg-surface-container-low/50 flex justify-between items-center border-t border-outline-variant/10">
+<p class="text-[11px] font-medium text-on-surface-variant">Mostrando 1-10 de 452 corridas globales</p>
+<div class="flex items-center gap-1">
+<button class="p-1.5 hover:bg-surface-container rounded-lg disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined text-lg" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center bg-primary text-on-primary text-xs font-bold rounded-lg">1</button>
+<button class="w-8 h-8 flex items-center justify-center hover:bg-surface-container text-xs font-bold rounded-lg">2</button>
+<button class="w-8 h-8 flex items-center justify-center hover:bg-surface-container text-xs font-bold rounded-lg">3</button>
+<span class="px-2 text-xs text-on-surface-variant">...</span>
+<button class="w-8 h-8 flex items-center justify-center hover:bg-surface-container text-xs font-bold rounded-lg">45</button>
+<button class="p-1.5 hover:bg-surface-container rounded-lg">
+<span class="material-symbols-outlined text-lg" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Operational Insights Section -->
+<div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="bg-surface-container-low p-6 rounded-full">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+</div>
+<h4 class="font-bold font-manrope">Actividad Semanal</h4>
+</div>
+<div class="h-48 w-full flex items-end justify-between gap-2 px-4">
+<div class="w-full bg-primary/20 rounded-t-lg h-24"></div>
+<div class="w-full bg-primary/30 rounded-t-lg h-32"></div>
+<div class="w-full bg-primary/40 rounded-t-lg h-28"></div>
+<div class="w-full bg-primary/50 rounded-t-lg h-40"></div>
+<div class="w-full bg-primary/60 rounded-t-lg h-36"></div>
+<div class="w-full bg-primary/80 rounded-t-lg h-44"></div>
+<div class="w-full bg-primary rounded-t-lg h-32"></div>
+</div>
+<div class="flex justify-between mt-2 px-4 text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">
+<span>Lun</span><span>Mar</span><span>Mie</span><span>Jue</span><span>Vie</span><span>Sab</span><span>Dom</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-full relative overflow-hidden">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
+<span class="material-symbols-outlined" data-icon="error_outline">error_outline</span>
+</div>
+<h4 class="font-bold font-manrope">Alertas de Canal</h4>
+</div>
+<div class="space-y-3">
+<div class="p-3 bg-surface-container-lowest rounded-xl flex items-center gap-4">
+<div class="p-2 bg-red-50 text-red-500 rounded-lg">
+<span class="material-symbols-outlined text-lg" data-icon="api">api</span>
+</div>
+<div class="flex-1">
+<p class="text-xs font-bold">Error de Token: Meta Ads API</p>
+<p class="text-[10px] text-on-surface-variant">Execution ID: EXE-9275-X1</p>
+</div>
+<button class="p-1.5 hover:bg-slate-100 rounded-full transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="open_in_new">open_in_new</span>
+</button>
+</div>
+<div class="p-3 bg-surface-container-lowest rounded-xl flex items-center gap-4">
+<div class="p-2 bg-amber-50 text-amber-600 rounded-lg">
+<span class="material-symbols-outlined text-lg" data-icon="warning">warning</span>
+</div>
+<div class="flex-1">
+<p class="text-xs font-bold">Timeout parcial: Google Ads</p>
+<p class="text-[10px] text-on-surface-variant">Execution ID: EXE-9280-M5</p>
+</div>
+<button class="p-1.5 hover:bg-slate-100 rounded-full transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="open_in_new">open_in_new</span>
+</button>
+</div>
+</div>
+<div class="mt-6 text-center">
+<button class="text-xs font-bold text-primary hover:opacity-80 transition-opacity">Ver registro técnico completo</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Contextual FAB - Only for relevant top level triggers -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform group">
+<span class="material-symbols-outlined" data-icon="rocket_launch" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+<span class="absolute right-16 bg-inverse-surface text-inverse-on-surface px-3 py-1 rounded-lg text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Nueva Ejecución Forzada</span>
+</button>
+</body></html>

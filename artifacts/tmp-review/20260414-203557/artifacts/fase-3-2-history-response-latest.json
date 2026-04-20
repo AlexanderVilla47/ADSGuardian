@@ -1,0 +1,18 @@
+﻿{
+    "ok":  true,
+    "action":  "history",
+    "data":  {
+                 "page":  1,
+                 "page_size":  5,
+                 "total":  0,
+                 "items":  [
+
+                           ]
+             },
+    "meta":  {
+                 "correlation_id":  "ak-ui-1776137419645-jekmnd",
+                 "execution_id":  "1006",
+                 "actor":  "ops-fase3-2@adskiller",
+                 "timestamp":  "2026-04-14T03:30:19.628Z"
+             }
+}

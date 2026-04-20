@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#75009f",
+                    "on-secondary-fixed": "#320046",
+                    "on-error-container": "#93000a",
+                    "surface-tint": "#9420c3",
+                    "tertiary-fixed": "#ffdf9a",
+                    "surface-bright": "#fff7fb",
+                    "on-tertiary-fixed": "#251a00",
+                    "error-container": "#ffdad6",
+                    "secondary": "#7d4992",
+                    "on-primary": "#ffffff",
+                    "primary-fixed": "#f8d8ff",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#eaaeff",
+                    "on-primary-fixed": "#320046",
+                    "surface-container-low": "#feeffd",
+                    "tertiary-container": "#7e5f00",
+                    "on-secondary-container": "#6e3b83",
+                    "primary": "#7c00a9",
+                    "secondary-fixed-dim": "#ecb2ff",
+                    "background": "#fff7fb",
+                    "secondary-fixed": "#f8d8ff",
+                    "inverse-surface": "#362e38",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#201922",
+                    "on-tertiary-container": "#ffdd93",
+                    "on-error": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#e4d6e3",
+                    "inverse-on-surface": "#fbecfa",
+                    "outline-variant": "#d3c1d4",
+                    "tertiary-fixed-dim": "#eac162",
+                    "on-background": "#201922",
+                    "surface": "#fff7fb",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#ecb2ff",
+                    "primary-fixed-dim": "#ecb2ff",
+                    "primary-container": "#9a28c9",
+                    "surface-container-high": "#f2e4f1",
+                    "on-primary-container": "#f7d6ff",
+                    "outline": "#817284",
+                    "surface-container": "#f8eaf7",
+                    "on-surface-variant": "#4f4252",
+                    "on-secondary-fixed-variant": "#633178",
+                    "surface-variant": "#ecdeec",
+                    "surface-container-highest": "#ecdeec",
+                    "tertiary": "#614800",
+                    "on-tertiary-fixed-variant": "#5a4300"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-64 z-50 bg-purple-50 dark:bg-slate-950 flex flex-col py-6 px-4 gap-2">
+<div class="mb-8 px-4">
+<h1 class="text-xl font-extrabold text-purple-900 dark:text-purple-100 tracking-tight">AdsKiller</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant/70 font-bold">Risk Management</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 bg-white dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-xl px-4 py-3 shadow-sm transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-manrope text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 transition-transform duration-200 hover:translate-x-1 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-manrope text-sm font-medium">Contratos</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 transition-transform duration-200 hover:translate-x-1 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="warning">warning</span>
+<span class="font-manrope text-sm font-medium">Ejecuciones y Alertas</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 transition-transform duration-200 hover:translate-x-1 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-manrope text-sm font-medium">Configuración</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant/10 pt-4">
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 transition-transform duration-200 hover:translate-x-1 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span class="font-manrope text-sm font-medium">Help Center</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-64 z-40 bg-white/60 dark:bg-purple-950/60 backdrop-blur-md shadow-sm flex justify-between items-center px-8 py-3 h-16">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Buscar contratos o alertas..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+</div>
+<div class="h-8 w-[1px] bg-outline-variant/30"></div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-bold text-on-surface leading-none">Admin User</p>
+<p class="text-[10px] text-on-surface-variant">AdsKiller Manager</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+<img class="w-full h-full object-cover" data-alt="User avatar of a professional administrator in a high-key studio lighting setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8IwiAfY5UfXXdy99jR-JwwmSQ1zF0ZjPoTf4FA6IX2bQKLMomQXCCq8banulMU3gzPLwcpQYTe3Qx8V2SJxksRTIMM-gewPRTY0KhLP9C_AR0d_RjXjyVo8KGx-zJtyPJPUxHaoOvXkqeX_BQVt0TwdAYtx-NAe-3Pl4yo1v0-VEvlDYTyk0CeII5O9u75wQbhEsj0VZWzE24O4zuWpG0P9RYbflUgi3ROBPDLzrbi7h-_uwpt06ibPp01KJCuSxhyujjOX7lK2Y"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="pt-24 pb-12 px-8 max-w-[1600px] mx-auto space-y-8">
+<!-- Page Header Actions -->
+<div class="flex justify-between items-end">
+<div>
+<h2 class="text-3xl font-black text-on-surface tracking-tight mb-1">Resumen Operativo</h2>
+<p class="text-on-surface-variant font-medium">Control preventivo de contratos e influencers.</p>
+</div>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined text-sm">refresh</span>
+                    Ejecutar corrida manual
+                </button>
+</div>
+<!-- KPI Grid - Full Width -->
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+<!-- KPI 1 -->
+<div class="bg-surface-container-lowest p-5 rounded-full border-primary shadow-sm hover:shadow-md transition-shadow border-l-8">
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Active Contracts</p>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black text-on-surface tracking-tighter">124</span>
+<span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface-container-lowest p-5 rounded-full border-outline shadow-sm border-l-8">
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Expiring 48h</p>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black text-on-surface tracking-tighter">12</span>
+<span class="text-on-surface-variant font-medium text-sm">Próximos</span>
+</div>
+</div>
+<!-- KPI 3 - Amber -->
+<div class="p-5 rounded-full border-tertiary shadow-sm bg-white border-l-8">
+<p class="text-xs font-bold uppercase tracking-wider mb-2 text-on-surface-variant">Expiring Today</p>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black tracking-tighter text-on-surface">5</span>
+<span class="material-symbols-outlined text-tertiary text-xl">hourglass_bottom</span>
+</div>
+</div>
+<!-- KPI 4 - Critical Red -->
+<div class="p-5 rounded-full border-error shadow-sm bg-white border-l-8">
+<p class="text-xs font-bold uppercase tracking-wider mb-2 text-on-surface-variant">Expired s/pausa</p>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black tracking-tighter text-on-surface">3</span>
+<span class="material-symbols-outlined text-error text-xl" style="font-variation-settings: 'FILL' 1;">priority_high</span>
+</div>
+</div>
+<!-- KPI 5 -->
+<div class="bg-surface-container-lowest p-5 rounded-full border-secondary shadow-sm border-l-8">
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Channel Errors</p>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black text-on-surface tracking-tighter">2</span>
+<span class="text-on-surface-variant font-medium text-sm">24h</span>
+</div>
+</div>
+</div>
+<!-- Dashboard Center Layout - Expanded to Full Width -->
+<div class="bg-surface-container-low rounded-xl p-6">
+<div class="flex items-center justify-between mb-8">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-lg">shield_with_heart</span>
+<h3 class="text-xl font-extrabold text-on-surface tracking-tight">Today's Risk</h3>
+</div>
+<div class="flex gap-1 p-1 bg-surface-container-high rounded-full">
+<button class="px-4 py-1 text-xs font-bold rounded-full bg-white text-primary shadow-sm">All</button>
+<button class="px-4 py-1 text-xs font-bold rounded-full text-on-surface-variant hover:bg-white/50">CRITICAL</button>
+<button class="px-4 py-1 text-xs font-bold rounded-full text-on-surface-variant hover:bg-white/50">WARN</button>
+<button class="px-4 py-1 text-xs font-bold rounded-full text-on-surface-variant hover:bg-white/50">INFO</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full border-collapse">
+<thead>
+<tr class="text-left text-[11px] uppercase tracking-widest text-on-surface-variant/60 font-black border-b border-outline-variant/20">
+<th class="pb-4 px-2">Influencer</th>
+<th class="pb-4 px-2">End Date</th>
+<th class="pb-4 px-2">Status</th>
+<th class="pb-4 px-2">Severity</th>
+<th class="pb-4 px-2 text-center">Quick Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1 - CRITICAL -->
+<tr class="hover:bg-white/40 transition-colors group">
+<td class="py-5 px-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-error-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of an influencer with a serious expression in a modern office environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCjFjTSjy7CWWw7n4w4t01eKU90lUh0ZJFVPJ_o6lsWR5pwL20FK7RGa4hvmW2NL_lv-87DONrqX4M9O7YSnVBMuSPizPnH7uH8ZJ8nACS9WSncNBgVu1JG4vrOSe-fUnyYD7LQfdHVFMky8_4H7TiE-uUJbrumnUOdVHjsINBA0_S1QrkXRN1n-0Fe8AXwBDWUTKHe4Bs-RSr2KI9ifdXsPLwVypTBFdk9kKE-NZgmR6rpIiH987wnsypH2pdllYb4CkKCiwBs5w"/>
+</div>
+<span class="text-sm font-bold text-on-surface">Expired Contract X</span>
+</div>
+</td>
+<td class="py-5 px-2 text-sm text-on-surface-variant">2026-05-19</td>
+<td class="py-5 px-2">
+<span class="bg-error-container text-on-error-container px-2 py-1 rounded text-[10px] font-black uppercase">Expired</span>
+</td>
+<td class="py-5 px-2">
+<div class="flex items-center gap-1 text-error">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">emergency</span>
+<span class="text-[10px] font-black uppercase">CRITICAL</span>
+</div>
+</td>
+<td class="py-5 px-2 text-right">
+<div class="flex items-center justify-center gap-2">
+<button class="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Ver Detalle">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+<button class="p-1.5 text-secondary hover:bg-secondary/10 rounded-lg transition-colors" title="Extender">
+<span class="material-symbols-outlined text-xl">more_time</span>
+</button>
+<button class="p-1.5 text-error hover:bg-error/10 rounded-lg transition-colors" title="Pausar/Baja">
+<span class="material-symbols-outlined text-xl">pause_circle</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 - WARN -->
+<tr class="hover:bg-white/40 transition-colors group">
+<td class="py-5 px-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Professional headshot of Farid Dieck influencer with neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABLV4n8lgpK5a09KI3aVuixV9FuF_woAtOP9XCDm8x0bzR0JWeKSuK6Gm_-zDueMPRBgovWsqF27rKQvjqCBy3wtXux2sIOK5_6GEY2WSfV1fBxARU00-KB54NnZK_7XFVqSZ4jpEjRisN_eUtqhbVxeSaZAd4XD6511ATkTbiK2HieluTbffO9CTAYhOGfOWz98J6hAyctgBRzW5PEnA2EKWwjb2FWkucRc5gf5TM4-44k5M0o9O1DEXY0cyW6v0-AZCspvqhE1g"/>
+</div>
+<span class="text-sm font-bold text-on-surface">Farid Dieck</span>
+</div>
+</td>
+<td class="py-5 px-2 text-sm text-on-surface-variant">2026-05-20</td>
+<td class="py-5 px-2">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed px-2 py-1 rounded text-[10px] font-black uppercase">Expiring Today</span>
+</td>
+<td class="py-5 px-2">
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="text-[10px] font-black uppercase">WARN</span>
+</div>
+</td>
+<td class="py-5 px-2 text-right">
+<div class="flex items-center justify-center gap-2">
+<button class="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Ver Detalle">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+<button class="p-1.5 text-secondary hover:bg-secondary/10 rounded-lg transition-colors" title="Extender">
+<span class="material-symbols-outlined text-xl">more_time</span>
+</button>
+<button class="p-1.5 text-error hover:bg-error/10 rounded-lg transition-colors" title="Pausar/Baja">
+<span class="material-symbols-outlined text-xl">pause_circle</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 - INFO -->
+<tr class="hover:bg-white/40 transition-colors">
+<td class="py-5 px-2"><span class="text-sm font-medium">Sofía Rivera</span></td>
+<td class="py-5 px-2 text-sm text-on-surface-variant">2026-06-15</td>
+<td class="py-5 px-2"><span class="bg-surface-container-high px-2 py-1 rounded text-[10px] font-bold">Active</span></td>
+<td class="py-5 px-2"><span class="text-[10px] font-bold text-on-surface-variant">INFO</span></td>
+<td class="py-5 px-2 text-right">
+<div class="flex items-center justify-center gap-2">
+<button class="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Ver Detalle">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+<button class="p-1.5 text-secondary hover:bg-secondary/10 rounded-lg transition-colors" title="Extender">
+<span class="material-symbols-outlined text-xl">more_time</span>
+</button>
+<button class="p-1.5 text-error hover:bg-error/10 rounded-lg transition-colors" title="Pausar/Baja">
+<span class="material-symbols-outlined text-xl">pause_circle</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 - INFO -->
+<tr class="hover:bg-white/40 transition-colors">
+<td class="py-5 px-2"><span class="text-sm font-medium">Marcos Witt</span></td>
+<td class="py-5 px-2 text-sm text-on-surface-variant">2026-06-22</td>
+<td class="py-5 px-2"><span class="bg-surface-container-high px-2 py-1 rounded text-[10px] font-bold">Active</span></td>
+<td class="py-5 px-2"><span class="text-[10px] font-bold text-on-surface-variant">INFO</span></td>
+<td class="py-5 px-2 text-right">
+<div class="flex items-center justify-center gap-2">
+<button class="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Ver Detalle">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+<button class="p-1.5 text-secondary hover:bg-secondary/10 rounded-lg transition-colors" title="Extender">
+<span class="material-symbols-outlined text-xl">more_time</span>
+</button>
+<button class="p-1.5 text-error hover:bg-error/10 rounded-lg transition-colors" title="Pausar/Baja">
+<span class="material-symbols-outlined text-xl">pause_circle</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action for Mobile (Hidden by default but ready) -->
+<div class="fixed bottom-6 right-6 md:hidden">
+<button class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+</body></html>

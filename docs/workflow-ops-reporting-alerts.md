@@ -42,7 +42,7 @@ Trigger: `Webhook` (`POST /ops-reporting-alerts`)
   "notification": {
     "channel": "slack",
     "slack": {
-      "webhook_url": "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+      "webhook_url": "__REDACTED_SLACK_WEBHOOK__"
     },
     "telegram": {
       "bot_token": "123456:ABCDEF",
@@ -141,9 +141,11 @@ Acción requerida: revisar anuncios vencidos sin pausar y escalar incidente oper
 
 ## Enrutamiento por canal
 
-1. Si `notification.channel == slack` → `Send Slack Notification` (HTTP Webhook).
-2. Si `notification.channel == telegram` → `Send Telegram Notification` (API Telegram Bot).
-3. Otro valor → `Log Unsupported Channel`.
+1. Si `derived.severity == CRITICAL` o `derived.is_critical == true` → `Build CRITICAL Message`.
+2. Si no, `Build INFO/WARN Message`.
+3. Si `notification.channel == slack` → `Send Slack Notification` (HTTP Webhook).
+4. Si `notification.channel == telegram` → `Send Telegram Notification` (API Telegram Bot).
+5. Otro valor → `Log Unsupported Channel`.
 
 Errores de envío (`Slack` o `Telegram`) se enrutan a `Log Channel Send Failure` y el flujo finaliza sin intentar otro canal.
 
@@ -171,7 +173,7 @@ Errores de envío (`Slack` o `Telegram`) se enrutan a `Log Channel Send Failure`
   "notification": {
     "channel": "slack",
     "slack": {
-      "webhook_url": "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+      "webhook_url": "__REDACTED_SLACK_WEBHOOK__"
     }
   }
 }
@@ -234,7 +236,7 @@ Errores de envío (`Slack` o `Telegram`) se enrutan a `Log Channel Send Failure`
   "notification": {
     "channel": "slack",
     "slack": {
-      "webhook_url": "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+      "webhook_url": "__REDACTED_SLACK_WEBHOOK__"
     }
   }
 }

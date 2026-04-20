@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AdsKiller | Contracts Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#75009f",
+                    "on-secondary-fixed": "#320046",
+                    "on-error-container": "#93000a",
+                    "surface-tint": "#9420c3",
+                    "tertiary-fixed": "#ffdf9a",
+                    "surface-bright": "#fff7fb",
+                    "on-tertiary-fixed": "#251a00",
+                    "error-container": "#ffdad6",
+                    "secondary": "#7d4992",
+                    "on-primary": "#ffffff",
+                    "primary-fixed": "#f8d8ff",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#eaaeff",
+                    "on-primary-fixed": "#320046",
+                    "surface-container-low": "#feeffd",
+                    "tertiary-container": "#7e5f00",
+                    "on-secondary-container": "#6e3b83",
+                    "primary": "#7c00a9",
+                    "secondary-fixed-dim": "#ecb2ff",
+                    "background": "#fff7fb",
+                    "secondary-fixed": "#f8d8ff",
+                    "inverse-surface": "#362e38",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#201922",
+                    "on-tertiary-container": "#ffdd93",
+                    "on-error": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#e4d6e3",
+                    "inverse-on-surface": "#fbecfa",
+                    "outline-variant": "#d3c1d4",
+                    "tertiary-fixed-dim": "#eac162",
+                    "on-background": "#201922",
+                    "surface": "#fff7fb",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#ecb2ff",
+                    "primary-fixed-dim": "#ecb2ff",
+                    "primary-container": "#9a28c9",
+                    "surface-container-high": "#f2e4f1",
+                    "on-primary-container": "#f7d6ff",
+                    "outline": "#817284",
+                    "surface-container": "#f8eaf7",
+                    "on-surface-variant": "#4f4252",
+                    "on-secondary-fixed-variant": "#633178",
+                    "surface-variant": "#ecdeec",
+                    "surface-container-highest": "#ecdeec",
+                    "tertiary": "#614800",
+                    "on-tertiary-fixed-variant": "#5a4300"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+        .glass-header {
+            background: rgba(255, 247, 251, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        .tonal-card {
+            background-color: #ffffff;
+            transition: transform 0.2s ease;
+        }
+        .tonal-card:hover {
+            transform: translateY(-2px);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full w-64 z-50 bg-purple-50 dark:bg-slate-950 flex flex-col py-6 px-4 gap-2 transition-transform duration-200">
+<div class="mb-8 px-4">
+<h1 class="text-xl font-extrabold text-purple-900 dark:text-purple-100 tracking-tight">AdsKiller</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-bold">Risk Management</p>
+</div>
+<nav class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-manrope text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 bg-white dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-xl px-4 py-3 shadow-sm transition-all" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-manrope text-sm font-medium">Contratos</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined">warning</span>
+<span class="font-manrope text-sm font-medium">Ejecuciones y Alertas</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-manrope text-sm font-medium">Configuración</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-outline-variant/20">
+<div class="flex items-center gap-3 px-4 py-4">
+<img alt="AdsKiller Admin" class="w-8 h-8 rounded-full bg-primary-fixed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqbntsppipo0WqDRM8Ddj4p7wjPf-DOgWF4b2Oxp14CMtq2UaAIAEmc83neqE_89r7QsUNPeXZQjiRg9z_TF0sT__nnPoCQGGEY04XDRGQR6BTXxb8FQxiauMnn2kTkB15AMpVTi2V8DctbpOrl8JLNtlrS-X7wJBWmKdEkL4dmpdUT8ok00ZxB4qnNvJLTh9hD5QjjDYY_0tNSkz5Lv7JgzN-XxsYoKgXYVCJNOp3Fpatoe5INIv-Zt9TsRcrn_dyjQhxPn6XY_M"/>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-on-surface">Admin User</span>
+<span class="text-[10px] text-on-surface-variant">Premium Plan</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Top AppBar Shell -->
+<header class="fixed top-0 right-0 left-64 z-40 h-16 bg-white/60 dark:bg-purple-950/60 backdrop-blur-md flex justify-between items-center px-8 shadow-sm">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-on-surface-variant/50" placeholder="Search by influencer..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-full transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-full transition-all">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 px-8 pb-12 min-h-screen max-w-[1440px] mx-auto">
+<!-- Dashboard Header & Stats -->
+<div class="mb-8">
+<h2 class="text-3xl font-black text-on-surface mb-2 tracking-tight">Contratos Management</h2>
+<p class="text-on-surface-variant font-medium">Control legal compliance and real-time ad performance.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+<div class="bg-surface-container-lowest p-6 rounded-full border-l-4 border-primary shadow-sm hover:shadow-md transition-shadow">
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Active Contracts</p>
+<p class="text-3xl font-headline font-black text-primary">24</p>
+<div class="flex items-center gap-1 text-[10px] text-primary-container font-bold mt-2">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+                +12% this month
+            </div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-full border-l-4 border-secondary shadow-sm">
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Total Reach</p>
+<p class="text-3xl font-headline font-black text-secondary">1.2M</p>
+<div class="flex items-center gap-1 text-[10px] text-secondary font-bold mt-2">
+<span class="material-symbols-outlined text-xs">visibility</span>
+                Real-time count
+            </div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-full border-l-4 border-error shadow-sm">
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Risk Alerts</p>
+<p class="text-3xl font-headline font-black text-error">03</p>
+<div class="flex items-center gap-1 text-[10px] text-error font-bold mt-2">
+<span class="material-symbols-outlined text-xs">warning</span>
+                Requires action
+            </div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-full border-l-4 border-tertiary shadow-sm">
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Compliance Rate</p>
+<p class="text-3xl font-headline font-black text-tertiary">98.2%</p>
+<div class="flex items-center gap-1 text-[10px] text-tertiary font-bold mt-2">
+<span class="material-symbols-outlined text-xs">verified</span>
+                Target reached
+            </div>
+</div>
+</div>
+<!-- Action Area -->
+<div class="flex justify-end mb-8">
+<button class="flex items-center gap-2 bg-primary hover:bg-primary-container text-white px-6 py-3 rounded-full font-headline font-bold text-sm transition-all shadow-md">
+<span class="material-symbols-outlined text-sm">add</span>
+            New Contract
+        </button>
+</div>
+<!-- Filter Bar -->
+<div class="flex items-center justify-between mb-6 bg-surface-container-low p-4 rounded-xl">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg text-xs font-bold text-on-surface shadow-sm cursor-pointer hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-sm">filter_alt</span>
+                Status: All
+            </div>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg text-xs font-bold text-on-surface shadow-sm cursor-pointer hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+                Date Range: Last 30 Days
+            </div>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg text-xs font-bold text-on-surface shadow-sm cursor-pointer hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-sm">lan</span>
+                Channel: All
+            </div>
+</div>
+<button class="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-sm">refresh</span>
+            Sync All Channels
+        </button>
+</div>
+<!-- Main Data Table Container -->
+<div class="bg-surface-container-low rounded-2xl overflow-hidden shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-high/50 text-[11px] font-black text-on-surface-variant uppercase tracking-widest">
+<th class="px-6 py-5">Contract ID</th>
+<th class="px-6 py-5">Influencer</th>
+<th class="px-6 py-5">Start Date</th>
+<th class="px-6 py-5">End Date</th><th class="px-6 py-5">AD STATUS</th>
+<th class="px-6 py-5">Contract Status</th>
+</tr>
+</thead>
+<tbody class="text-sm divide-y divide-outline-variant/10">
+<!-- Row 1 -->
+<tr class="bg-white hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-6 py-4">
+<span class="font-mono text-xs text-on-surface-variant">CTR-2024-0891</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="Influencer avatar" class="w-8 h-8 rounded-full bg-purple-100" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHtY8vyM5oc68G8k12wkrg_60KYAzXKR_60ibeDh2OatsA9bUxU3rN71WKYbbU-qELOwGtebBd7jvvXkcYdTj1esrwgk3KxWFaSchYrur12rJgCOxU1jPJubfYSjqqICNyFtlcaM23sLL_6---bpQmTiYw0ccbcon-fAcdXp7yAKZmQzzRLLnQnsDKrrl0R8AX-1O-BrNwfn0u4-tvY3RaRWRnT6UCvIPdl8gBCPoKvY1r_v-yy_8DG4r4STO5VML602Fn4LJMLA4"/>
+<span class="font-headline font-bold text-on-surface">Farid Dieck</span>
+</div>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">Oct 12, 2023</td>
+<td class="px-6 py-4">
+<span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-bold">Oct 12, 2024</span>
+</td><td class="px-6 py-4"><span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">SIN RIESGO</span></td>
+<td class="px-6 py-4"><div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary"></span><span class="font-bold text-primary">Active</span></div></td>
+</tr>
+<!-- Row 2 -->
+<tr class="bg-surface-container-lowest hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-6 py-4"><span class="font-mono text-xs text-on-surface-variant">CTR-2024-0422</span></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="Influencer avatar" class="w-8 h-8 rounded-full bg-slate-100" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSCSQJgEydS3zst7ayfgnqGlOhBzdKjOeEQmbYR0q1ldYZLoiU_KIXPqFRH1AUL5E4C_nCXD4kwWc2NS2aOGe1Q1s5UwzMmsgbXAq74umcEdS1dFJDFAi3gy7cUXalOgOe0bCjsRSEsTlKxtnLMtDQ-THXkcIwERVPsqDDLOkYNyEV-FCEzarcODRM1gkcNUtWFP7MkEcXUrABBq_Jsd-Xm3seGhYu617fRj8hYkGIz4SH9SCmPFRUYZVkGBbkNxK9zhwZ75XAhgo"/>
+<span class="font-headline font-bold text-on-surface">Ana Lucia</span>
+</div>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">Jan 05, 2024</td>
+<td class="px-6 py-4">
+<span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full text-xs font-bold">Jan 05, 2025</span>
+</td><td class="px-6 py-4"><span class="bg-tertiary-fixed text-on-tertiary-fixed px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">ALERTA</span></td>
+<td class="px-6 py-4"><div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-outline"></span><span class="font-bold text-on-surface-variant">Finalizado</span></div></td>
+</tr>
+<!-- Row 3 -->
+<tr class="bg-white hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-6 py-4"><span class="font-mono text-xs text-on-surface-variant">CTR-2023-1102</span></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="Influencer avatar" class="w-8 h-8 rounded-full bg-slate-100" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGlDlhga-K4bs2dh-K8vDrWWJdl5ZlUt0mVlUuOkpo2gixTBwcPHaCQv3r2iBzt7raswtMUQCBXoZNiOY9TygzHBJQJJHM1QWs1tUNTb8DPuuekiqEI47Haflpg49Nl-99QNtWFU0shfAdOG-yK4EPZP0EvQMN6SLI6NeUl7-SigSqF9Np3CsSQPg8-I4y4qqs78JfnFg2xplq3b-UfevFdGWaDzqxPZ3xozB4O1WP_h84l5_b87x5WB6x_OnRfQTKRkNnc8lAIRc"/>
+<span class="font-headline font-bold text-on-surface">Roberto Mtz</span>
+</div>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">Nov 20, 2023</td>
+<td class="px-6 py-4">
+<span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full text-xs font-bold">Feb 15, 2024</span>
+</td><td class="px-6 py-4"><span class="bg-error-container text-on-error-container px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">CRÍTICO</span></td>
+<td class="px-6 py-4"><div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-outline"></span><span class="font-bold text-on-surface-variant">Finalizado</span></div></td>
+</tr>
+</tbody>
+</table>
+<div class="px-6 py-4 bg-surface-container-low flex items-center justify-between">
+<p class="text-xs text-on-surface-variant font-medium">Showing 3 of 24 active contracts</p>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-white border border-outline-variant/30 rounded-lg text-xs font-bold hover:bg-surface transition-colors">Previous</button>
+<button class="px-3 py-1 bg-primary text-white rounded-lg text-xs font-bold">Next</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Modal Backdrop -->
+<div class="fixed inset-0 z-[60] bg-inverse-surface/40 backdrop-blur-sm flex items-center justify-center pointer-events-none opacity-0 group-[.modal-open]:opacity-100 group-[.modal-open]:pointer-events-auto">
+<div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden p-10 transform scale-95 transition-transform">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h3 class="text-2xl font-black text-on-surface tracking-tight">Generate New Contract</h3>
+<p class="text-on-surface-variant text-sm font-medium">Define parameters and ad detection regex for monitoring.</p>
+</div>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<div class="space-y-1">
+<label class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest px-1">Influencer Name</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20" placeholder="e.g. Farid Dieck" type="text"/>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest px-1">Contract ID Reference</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20" placeholder="CTR-XXXX-XXXX" type="text"/>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest px-1">Start Date</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20" type="date"/>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest px-1">End Date</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20" type="date"/>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest px-1">Integration Channel</label>
+<select class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20">
+<option>Slack Bot</option>
+<option>Telegram Channel</option>
+<option>API Webhook</option>
+</select>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest px-1">Ad Detection Regex</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-primary/20" placeholder="(?i)(ad|sponsor|promo)" type="text"/>
+</div>
+<div class="col-span-2 pt-4">
+<button class="w-full bg-gradient-to-r from-primary to-primary-container text-white py-4 rounded-xl font-headline font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+                    Finalize &amp; Deploy Tracker
+                </button>
+<p class="text-center mt-4 text-[10px] text-on-surface-variant font-medium">Once deployed, the tracker will start real-time monitoring on the selected channel.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Background Decorative Elements -->
+<div class="fixed top-0 right-0 -z-10 opacity-20 pointer-events-none">
+<div class="w-[800px] h-[800px] bg-gradient-to-bl from-primary-fixed/40 to-transparent rounded-full blur-3xl"></div>
+</div>
+</body></html>

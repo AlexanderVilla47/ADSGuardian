@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AdsKiller | Contract Detail</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#75009f",
+                    "on-secondary-fixed": "#320046",
+                    "on-error-container": "#93000a",
+                    "surface-tint": "#9420c3",
+                    "tertiary-fixed": "#ffdf9a",
+                    "surface-bright": "#fff7fb",
+                    "on-tertiary-fixed": "#251a00",
+                    "error-container": "#ffdad6",
+                    "secondary": "#7d4992",
+                    "on-primary": "#ffffff",
+                    "primary-fixed": "#f8d8ff",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#eaaeff",
+                    "on-primary-fixed": "#320046",
+                    "surface-container-low": "#feeffd",
+                    "tertiary-container": "#7e5f00",
+                    "on-secondary-container": "#6e3b83",
+                    "primary": "#7c00a9",
+                    "secondary-fixed-dim": "#ecb2ff",
+                    "background": "#fff7fb",
+                    "secondary-fixed": "#f8d8ff",
+                    "inverse-surface": "#362e38",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#201922",
+                    "on-tertiary-container": "#ffdd93",
+                    "on-error": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#e4d6e3",
+                    "inverse-on-surface": "#fbecfa",
+                    "outline-variant": "#d3c1d4",
+                    "tertiary-fixed-dim": "#eac162",
+                    "on-background": "#201922",
+                    "surface": "#fff7fb",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#ecb2ff",
+                    "primary-fixed-dim": "#ecb2ff",
+                    "primary-container": "#9a28c9",
+                    "surface-container-high": "#f2e4f1",
+                    "on-primary-container": "#f7d6ff",
+                    "outline": "#817284",
+                    "surface-container": "#f8eaf7",
+                    "on-surface-variant": "#4f4252",
+                    "on-secondary-fixed-variant": "#633178",
+                    "surface-variant": "#ecdeec",
+                    "surface-container-highest": "#ecdeec",
+                    "tertiary": "#614800",
+                    "on-tertiary-fixed-variant": "#5a4300"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-glass {
+            backdrop-filter: blur(20px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d3c1d4;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body min-h-screen">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-64 z-50 bg-purple-50 dark:bg-slate-950 flex flex-col h-screen py-6 px-4 gap-2">
+<div class="mb-8 px-4">
+<h1 class="text-xl font-extrabold text-purple-900 dark:text-purple-100 font-headline">AdsKiller</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold opacity-60">Risk Management</p>
+</div>
+<nav class="flex-1 flex flex-col gap-2">
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 font-manrope text-sm font-medium hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 bg-white dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-xl px-4 py-3 shadow-sm font-manrope text-sm font-medium transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">description</span>
+<span>Contratos</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 font-manrope text-sm font-medium hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">warning</span>
+<span>Ejecuciones y Alertas</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 font-manrope text-sm font-medium hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Configuración</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-outline-variant/20">
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 font-manrope text-sm font-medium hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span>Help Center</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-40 bg-white/60 dark:bg-purple-950/60 backdrop-blur-md shadow-sm dark:shadow-none flex justify-between items-center px-6 py-3 pl-72">
+<div class="flex items-center gap-4">
+<div class="bg-surface-container-low px-4 py-1.5 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-64 text-on-surface" placeholder="Search contracts..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-full transition-all duration-300">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="p-2 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-full transition-all duration-300">
+<span class="material-symbols-outlined text-on-surface-variant">help</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+<img alt="User avatar" data-alt="Portrait of a professional administrator in a minimalist setting with soft purple studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIQ6oFO1PNiDOVz2dJdKnvZD_Fuw7VtUVlYPI78NAgktqlfne6q-xXFGgaQlfSMfiEtRFYC4bEeDNo_h5ijwVVI0uTx4WtdEcsKMgLDB_qzxq8tMvSxq3KVTAusafVxI1e8933AE0dIsgIJzjGztyZdj7gxS9RA-TAAYfsWGBrptz7WmI-krlwFc9EJi7fHPDurhnIMNx9P9-AoL6UfPKhdym8WCJfbATNqBklfbZHk8LKFLFXlmirDwqutFnVm1pt5qwIuaZVQ-k"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 pt-20 p-8">
+<div class="max-w-7xl mx-auto space-y-8">
+<!-- Hero Section / Header -->
+<section class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+<div>
+<nav class="flex items-center gap-2 text-on-surface-variant text-xs mb-2">
+<span>Contratos</span>
+<span class="material-symbols-outlined text-[10px]">chevron_right</span>
+<span class="text-primary font-medium">CONT-7788</span>
+</nav>
+<h2 class="text-4xl font-black font-headline tracking-tight text-on-surface">Farid Dieck</h2>
+<p class="text-on-surface-variant font-medium mt-1">Influencer Identity: <span class="text-on-surface font-semibold">@fariddieck</span></p>
+</div>
+<div class="flex flex-wrap gap-3">
+<button class="bg-surface-container-high text-on-secondary-container px-6 py-3 rounded-xl font-headline font-bold text-sm hover:bg-surface-container-highest transition-all duration-300 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">history</span>
+                        Retry Run
+                    </button>
+<button class="bg-surface-container-high text-on-secondary-container px-6 py-3 rounded-xl font-headline font-bold text-sm hover:bg-surface-container-highest transition-all duration-300 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">block</span>
+                        Manual Cancel
+                    </button>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white px-8 py-3 rounded-xl font-headline font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all duration-300 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">calendar_add_on</span>
+                        Extend Contract
+                    </button>
+</div>
+</section>
+<!-- Bento Summary Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="md:col-span-1 bg-surface-container-lowest p-6 rounded-full border-l-4 border-primary shadow-sm">
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Contract ID</p>
+<p class="text-2xl font-black font-headline text-on-surface">CONT-7788</p>
+</div>
+<div class="md:col-span-1 bg-surface-container-lowest p-6 rounded-full shadow-sm">
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Status</p>
+<div class="flex items-center gap-2">
+<div class="h-2.5 w-2.5 bg-green-500 rounded-full animate-pulse"></div>
+<p class="text-2xl font-black font-headline text-on-surface">Active</p>
+</div>
+</div>
+<div class="md:col-span-1 bg-surface-container-lowest p-6 rounded-full shadow-sm">
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">End Date</p>
+<p class="text-2xl font-black font-headline text-on-surface">2026-05-20</p>
+</div>
+<div class="md:col-span-1 bg-surface-container-low p-6 rounded-full overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent"></div>
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2 relative z-10">Risk Index</p>
+<p class="text-2xl font-black font-headline text-primary relative z-10">Low Risk</p>
+</div>
+</div>
+<!-- Detail Tabs & Content -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Main Timeline (2/3) -->
+<div class="lg:col-span-2 bg-surface-container-low rounded-xl p-8">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-xl font-extrabold font-headline text-on-surface">Execution Timeline</h3>
+<div class="flex gap-2">
+<span class="bg-surface-container-highest px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-tight text-on-surface-variant">Traceability Enabled</span>
+</div>
+</div>
+<div class="relative space-y-8 before:content-[''] before:absolute before:left-[11px] before:top-0 before:h-full before:w-[2px] before:bg-outline-variant/20">
+<!-- Timeline Item 1 -->
+<div class="relative pl-10">
+<div class="absolute left-0 top-1.5 h-[24px] w-[24px] rounded-full bg-primary border-4 border-surface-container-low z-10"></div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm border-l-2 border-primary">
+<div class="flex flex-wrap justify-between items-start gap-4 mb-3">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold font-headline text-primary">Run Event</span>
+<span class="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase">Completed</span>
+</div>
+<h4 class="font-headline font-bold text-on-surface">Automated Compliance Check</h4>
+</div>
+<div class="text-right">
+<p class="text-xs font-medium text-on-surface">Oct 24, 2023</p>
+<p class="text-[10px] text-on-surface-variant">14:22:10 UTC</p>
+</div>
+</div>
+<div class="flex flex-wrap gap-4 pt-3 border-t border-outline-variant/10">
+<div>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest">Execution ID</p>
+<p class="text-xs font-mono text-on-surface-variant">EXE-8821-XPR</p>
+</div>
+<div>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest">Correlation ID</p>
+<p class="text-xs font-mono text-on-surface-variant">CORR-990-A01</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Timeline Item 2 -->
+<div class="relative pl-10">
+<div class="absolute left-0 top-1.5 h-[24px] w-[24px] rounded-full bg-outline-variant border-4 border-surface-container-low z-10"></div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm">
+<div class="flex flex-wrap justify-between items-start gap-4 mb-3">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold font-headline text-on-surface-variant">Status Change</span>
+<span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded uppercase">System</span>
+</div>
+<h4 class="font-headline font-bold text-on-surface">Contract Phase Transition: Validation to Execution</h4>
+</div>
+<div class="text-right">
+<p class="text-xs font-medium text-on-surface">Oct 22, 2023</p>
+<p class="text-[10px] text-on-surface-variant">09:15:44 UTC</p>
+</div>
+</div>
+<div class="flex flex-wrap gap-4 pt-3 border-t border-outline-variant/10">
+<div>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest">Execution ID</p>
+<p class="text-xs font-mono text-on-surface-variant">EXE-7710-SYS</p>
+</div>
+<div>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest">Correlation ID</p>
+<p class="text-xs font-mono text-on-surface-variant">CORR-990-A01</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Timeline Item 3 -->
+<div class="relative pl-10">
+<div class="absolute left-0 top-1.5 h-[24px] w-[24px] rounded-full bg-error border-4 border-surface-container-low z-10"></div>
+<div class="bg-error-container/30 p-5 rounded-xl shadow-sm border-l-2 border-error">
+<div class="flex flex-wrap justify-between items-start gap-4 mb-3">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold font-headline text-error">Notification</span>
+<span class="px-2 py-0.5 bg-error text-white text-[10px] font-bold rounded uppercase">Failed</span>
+</div>
+<h4 class="font-headline font-bold text-on-surface">WebHook Trigger: Signature Verification</h4>
+</div>
+<div class="text-right">
+<p class="text-xs font-medium text-on-surface">Oct 21, 2023</p>
+<p class="text-[10px] text-on-surface-variant">18:00:12 UTC</p>
+</div>
+</div>
+<p class="text-xs text-error font-medium mb-3 italic">Error Code 503: Connection timeout with identity provider.</p>
+<div class="flex flex-wrap gap-4 pt-3 border-t border-error/10">
+<div>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest">Execution ID</p>
+<p class="text-xs font-mono text-on-surface-variant">EXE-6602-ERR</p>
+</div>
+<div>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest">Correlation ID</p>
+<p class="text-xs font-mono text-on-surface-variant">CORR-442-B99</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Side Panels (1/3) -->
+<div class="space-y-6">
+<!-- Contract Metadata Card -->
+<div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm">
+<h3 class="text-lg font-extrabold font-headline text-on-surface mb-6">Technical Metadata</h3>
+<div class="space-y-6">
+<div>
+<label class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest block mb-1">Signature Hash</label>
+<div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg">
+<code class="text-xs text-on-surface-variant truncate w-48">sha256:7f8e...33d1</code>
+<button class="material-symbols-outlined text-sm text-primary">content_copy</button>
+</div>
+</div>
+<div>
+<label class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest block mb-1">Contract Version</label>
+<p class="text-sm font-bold text-on-surface">v2.4.0 (Enterprise)</p>
+</div>
+<div>
+<label class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest block mb-1">Legal Jurisdiction</label>
+<p class="text-sm font-bold text-on-surface">Mexico City (Federal)</p>
+</div>
+<div>
+<label class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest block mb-1">Linked Assets</label>
+<div class="flex gap-2 mt-2">
+<span class="p-2 bg-surface-container-high rounded-lg material-symbols-outlined text-sm" title="Instagram">camera</span>
+<span class="p-2 bg-surface-container-high rounded-lg material-symbols-outlined text-sm" title="TikTok">movie</span>
+<span class="p-2 bg-surface-container-high rounded-lg material-symbols-outlined text-sm" title="Contract PDF">picture_as_pdf</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Influencer Preview Card -->
+<div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-6xl">verified</span>
+</div>
+<h3 class="text-lg font-extrabold font-headline text-on-surface mb-6 relative z-10">Influencer Profile</h3>
+<div class="flex items-center gap-4 relative z-10">
+<div class="h-16 w-16 rounded-full bg-gradient-to-tr from-primary to-secondary p-1">
+<img class="w-full h-full rounded-full border-2 border-white object-cover" data-alt="Close-up of a charismatic male public speaker on a dark stage with a single spotlight and cinematic grain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGHSDG-s6qaRWFnhPjBhUNV9jAOUGPO2wkIRejxl5VWKYLsNHIZU2MxK0GCug47e8snoGIjzcvUHFNhYmJoK82q0_O6dgaiTwMWL-Rv4YvX8ccpZtt_3uZKllhj9SSPGEFFf25os01FmpYClquCx6POFBIlxmG_k_BfiAArGgcSvd1A5tE_uX794mK0UeXWgDc0aow8qS90JHK5aEcVJYLHEj8EMfoHmJWIwT_SS2bG9wqo6NKu9a9TM1s6NCDQbqqAcSjHRJxk30"/>
+</div>
+<div>
+<p class="font-headline font-extrabold text-on-surface">Farid Dieck</p>
+<p class="text-sm text-on-surface-variant">Content Creator</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[10px] font-bold text-primary bg-primary-fixed px-2 py-0.5 rounded">Verified Partner</span>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-3 border border-outline-variant text-on-surface-variant rounded-xl text-xs font-bold hover:bg-surface-container-low transition-colors">
+                            View Full Dossier
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

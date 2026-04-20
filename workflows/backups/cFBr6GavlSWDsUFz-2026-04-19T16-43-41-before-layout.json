@@ -1,0 +1,3437 @@
+{
+  "updatedAt": "2026-04-18T21:36:47.734Z",
+  "createdAt": "2026-04-13T16:26:01.150Z",
+  "id": "cFBr6GavlSWDsUFz",
+  "name": "contract-ui-management-v2",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contract-ui-management-v2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook UI",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "contract-ui-management-v2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.body ?? $json;\nconst action = String(payload.action ?? '').trim().toLowerCase();\nconst timezone = 'America/Argentina/Buenos_Aires';\n\nfunction nowDateInTZ(tz) {\n  const fmt = new Intl.DateTimeFormat('en-CA', {\n    timeZone: tz,\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n  });\n  return fmt.format(new Date()); // YYYY-MM-DD\n}\n\nreturn [\n  {\n    json: {\n      ...payload,\n      action,\n      timezone,\n      request_ts: new Date().toISOString(),\n      today_tz: nowDateInTZ(timezone),\n    },\n  },\n];"
+      },
+      "id": "2",
+      "name": "Normalize Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\nconst allowedActions = new Set(['alta','search', 'influencers_search', 'consulta', 'extension', 'baja_manual', 'listar_ads', 'run_now', 'history', 'history_alerts', 'pause_ad', 'pause_active', 'status_by_tracking']);\n\nfunction isValidDateFormat(value) {\n  if (typeof value !== 'string') return false;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;\n  const [y, m, d] = value.split('-').map(Number);\n  const dt = new Date(Date.UTC(y, m - 1, d));\n  return dt.getUTCFullYear() === y && dt.getUTCMonth() === (m - 1) && dt.getUTCDate() === d;\n}\n\nfunction toBool(value, fallback = false) {\n  if (value === undefined || value === null || value === '') return fallback;\n  if (typeof value === 'boolean') return value;\n  if (typeof value === 'number') return value !== 0;\n  const normalized = String(value).trim().toLowerCase();\n  return ['1', 'true', 'si', 'yes', 'y'].includes(normalized);\n}\n\nfunction normalizeB64(value) {\n  const raw = String(value || '').trim().replace(/-/g, '+').replace(/_/g, '/');\n  const padding = raw.length % 4;\n  return padding ? raw + '='.repeat(4 - padding) : raw;\n}\n\nfunction badRequest(message, details = {}) {\n  const err = new Error(message);\n  err.name = 'ValidationError';\n  err.details = details;\n  throw err;\n}\n\nif (!allowedActions.has(input.action)) {\n  badRequest('`action` invalida. Usar: alta | search | influencers_search | consulta | extension | baja_manual | listar_ads | run_now | history | history_alerts | pause_ad | pause_active | status_by_tracking', { action: input.action });\n}\n\ninput.actor = String(input.requested_by ?? input.actor ?? 'ops@adskiller').trim();\ninput.correlation_id = String(input.correlation_id ?? `ak-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\n\nconst normalizedContratoId = String(input.Contrato_ID ?? input.contract_id ?? input.contractId ?? '').trim();\nif (normalizedContratoId) {\n  input.Contrato_ID = normalizedContratoId;\n  input.contract_id = normalizedContratoId;\n}\n\nconst normalizedAdId = String(input.Ad_ID ?? input.ad_id ?? input.adId ?? '').trim();\nif (normalizedAdId) {\n  input.Ad_ID = normalizedAdId;\n  input.ad_id = normalizedAdId;\n}\n\nif (input.action === 'alta') {\n  const required = ['Contrato_ID', 'Cliente', 'Regex_Anuncio', 'Fecha_Fin'];\n  const missing = required.filter((f) => !String(input[f] ?? '').trim());\n  if (missing.length) badRequest('Faltan campos obligatorios para alta', { missing });\n  if (!isValidDateFormat(input.Fecha_Fin)) badRequest('Fecha_Fin invalida. Formato requerido: YYYY-MM-DD');\n}\n\nif (input.action === 'extension') {\n  const required = ['Contrato_ID', 'Nueva_Fecha_Fin'];\n  const missing = required.filter((f) => !String(input[f] ?? '').trim());\n  if (missing.length) badRequest('Faltan campos obligatorios para extension', { missing });\n  if (!isValidDateFormat(input.Nueva_Fecha_Fin)) badRequest('Nueva_Fecha_Fin invalida. Formato requerido: YYYY-MM-DD');\n}\n\nif (input.action === 'search') {\n  if (!String(input.q ?? '').trim()) badRequest('q es obligatorio para search');\n  input.q = String(input.q).trim();\n}\n\nif (input.action === 'consulta') {\n  const dias = Number(input.dias_proximos ?? 7);\n  if (!Number.isInteger(dias) || dias < 1 || dias > 60) badRequest('dias_proximos invalido. Debe ser entero entre 1 y 60');\n  input.dias_proximos = dias;\n}\n\nif (input.action === 'pause_ad') {\n  const missing = [];\n  if (!String(input.Contrato_ID ?? '').trim()) missing.push('contract_id');\n  if (!String(input.Ad_ID ?? '').trim()) missing.push('ad_id');\n  if (missing.length) {\n    badRequest('Faltan campos obligatorios para pause_ad', {\n      missing,\n      accepted_aliases: {\n        contract_id: ['Contrato_ID', 'contract_id', 'contractId'],\n        ad_id: ['Ad_ID', 'ad_id', 'adId']\n      }\n    });\n  }\n}\n\nif (input.action === 'baja_manual' || input.action === 'listar_ads' || input.action === 'pause_active') {\n  if (!String(input.Contrato_ID ?? '').trim()) badRequest('Contrato_ID es obligatorio para esta accion');\n}\n\nif (input.action === 'status_by_tracking') {\n  const trackingId = String(input.tracking_id ?? input.trackingId ?? '').trim();\n  if (!trackingId) badRequest('tracking_id es obligatorio para status_by_tracking');\n  input.tracking_id = trackingId;\n}\n\nif (input.action === 'pause_active') {\n  const dryRun = toBool(input.dry_run, true);\n  const maxBatchSize = Number(input.max_batch_size ?? input.batch_limit ?? 20);\n  if (!Number.isInteger(maxBatchSize) || maxBatchSize < 1 || maxBatchSize > 100) {\n    badRequest('max_batch_size invalido. Debe ser entero entre 1 y 100');\n  }\n\n  input.dry_run = dryRun;\n  input.max_batch_size = maxBatchSize;\n  input.batch_limit = maxBatchSize;\n\n  if (dryRun) {\n    input.action = 'pause_active_preview';\n  } else {\n    const confirmToken = String(input.confirm_token ?? '').trim();\n    if (!confirmToken) {\n      badRequest('confirm_token es obligatorio cuando dry_run=false');\n    }\n\n    try {\n      const decoded = JSON.parse(Buffer.from(normalizeB64(confirmToken), 'base64').toString('utf8'));\n      const tokenContractId = String(decoded.contract_id ?? '').trim();\n      const tokenBatchSize = Number(decoded.max_batch_size ?? 0);\n      const expiresAt = Number(decoded.expires_at_epoch_ms ?? 0);\n\n      if (!tokenContractId || tokenContractId !== String(input.Contrato_ID).trim()) {\n        badRequest('confirm_token no corresponde al Contrato_ID enviado');\n      }\n      if (!Number.isInteger(tokenBatchSize) || tokenBatchSize !== maxBatchSize) {\n        badRequest('confirm_token no corresponde al max_batch_size enviado');\n      }\n      if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {\n        badRequest('confirm_token vencido');\n      }\n    } catch (err) {\n      badRequest('confirm_token invalido', { reason: String(err?.message ?? err) });\n    }\n\n    input.confirm_token = confirmToken;\n    input.confirm = true;\n  }\n}\n\nif (input.action === 'history' || input.action === 'history_alerts') {\n  const page = Number(input.page ?? 1);\n  const pageSize = Number(input.page_size ?? 25);\n  if (!Number.isInteger(page) || page < 1) badRequest('page invalido. Minimo 1');\n  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) badRequest('page_size invalido. Debe ser 1..100');\n  input.page = page;\n  input.page_size = pageSize;\n}\n\nreturn [{ json: input }];"
+      },
+      "id": "3",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "alta",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "consulta",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "extension",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "baja_manual",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "listar_ads",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "run_now",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "history",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "pause_ad",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "pause_active_preview",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "pause_active",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "influencers_search",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "status_by_tracking",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "history_alerts",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        840,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    Contrato_ID: String($json.Contrato_ID).trim(),\n    Cliente: String($json.Cliente).trim(),\n    Regex_Anuncio: String($json.Regex_Anuncio).trim(),\n    Fecha_Alta: String($json.Fecha_Alta ?? $json.today_tz),\n    Fecha_Fin: String($json.Fecha_Fin),\n    Status_Contrato: String($json.Status_Contrato ?? 'Activo'),\n    Notificado_Previo: false,\n    Ad_ID: String($json.Ad_ID ?? ''),\n    Ad_Name: String($json.Ad_Name ?? ''),\n    Fecha_Notificado_Previo: '',\n    Fecha_Finalizacion: '',\n    Updated_At: $json.request_ts,\n  },\n}];"
+      },
+      "id": "5",
+      "name": "Prepare Alta Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "6",
+      "name": "GS Append Alta",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1400,
+        220
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'alta', message: 'Contrato creado', data: $json } }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "7",
+      "name": "Respond Alta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "8",
+      "name": "GS Read Contratos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        440
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $items('Validate Input', 0, 0)[0].json;\n\n// show_all: devolver todos los contratos sin filtrar\nif (trigger.show_all === true || String(trigger.show_all).toLowerCase() === 'true') {\n  return items.map(item => ({ json: item.json }));\n}\n\nconst dias = Number(trigger.dias_proximos ?? 7);\n\nfunction parseYmd(ymd) {\n  const [y, m, d] = String(ymd).split('-').map(Number);\n  return new Date(Date.UTC(y, m - 1, d));\n}\n\nconst today = parseYmd(trigger.today_tz);\nconst maxDate = new Date(today.getTime() + dias * 24 * 60 * 60 * 1000);\n\nconst out = [];\nfor (const item of items) {\n  const row = item.json;\n  const exp = String(row.Fecha_Fin ?? '').trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(exp)) continue;\n\n  if (row.Status_Contrato === 'Finalizado') continue;\n\n  const expDate = parseYmd(exp);\n  if (expDate <= maxDate) {\n    out.push({ json: row });\n  }\n}\n\nout.sort((a, b) => String(a.json.Fecha_Fin).localeCompare(String(b.json.Fecha_Fin)));\nreturn out;"
+      },
+      "id": "9",
+      "name": "Filter Proximos Vencer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'consulta', dias_proximos: $items('Validate Input', 0, 0)[0].json.dias_proximos, total: $items('Filter Proximos Vencer').length, data: $items('Filter Proximos Vencer').map(i => i.json) } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "10",
+      "name": "Respond Consulta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "11",
+      "name": "GS Read For Extension",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        660
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\n\nif (!found) {\n  const err = new Error('Contrato no encontrado para extension');\n  err.name = 'NotFoundError';\n  err.details = { Contrato_ID: idContrato };\n  throw err;\n}\n\nreturn [{\n  json: {\n    ...found.json,\n    Contrato_ID: idContrato,\n    Fecha_Fin: String(req.Nueva_Fecha_Fin),\n    Notificado_Previo: false,\n    Updated_At: req.request_ts,\n  },\n}];"
+      },
+      "id": "12",
+      "name": "Prepare Extension Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Contrato_ID"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "13",
+      "name": "GS Update Extension",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1680,
+        660
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'extension', message: 'Contrato extendido y Notificado_Previo reseteado', data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "14",
+      "name": "Respond Extension",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1960,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\nconst safeAction = String(input.action ?? 'unknown').trim().toLowerCase();\nconst correlationId = String(input.correlation_id ?? `ak-f1-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\nconst logicalExecutionId = String(input.logical_execution_id ?? `${correlationId}:f1:${safeAction}`);\n\nreturn [{\n  json: {\n    schema_version: '1.0.0',\n    event_type: 'contract.ui.action',\n    source_workflow: 'contract-ui-management-v2',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires'),\n    correlation_id: correlationId,\n    logical_execution_id: logicalExecutionId,\n    execution: {\n      n8n_execution_id: String($execution?.id ?? ''),\n      run_type: 'internal_execute_workflow',\n      status: 'queued'\n    },\n    payload: {\n      action: safeAction,\n      run_mode: String(input.run_mode ?? 'manual'),\n      actor: String(input.actor ?? 'ops@adskiller'),\n      tracking_id: String(input.tracking_id ?? ''),\n      Contrato_ID: String(input.Contrato_ID ?? ''),\n      Ad_ID: String(input.Ad_ID ?? ''),\n      Fecha_Fin: String(input.Fecha_Fin ?? ''),\n      Nueva_Fecha_Fin: String(input.Nueva_Fecha_Fin ?? ''),\n      Regex_Anuncio: String(input.Regex_Anuncio ?? ''),\n      request_ts: String(input.requested_at ?? input.request_ts ?? nowIso),\n      requested_at: String(input.requested_at ?? input.request_ts ?? nowIso),\n      today_tz: String(input.today_tz ?? ''),\n      timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires'),\n      dry_run: Boolean(input.dry_run ?? false),\n      confirm: Boolean(input.confirm ?? false),\n      confirm_token: String(input.confirm_token ?? ''),\n      max_batch_size: Number(input.max_batch_size ?? input.batch_limit ?? 20),\n      batch_limit: Number(input.batch_limit ?? input.max_batch_size ?? 20)\n    },\n    dispatched_at: nowIso\n  }\n}];"
+      },
+      "id": "15",
+      "name": "Build Internal Payload F1->F2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1540
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8mlwAxLtJVrwpLhi",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "16",
+      "name": "Execute F2 Internal",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        1540
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json ?? {};\nreturn [{\n  json: {\n    event: 'internal_chain_dispatch_ok',\n    source_workflow: 'contract-ui-management',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    correlation_id: String(source.correlation_id ?? ''),\n    logical_execution_id: String(source.logical_execution_id ?? ''),\n    status: 'dispatched',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "17",
+      "name": "Log F1 Chain Dispatch OK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json ?? {};\nreturn [{\n  json: {\n    event: 'internal_chain_dispatch_error',\n    source_workflow: 'contract-ui-management',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    correlation_id: String(source.correlation_id ?? ''),\n    logical_execution_id: String(source.logical_execution_id ?? ''),\n    status: 'error',\n    error: String(source.error?.message ?? source.message ?? 'unknown_execute_workflow_error'),\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "18",
+      "name": "Log F1 Chain Dispatch Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        1640
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: 'ValidationError', message: 'Input invalido' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "valerr400",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "a2-read-baja",
+      "name": "GS Read For Baja",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        880
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst actor = String(req.actor ?? 'ops@adskiller');\nconst reason = String(req.reason ?? 'Cierre manual por operacion').trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\nif (!found) { const err = new Error('Contrato no encontrado para baja_manual'); err.name = 'NotFoundError'; err.details = { Contrato_ID: idContrato }; throw err; }\nreturn [{ json: { ...found.json, Contrato_ID: idContrato, Status_Contrato: 'Finalizado', Fecha_Finalizacion: req.request_ts, Updated_At: req.request_ts, Finalizado_By: actor, Finalizado_Reason: reason } }];"
+      },
+      "id": "a2-prepare-baja",
+      "name": "Prepare Baja Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Contrato_ID"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "a2-update-baja",
+      "name": "GS Update Baja",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1680,
+        880
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'baja_manual', message: 'Contrato finalizado manualmente', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a2-respond-baja",
+      "name": "Respond Baja Manual",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1960,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "a2-read-ads",
+      "name": "GS Read For Listar Ads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        1100
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Normalize Request').first()?.json ?? {};\nconst idContrato = String(\n  req.Contrato_ID || req.contract_id ||\n  req.body?.Contrato_ID || req.body?.contract_id || '').trim();\n\nconst rawJson = $input.first()?.json ?? {};\nconst data = rawJson.body?.data ?? rawJson.data ?? [];\n\nreturn [{\n  json: {\n    contract_id: idContrato,\n    total: data.length,\n    ads: data.map(ad => ({\n      ad_id:         String(ad.id   ?? ''),\n      ad_name:       String(ad.name ?? ''),\n      ad_status:     String(ad.effective_status ?? ad.status ?? 'UNKNOWN').toUpperCase(),\n      campaign_name: String(ad.campaign_name ?? ''),\n    })),\n  }\n}];"
+      },
+      "id": "a2-build-ads",
+      "name": "Build Listar Ads Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'listar_ads', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a2-respond-ads",
+      "name": "Respond Listar Ads",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1100
+      ]
+    },
+    {
+      "id": "extract-regex-listar-ads",
+      "name": "Extract Regex para Listar Ads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -84,
+        704
+      ],
+      "parameters": {
+        "jsCode": "const req = $('Normalize Request').first()?.json ?? {};\nconst idContrato = String(\n  req.Contrato_ID || req.contract_id ||\n  req.body?.Contrato_ID || req.body?.contract_id || '').trim();\n\nconst allRows = $input.all();\nconst contract = allRows.find(item =>\n  String(item.json.Contrato_ID ?? '').trim() === idContrato\n);\nif (!contract) {\n  return [{ json: { ok: false, error: 'contrato_no_encontrado', contract_id: idContrato } }];\n}\n\nfunction buildRegex(nombreRaw) {\n  if (!nombreRaw || !String(nombreRaw).trim()) return '';\n  const clean = String(nombreRaw)\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, '')\n    .trim();\n  const words = clean.split(/\\s+/).filter(w => w.length >= 4);\n  if (words.length === 0) return clean.replace(/\\s+/g, '');\n  function acc(w) {\n    return w.replace(/a/g,'[a\\u00e1]').replace(/e/g,'[e\\u00e9]')\n             .replace(/i/g,'[i\\u00ed]').replace(/o/g,'[o\\u00f3]')\n             .replace(/u/g,'[u\\u00fa]').replace(/n/g,'[n\\u00f1]');\n  }\n  const patterns = [];\n  if (words.length <= 2) { words.forEach(w => patterns.push(acc(w))); }\n  if (words.length >= 2) {\n    patterns.push(words.map(acc).join('.{0,3}'));\n    if (words.length === 3) patterns.push(acc(words[0]) + '.{0,3}' + acc(words[2]));\n    patterns.push(acc(words[0]) + '.{0,8}' + acc(words[words.length-1].slice(0, 4)));\n    patterns.push(words.join(''));\n  }\n  return [...new Set(patterns)].join('|');\n}\n\nconst cliente = String(contract.json.Cliente ?? '').trim();\nconst regex = buildRegex(cliente);\n\nreturn [{ json: {\n  Contrato_ID:   idContrato,\n  Regex_Anuncio: regex,\n  Cliente:       cliente,\n} }];"
+      }
+    },
+    {
+      "id": "meta-listar-ads-ui",
+      "name": "Meta - Listar Ads (UI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        136,
+        704
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://168.138.125.21:5678/webhook/ak-meta-list-v1",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pattern",
+              "value": "={{ $json.Regex_Anuncio }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst nowIso = new Date().toISOString();\nconst trackingId = String(req.tracking_id ?? `trk-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);\nconst normalizedAction = String(req.action || '').trim();\nconst dispatchAction = normalizedAction === 'pause_active_preview' ? 'pause_active' : normalizedAction;\nconst maxBatchSize = Number(req.max_batch_size ?? req.batch_limit ?? 0);\nconst contractId = String(req.Contrato_ID ?? '');\nconst adId = String(req.Ad_ID ?? '');\nconst metaPatch = { method: 'PATCH', path: `/v23.0/${adId}`, body: { status: 'PAUSED' }, version: 'v1' };\n\nreturn [{\n  json: {\n    tracking_id: trackingId,\n    correlation_id: String(req.correlation_id),\n    logical_execution_id: `${trackingId}:f1:${dispatchAction}`,\n    action: dispatchAction,\n    run_mode: 'manual',\n    actor: String(req.actor ?? 'ops@adskiller'),\n    requested_at: req.request_ts ?? nowIso,\n    execution_id: String($execution?.id ?? ''),\n    status: 'accepted',\n    Contrato_ID: contractId,\n    Ad_ID: adId,\n    target_contract_id: contractId,\n    target_ad_id: adId,\n    precheck_status: 'UNKNOWN',\n    meta_http_status: null,\n    dry_run: Boolean(req.dry_run ?? false),\n    confirm: Boolean(req.confirm ?? false),\n    confirm_token: String(req.confirm_token ?? ''),\n    max_batch_size: Number.isInteger(maxBatchSize) ? maxBatchSize : 0,\n    batch_limit: Number.isInteger(maxBatchSize) ? maxBatchSize : Number(req.batch_limit ?? 0),\n    reason: String(req.reason ?? ''),\n    timezone: String(req.timezone ?? 'America/Argentina/Buenos_Aires'),\n    meta_patch_method: metaPatch.method,\n    meta_patch_path: metaPatch.path,\n    meta_patch_body: JSON.stringify(metaPatch.body),\n    meta_patch_version: metaPatch.version\n  }\n}];"
+      },
+      "id": "a2-build-tracking",
+      "name": "Build Operation Tracking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Operations_Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "a2-append-oplog",
+      "name": "GS Append Operation Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1400,
+        1320
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: $json.action, data: { accepted: true, tracking_id: $json.tracking_id, correlation_id: $json.correlation_id, status: 'queued', target: { contract_id: $json.Contrato_ID, ad_id: $json.Ad_ID }, meta_patch: { method: $json.meta_patch_method || 'PATCH', path: $json.meta_patch_path || (`/v23.0/${$json.Ad_ID}`), body: { status: 'PAUSED' }, version: $json.meta_patch_version || 'v1' } }, meta: { execution_id: $json.execution_id || $execution.id, actor: $json.actor, timestamp: $json.requested_at } } }}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "a2-respond-op",
+      "name": "Respond Operation Accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Operations_Log",
+          "mode": "name"
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "a2-read-history",
+      "name": "GS Read Operations History",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        1760
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst page = Number(req.page ?? 1);\nconst pageSize = Number(req.page_size ?? 25);\nconst from = String(req.from ?? '').trim();\nconst to = String(req.to ?? '').trim();\nconst resultFilter = String(req.result ?? '').trim().toLowerCase();\nconst runModeFilter = String(req.run_mode ?? '').trim().toLowerCase();\nconst executionFilter = String(req.execution_id ?? '').trim();\nconst correlationFilter = String(req.correlation_id_filter ?? req.correlation_id_query ?? '').trim();\nconst trackingFilter = String(req.tracking_id ?? '').trim();\nconst parseTs = (v) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d; };\nconst fromDate = from ? parseTs(from) : null;\nconst toDate = to ? parseTs(to) : null;\nlet rows = items.map((i) => i.json || {});\nrows = rows.filter((row) => {\n  const ts = parseTs(row.requested_at ?? row.updated_at ?? row.timestamp ?? row.executed_at ?? '');\n  if (fromDate && (!ts || ts < fromDate)) return false;\n  if (toDate && (!ts || ts > toDate)) return false;\n  if (resultFilter && String(row.status ?? row.result ?? '').toLowerCase() !== resultFilter) return false;\n  if (runModeFilter && String(row.run_mode ?? '').toLowerCase() !== runModeFilter) return false;\n  if (executionFilter && String(row.execution_id ?? '') !== executionFilter) return false;\n  if (correlationFilter && String(row.correlation_id ?? '') !== correlationFilter) return false;\n  if (trackingFilter && String(row.tracking_id ?? '') !== trackingFilter) return false;\n  return true;\n});\nrows.sort((a, b) => String(b.updated_at ?? b.requested_at ?? b.timestamp ?? '').localeCompare(String(a.updated_at ?? a.requested_at ?? a.timestamp ?? '')));\nconst total = rows.length;\nconst start = (page - 1) * pageSize;\nconst paged = rows.slice(start, start + pageSize).map((row) => ({\n  execution_id: String(row.execution_id ?? ''),\n  tracking_id: String(row.tracking_id ?? ''),\n  correlation_id: String(row.correlation_id ?? ''),\n  action: String(row.action ?? ''),\n  run_mode: String(row.run_mode ?? ''),\n  result: String(row.final_status ?? row.status ?? row.result ?? ''),\n  actor: String(row.actor ?? ''),\n  contract_id: String(row.Contrato_ID ?? row.contract_id ?? ''),\n  ad_id: String(row.Ad_ID ?? row.ad_id ?? ''),\n  precheck_status: String(row.precheck_status ?? row.ad_status_meta ?? 'UNKNOWN'),\n  meta_http_status: Number(row.meta_http_status ?? row.pause_status_code ?? row.precheck_status_code ?? 0) || null,\n  pause_attempt: Number(row.pause_attempt ?? row.precheck_attempt ?? 0) || 0,\n  pause_max_attempts: Number(row.pause_max_attempts ?? row.precheck_max_attempts ?? 0) || 0,\n  reason: String(row.pause_reason ?? row.precheck_reason ?? row.error ?? ''),\n  timestamps: {\n    requested_at: String(row.requested_at ?? row.timestamp ?? ''),\n    updated_at: String(row.updated_at ?? row.timestamp ?? row.requested_at ?? ''),\n    executed_at: String(row.executed_at ?? row.updated_at ?? row.timestamp ?? row.requested_at ?? '')\n  },\n  executed_at: String(row.executed_at ?? row.updated_at ?? row.timestamp ?? row.requested_at ?? '')\n}));\nreturn [{ json: { total, page, page_size: pageSize, not_found: Boolean(trackingFilter) && total === 0, items: paged } }];"
+      },
+      "id": "a2-build-history",
+      "name": "Build History Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1760
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'history', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a2-respond-history",
+      "name": "Respond History",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1760
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contratos",
+          "mode": "name"
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "a2-read-pause-preview",
+      "name": "GS Read For Pause Active Preview",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        1980
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst contractId = String(req.Contrato_ID ?? '').trim();\nconst maxBatchSize = Number(req.max_batch_size ?? req.batch_limit ?? 20);\nconst actor = String(req.actor ?? 'ops@adskiller').trim();\nconst ttlMs = 10 * 60 * 1000;\n\nfunction encodeBase64Url(value) {\n  return Buffer.from(value, 'utf8')\n    .toString('base64')\n    .replace(/\\+/g, '-')\n    .replace(/\\//g, '_')\n    .replace(/=+$/g, '');\n}\n\nconst candidates = items\n  .filter((i) => String(i.json.Contrato_ID ?? '').trim() === contractId)\n  .filter((i) => String(i.json.Status_Contrato ?? '').trim().toLowerCase() === 'activo')\n  .slice(0, maxBatchSize)\n  .map((i) => ({\n    ad_id: String(i.json.Ad_ID ?? ''),\n    ad_name: String(i.json.Ad_Name ?? ''),\n    contract_id: contractId\n  }));\n\nconst nowMs = Date.now();\nconst expiresAt = nowMs + ttlMs;\nconst tokenPayload = {\n  contract_id: contractId,\n  actor,\n  max_batch_size: maxBatchSize,\n  issued_at_epoch_ms: nowMs,\n  expires_at_epoch_ms: expiresAt,\n  candidate_count: candidates.filter((x) => x.ad_id).length\n};\nconst confirmToken = encodeBase64Url(JSON.stringify(tokenPayload));\n\nreturn [{\n  json: {\n    dry_run: true,\n    contract_id: contractId,\n    max_batch_size: maxBatchSize,\n    total_candidates: candidates.length,\n    would_pause: candidates.filter((x) => x.ad_id).length,\n    confirm_token: confirmToken,\n    confirm_token_expires_at: new Date(expiresAt).toISOString(),\n    items: candidates\n  }\n}];"
+      },
+      "id": "a2-build-pause-preview",
+      "name": "Build Pause Active Preview",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1980
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'pause_active', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a2-respond-pause-preview",
+      "name": "Respond Pause Active Preview",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1980
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.payload.action}}",
+              "operation": "in",
+              "value2": "run_now,pause_ad,pause_active"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a2-if-dispatch",
+      "name": "Should Dispatch F2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1540
+      ]
+    },
+    {
+      "id": "search-read",
+      "name": "GS Read For Search",
+      "parameters": {
+        "sheetName": {
+          "mode": "name",
+          "__rl": true,
+          "value": "Contratos"
+        },
+        "documentId": {
+          "mode": "id",
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+        },
+        "authentication": "serviceAccount",
+        "options": {
+          "returnAll": true
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1120,
+        2200
+      ],
+      "typeVersion": 4.5
+    },
+    {
+      "id": "a2-search-influencers",
+      "name": "search-influencers",
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst query = String(req.q ?? '').trim();\nif (!query) {\n  throw new Error('q es obligatorio para influencers_search');\n}\nconst limitValue = Number(req.limit ?? 10);\nconst limit = Math.min(20, Math.max(1, limitValue));\nif (!Number.isInteger(limitValue) || limitValue < 1 || limitValue > 20) {\n  throw new Error('limit debe ser un entero positivo entre 1 y 20');\n}\n\nfunction normalize(value) {\n  return String(value ?? '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();\n}\n\nfunction tokens(value) {\n  return normalize(value).split(' ').filter(Boolean);\n}\n\nfunction overlapScore(left, right) {\n  if (!left.length || !right.length) return 0;\n  const set = new Set(right);\n  let hits = 0;\n  for (const token of left) {\n    if (set.has(token)) hits += 1;\n  }\n  return hits / Math.max(left.length, right.length);\n}\n\nconst queryNorm = normalize(query);\nconst queryTokens = tokens(query);\nconst bestByKey = new Map();\n\nfor (const item of items) {\n  const row = item.json ?? {};\n  const name = String(row.Cliente ?? row.influencer_name ?? row.name ?? row.Ad_Name ?? '').trim();\n  if (!name) continue;\n\n  const channel = String(row.channel ?? row.Channel ?? row.Canal ?? row.notification_channel ?? '').trim();\n  const nameNorm = normalize(name);\n  const channelNorm = normalize(channel);\n  const adNorm = normalize(row.Ad_Name ?? row.Regex_Anuncio ?? '');\n\n  let score = 0;\n  if (nameNorm === queryNorm) {\n    score = 1;\n  } else if (queryNorm && nameNorm.includes(queryNorm)) {\n    score = 0.92;\n  } else if (nameNorm && queryNorm.includes(nameNorm)) {\n    score = 0.84;\n  } else {\n    score = Math.max(\n      overlapScore(queryTokens, tokens(name)),\n      overlapScore(queryTokens, tokens(channelNorm)),\n      overlapScore(queryTokens, tokens(adNorm))\n    );\n  }\n\n  if (channelNorm) {\n    if (channelNorm === queryNorm) {\n      score = Math.max(score, 0.95);\n    } else if (queryNorm && (channelNorm.includes(queryNorm) || queryNorm.includes(channelNorm))) {\n      score = Math.max(score, Math.min(1, score + 0.1));\n    }\n  }\n\n  if (adNorm && queryNorm && (adNorm.includes(queryNorm) || queryNorm.includes(adNorm))) {\n    score = Math.max(score, Math.min(1, score + 0.05));\n  }\n\n  if (score <= 0) continue;\n  const key = `${nameNorm}|${channelNorm}`;\n  const current = bestByKey.get(key);\n  if (!current || score > current.score) {\n    bestByKey.set(key, { name, channel, score });\n  }\n}\n\nconst ranked = [...bestByKey.values()].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name) || a.channel.localeCompare(b.channel));\nconst total = ranked.length;\nconst itemsOut = ranked.slice(0, limit).map((row) => ({ name: row.name, channel: row.channel, score: Number(row.score.toFixed(2)) }));\n\nreturn [{ json: { ok: true, action: 'influencers_search', query, limit, total, items: itemsOut } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        80,
+        200
+      ],
+      "typeVersion": 2
+    },
+    {
+      "id": "a2-respond-search",
+      "name": "Respond Influencers Search",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        240,
+        200
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Operations_Log",
+          "mode": "name"
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "a2-read-status-tracking",
+      "name": "GS Read Operation By Tracking",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -304,
+        1440
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst trackingId = String(req.tracking_id ?? '').trim();\n\nconst rows = items\n  .map((i) => i.json || {})\n  .filter((row) => String(row.tracking_id ?? '').trim() === trackingId);\n\nif (!rows.length) {\n  return [{\n    json: {\n      tracking_id: trackingId,\n      status: 'not_found',\n      not_found: true,\n      result: null,\n      transitions: [],\n      timestamps: { requested_at: null, updated_at: null },\n      last_update_at: null\n    }\n  }];\n}\n\nrows.sort((a, b) => String(a.updated_at ?? a.requested_at ?? a.timestamp ?? a.executed_at ?? '').localeCompare(String(b.updated_at ?? b.requested_at ?? b.timestamp ?? b.executed_at ?? '')));\nconst latest = rows[rows.length - 1];\nconst rawStatus = String(latest.final_status ?? latest.status ?? latest.result ?? '').trim().toLowerCase();\nconst normalizedStatus = (() => {\n  if (['paused', 'failed', 'already_paused', 'not_found'].includes(rawStatus)) return rawStatus;\n  if (['accepted', 'queued', 'pending'].includes(rawStatus)) return 'queued';\n  if (['processing', 'running', 'in_progress', 'dispatched'].includes(rawStatus)) return 'processing';\n  return rawStatus || 'processing';\n})();\n\nconst transitions = rows.map((row) => ({\n  status: String(row.final_status ?? row.status ?? row.result ?? '').trim().toLowerCase() || 'unknown',\n  at: String(row.updated_at ?? row.requested_at ?? row.timestamp ?? row.executed_at ?? ''),\n  source: String(row.source_workflow ?? row.source ?? ''),\n  meta_http_status: Number(row.meta_http_status ?? row.pause_status_code ?? row.precheck_status_code ?? 0) || null,\n  attempt: Number(row.pause_attempt ?? row.precheck_attempt ?? 0) || 0\n}));\n\nreturn [{\n  json: {\n    tracking_id: trackingId,\n    not_found: false,\n    correlation_id: String(latest.correlation_id ?? ''),\n    contract_id: String(latest.Contrato_ID ?? latest.contract_id ?? ''),\n    ad_id: String(latest.Ad_ID ?? latest.ad_id ?? ''),\n    status: normalizedStatus,\n    result: {\n      precheck_status: String(latest.precheck_status ?? latest.ad_status_meta ?? 'UNKNOWN'),\n      meta_http_status: Number(latest.meta_http_status ?? latest.pause_status_code ?? latest.precheck_status_code ?? 0) || null,\n      pause_attempt: Number(latest.pause_attempt ?? 0) || 0,\n      pause_max_attempts: Number(latest.pause_max_attempts ?? 0) || 0,\n      reason: String(latest.pause_reason ?? latest.precheck_reason ?? '')\n    },\n    timestamps: {\n      requested_at: String(latest.requested_at ?? latest.timestamp ?? ''),\n      updated_at: String(latest.updated_at ?? latest.timestamp ?? latest.requested_at ?? '')\n    },\n    transitions,\n    last_update_at: String(latest.updated_at ?? latest.timestamp ?? latest.requested_at ?? '')\n  }\n}];"
+      },
+      "id": "a2-build-status-tracking",
+      "name": "Build Status By Tracking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'status_by_tracking', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a2-respond-status-tracking",
+      "name": "Respond Status By Tracking",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        144,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Alertas",
+          "mode": "name"
+        },
+        "options": {},
+        "authentication": "serviceAccount"
+      },
+      "id": "a2-read-alerts-history",
+      "name": "GS Read Alerts History",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -304,
+        1248
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst page = Number(req.page ?? 1);\nconst pageSize = Number(req.page_size ?? 25);\nconst from = String(req.from ?? '').trim();\nconst to = String(req.to ?? '').trim();\nconst severityFilter = String(req.severity ?? '').trim().toUpperCase();\nconst statusFilter = String(req.status ?? '').trim().toLowerCase();\n\nconst parseTs = (value) => {\n  const date = new Date(value);\n  return Number.isNaN(date.getTime()) ? null : date;\n};\n\nconst fromDate = from ? parseTs(from) : null;\nconst toDate = to ? parseTs(to) : null;\n\nlet rows = items.map((item) => item.json || {});\n\nrows = rows.filter((row) => {\n  const createdAtRaw = String(row.Creada_At ?? row.created_at ?? row.timestamp ?? '').trim();\n  const createdAt = parseTs(createdAtRaw);\n  const severity = String(row.Severidad ?? row.severity ?? '').trim().toUpperCase();\n  const status = String(row.Estado ?? row.status ?? '').trim().toLowerCase();\n\n  if (fromDate && (!createdAt || createdAt < fromDate)) return false;\n  if (toDate && (!createdAt || createdAt > toDate)) return false;\n  if (severityFilter && severity !== severityFilter) return false;\n  if (statusFilter && status !== statusFilter) return false;\n\n  return true;\n});\n\nrows.sort((a, b) => String(b.Creada_At ?? b.created_at ?? '').localeCompare(String(a.Creada_At ?? a.created_at ?? '')));\n\nconst total = rows.length;\nconst start = (page - 1) * pageSize;\n\nconst paged = rows.slice(start, start + pageSize).map((row) => ({\n  alert_id: String(row.Alerta_ID ?? row.alert_id ?? ''),\n  severity: String(row.Severidad ?? row.severity ?? '').toUpperCase(),\n  message: String(row.Motivo ?? row.message ?? ''),\n  status: String(row.Estado ?? row.status ?? ''),\n  created_at: String(row.Creada_At ?? row.created_at ?? ''),\n  contract_id: String(row.Contrato_ID ?? row.contract_id ?? ''),\n  ad_id: String(row.Ad_ID ?? row.ad_id ?? ''),\n  correlation_id: String(row.Correlation_ID ?? row.correlation_id ?? ''),\n  execution_id: String(row.execution_id ?? row.Execution_ID ?? '')\n}));\n\nreturn [{\n  json: {\n    total,\n    page,\n    page_size: pageSize,\n    items: paged\n  }\n}];"
+      },
+      "id": "a2-build-alerts-history",
+      "name": "Build Alerts History Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: 'history_alerts', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a2-respond-alerts-history",
+      "name": "Respond Alerts History",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        144,
+        1248
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook UI": {
+      "main": [
+        [
+          {
+            "node": "Normalize Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Request": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Prepare Alta Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read Contratos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Extension",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Baja",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Listar Ads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Operation Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read Operations History",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Operation Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Pause Active Preview",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Operation Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read For Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read Operation By Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GS Read Alerts History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Alta Row": {
+      "main": [
+        [
+          {
+            "node": "GS Append Alta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Append Alta": {
+      "main": [
+        [
+          {
+            "node": "Respond Alta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read Contratos": {
+      "main": [
+        [
+          {
+            "node": "Filter Proximos Vencer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Proximos Vencer": {
+      "main": [
+        [
+          {
+            "node": "Respond Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read For Extension": {
+      "main": [
+        [
+          {
+            "node": "Prepare Extension Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Extension Row": {
+      "main": [
+        [
+          {
+            "node": "GS Update Extension",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Update Extension": {
+      "main": [
+        [
+          {
+            "node": "Respond Extension",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Internal Payload F1->F2": {
+      "main": [
+        [
+          {
+            "node": "Should Dispatch F2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute F2 Internal": {
+      "main": [
+        [
+          {
+            "node": "Log F1 Chain Dispatch OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log F1 Chain Dispatch Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Dispatch F2": {
+      "main": [
+        [
+          {
+            "node": "Execute F2 Internal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "GS Read For Baja": {
+      "main": [
+        [
+          {
+            "node": "Prepare Baja Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Baja Row": {
+      "main": [
+        [
+          {
+            "node": "GS Update Baja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Update Baja": {
+      "main": [
+        [
+          {
+            "node": "Respond Baja Manual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read For Listar Ads": {
+      "main": [
+        [
+          {
+            "node": "Extract Regex para Listar Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Regex para Listar Ads": {
+      "main": [
+        [
+          {
+            "node": "Meta - Listar Ads (UI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta - Listar Ads (UI)": {
+      "main": [
+        [
+          {
+            "node": "Build Listar Ads Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Listar Ads Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Listar Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Operation Tracking": {
+      "main": [
+        [
+          {
+            "node": "GS Append Operation Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Internal Payload F1->F2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Append Operation Log": {
+      "main": [
+        [
+          {
+            "node": "Respond Operation Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Operation Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read Operations History": {
+      "main": [
+        [
+          {
+            "node": "Build History Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build History Response": {
+      "main": [
+        [
+          {
+            "node": "Respond History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read For Pause Active Preview": {
+      "main": [
+        [
+          {
+            "node": "Build Pause Active Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pause Active Preview": {
+      "main": [
+        [
+          {
+            "node": "Respond Pause Active Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Search Results": {
+      "main": [
+        [
+          {
+            "node": "Respond Search"
+          }
+        ]
+      ]
+    },
+    "GS Read Operation By Tracking": {
+      "main": [
+        [
+          {
+            "node": "Build Status By Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Status By Tracking": {
+      "main": [
+        [
+          {
+            "node": "Respond Status By Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GS Read Alerts History": {
+      "main": [
+        [
+          {
+            "node": "Build Alerts History Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alerts History Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Alerts History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "9cd4cd87-6c79-41cd-8e90-9a49ce3144a2",
+  "activeVersionId": "9cd4cd87-6c79-41cd-8e90-9a49ce3144a2",
+  "versionCounter": 243,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-13T16:26:01.152Z",
+      "createdAt": "2026-04-13T16:26:01.152Z",
+      "role": "workflow:owner",
+      "workflowId": "cFBr6GavlSWDsUFz",
+      "projectId": "Z0pgCY9RJ5VJF6JD",
+      "project": {
+        "updatedAt": "2026-03-13T00:12:04.657Z",
+        "createdAt": "2026-03-13T00:09:47.440Z",
+        "id": "Z0pgCY9RJ5VJF6JD",
+        "name": "Alexander Villa <alexandervilla.cuenta@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-18T21:36:47.735Z",
+    "createdAt": "2026-04-18T21:36:47.735Z",
+    "versionId": "9cd4cd87-6c79-41cd-8e90-9a49ce3144a2",
+    "workflowId": "cFBr6GavlSWDsUFz",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "contract-ui-management-v2",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "1",
+        "name": "Webhook UI",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [
+          -1184,
+          128
+        ],
+        "webhookId": "contract-ui-management-v2"
+      },
+      {
+        "parameters": {
+          "jsCode": "const payload = $json.body ?? $json;\nconst action = String(payload.action ?? '').trim().toLowerCase();\nconst timezone = 'America/Argentina/Buenos_Aires';\n\nfunction nowDateInTZ(tz) {\n  const fmt = new Intl.DateTimeFormat('en-CA', {\n    timeZone: tz,\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n  });\n  return fmt.format(new Date()); // YYYY-MM-DD\n}\n\nreturn [\n  {\n    json: {\n      ...payload,\n      action,\n      timezone,\n      request_ts: new Date().toISOString(),\n      today_tz: nowDateInTZ(timezone),\n    },\n  },\n];"
+        },
+        "id": "2",
+        "name": "Normalize Request",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -960,
+          128
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $json;\nconst allowedActions = new Set(['alta','search', 'influencers_search', 'consulta', 'extension', 'baja_manual', 'listar_ads', 'run_now', 'history', 'history_alerts', 'pause_ad', 'pause_active', 'status_by_tracking']);\n\nfunction isValidDateFormat(value) {\n  if (typeof value !== 'string') return false;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;\n  const [y, m, d] = value.split('-').map(Number);\n  const dt = new Date(Date.UTC(y, m - 1, d));\n  return dt.getUTCFullYear() === y && dt.getUTCMonth() === (m - 1) && dt.getUTCDate() === d;\n}\n\nfunction toBool(value, fallback = false) {\n  if (value === undefined || value === null || value === '') return fallback;\n  if (typeof value === 'boolean') return value;\n  if (typeof value === 'number') return value !== 0;\n  const normalized = String(value).trim().toLowerCase();\n  return ['1', 'true', 'si', 'yes', 'y'].includes(normalized);\n}\n\nfunction normalizeB64(value) {\n  const raw = String(value || '').trim().replace(/-/g, '+').replace(/_/g, '/');\n  const padding = raw.length % 4;\n  return padding ? raw + '='.repeat(4 - padding) : raw;\n}\n\nfunction badRequest(message, details = {}) {\n  const err = new Error(message);\n  err.name = 'ValidationError';\n  err.details = details;\n  throw err;\n}\n\nif (!allowedActions.has(input.action)) {\n  badRequest('`action` invalida. Usar: alta | search | influencers_search | consulta | extension | baja_manual | listar_ads | run_now | history | history_alerts | pause_ad | pause_active | status_by_tracking', { action: input.action });\n}\n\ninput.actor = String(input.requested_by ?? input.actor ?? 'ops@adskiller').trim();\ninput.correlation_id = String(input.correlation_id ?? `ak-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\n\nconst normalizedContratoId = String(input.Contrato_ID ?? input.contract_id ?? input.contractId ?? '').trim();\nif (normalizedContratoId) {\n  input.Contrato_ID = normalizedContratoId;\n  input.contract_id = normalizedContratoId;\n}\n\nconst normalizedAdId = String(input.Ad_ID ?? input.ad_id ?? input.adId ?? '').trim();\nif (normalizedAdId) {\n  input.Ad_ID = normalizedAdId;\n  input.ad_id = normalizedAdId;\n}\n\nif (input.action === 'alta') {\n  const required = ['Contrato_ID', 'Cliente', 'Regex_Anuncio', 'Fecha_Fin'];\n  const missing = required.filter((f) => !String(input[f] ?? '').trim());\n  if (missing.length) badRequest('Faltan campos obligatorios para alta', { missing });\n  if (!isValidDateFormat(input.Fecha_Fin)) badRequest('Fecha_Fin invalida. Formato requerido: YYYY-MM-DD');\n}\n\nif (input.action === 'extension') {\n  const required = ['Contrato_ID', 'Nueva_Fecha_Fin'];\n  const missing = required.filter((f) => !String(input[f] ?? '').trim());\n  if (missing.length) badRequest('Faltan campos obligatorios para extension', { missing });\n  if (!isValidDateFormat(input.Nueva_Fecha_Fin)) badRequest('Nueva_Fecha_Fin invalida. Formato requerido: YYYY-MM-DD');\n}\n\nif (input.action === 'search') {\n  if (!String(input.q ?? '').trim()) badRequest('q es obligatorio para search');\n  input.q = String(input.q).trim();\n}\n\nif (input.action === 'consulta') {\n  const dias = Number(input.dias_proximos ?? 7);\n  if (!Number.isInteger(dias) || dias < 1 || dias > 60) badRequest('dias_proximos invalido. Debe ser entero entre 1 y 60');\n  input.dias_proximos = dias;\n}\n\nif (input.action === 'pause_ad') {\n  const missing = [];\n  if (!String(input.Contrato_ID ?? '').trim()) missing.push('contract_id');\n  if (!String(input.Ad_ID ?? '').trim()) missing.push('ad_id');\n  if (missing.length) {\n    badRequest('Faltan campos obligatorios para pause_ad', {\n      missing,\n      accepted_aliases: {\n        contract_id: ['Contrato_ID', 'contract_id', 'contractId'],\n        ad_id: ['Ad_ID', 'ad_id', 'adId']\n      }\n    });\n  }\n}\n\nif (input.action === 'baja_manual' || input.action === 'listar_ads' || input.action === 'pause_active') {\n  if (!String(input.Contrato_ID ?? '').trim()) badRequest('Contrato_ID es obligatorio para esta accion');\n}\n\nif (input.action === 'status_by_tracking') {\n  const trackingId = String(input.tracking_id ?? input.trackingId ?? '').trim();\n  if (!trackingId) badRequest('tracking_id es obligatorio para status_by_tracking');\n  input.tracking_id = trackingId;\n}\n\nif (input.action === 'pause_active') {\n  const dryRun = toBool(input.dry_run, true);\n  const maxBatchSize = Number(input.max_batch_size ?? input.batch_limit ?? 20);\n  if (!Number.isInteger(maxBatchSize) || maxBatchSize < 1 || maxBatchSize > 100) {\n    badRequest('max_batch_size invalido. Debe ser entero entre 1 y 100');\n  }\n\n  input.dry_run = dryRun;\n  input.max_batch_size = maxBatchSize;\n  input.batch_limit = maxBatchSize;\n\n  if (dryRun) {\n    input.action = 'pause_active_preview';\n  } else {\n    const confirmToken = String(input.confirm_token ?? '').trim();\n    if (!confirmToken) {\n      badRequest('confirm_token es obligatorio cuando dry_run=false');\n    }\n\n    try {\n      const decoded = JSON.parse(Buffer.from(normalizeB64(confirmToken), 'base64').toString('utf8'));\n      const tokenContractId = String(decoded.contract_id ?? '').trim();\n      const tokenBatchSize = Number(decoded.max_batch_size ?? 0);\n      const expiresAt = Number(decoded.expires_at_epoch_ms ?? 0);\n\n      if (!tokenContractId || tokenContractId !== String(input.Contrato_ID).trim()) {\n        badRequest('confirm_token no corresponde al Contrato_ID enviado');\n      }\n      if (!Number.isInteger(tokenBatchSize) || tokenBatchSize !== maxBatchSize) {\n        badRequest('confirm_token no corresponde al max_batch_size enviado');\n      }\n      if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {\n        badRequest('confirm_token vencido');\n      }\n    } catch (err) {\n      badRequest('confirm_token invalido', { reason: String(err?.message ?? err) });\n    }\n\n    input.confirm_token = confirmToken;\n    input.confirm = true;\n  }\n}\n\nif (input.action === 'history' || input.action === 'history_alerts') {\n  const page = Number(input.page ?? 1);\n  const pageSize = Number(input.page_size ?? 25);\n  if (!Number.isInteger(page) || page < 1) badRequest('page invalido. Minimo 1');\n  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) badRequest('page_size invalido. Debe ser 1..100');\n  input.page = page;\n  input.page_size = pageSize;\n}\n\nreturn [{ json: input }];"
+        },
+        "id": "3",
+        "name": "Validate Input",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -736,
+          128
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "alta",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "consulta",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "extension",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "baja_manual",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "listar_ads",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "run_now",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "history",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "pause_ad",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "pause_active_preview",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "pause_active",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "influencers_search",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "status_by_tracking",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "history_alerts",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "4",
+        "name": "Route Action",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          -528,
+          128
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{\n  json: {\n    Contrato_ID: String($json.Contrato_ID).trim(),\n    Cliente: String($json.Cliente).trim(),\n    Regex_Anuncio: String($json.Regex_Anuncio).trim(),\n    Fecha_Alta: String($json.Fecha_Alta ?? $json.today_tz),\n    Fecha_Fin: String($json.Fecha_Fin),\n    Status_Contrato: String($json.Status_Contrato ?? 'Activo'),\n    Notificado_Previo: false,\n    Ad_ID: String($json.Ad_ID ?? ''),\n    Ad_Name: String($json.Ad_Name ?? ''),\n    Fecha_Notificado_Previo: '',\n    Fecha_Finalizacion: '',\n    Updated_At: $json.request_ts,\n  },\n}];"
+        },
+        "id": "5",
+        "name": "Prepare Alta Row",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -304,
+          -80
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "6",
+        "name": "GS Append Alta",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          -80,
+          -80
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'alta', message: 'Contrato creado', data: $json } }}",
+          "options": {
+            "responseCode": 201
+          }
+        },
+        "id": "7",
+        "name": "Respond Alta",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          144,
+          -80
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "options": {}
+        },
+        "id": "8",
+        "name": "GS Read Contratos",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          -304,
+          128
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const trigger = $items('Validate Input', 0, 0)[0].json;\n\n// show_all: devolver todos los contratos sin filtrar\nif (trigger.show_all === true || String(trigger.show_all).toLowerCase() === 'true') {\n  return items.map(item => ({ json: item.json }));\n}\n\nconst dias = Number(trigger.dias_proximos ?? 7);\n\nfunction parseYmd(ymd) {\n  const [y, m, d] = String(ymd).split('-').map(Number);\n  return new Date(Date.UTC(y, m - 1, d));\n}\n\nconst today = parseYmd(trigger.today_tz);\nconst maxDate = new Date(today.getTime() + dias * 24 * 60 * 60 * 1000);\n\nconst out = [];\nfor (const item of items) {\n  const row = item.json;\n  const exp = String(row.Fecha_Fin ?? '').trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(exp)) continue;\n\n  if (row.Status_Contrato === 'Finalizado') continue;\n\n  const expDate = parseYmd(exp);\n  if (expDate <= maxDate) {\n    out.push({ json: row });\n  }\n}\n\nout.sort((a, b) => String(a.json.Fecha_Fin).localeCompare(String(b.json.Fecha_Fin)));\nreturn out;"
+        },
+        "id": "9",
+        "name": "Filter Proximos Vencer",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -80,
+          128
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'consulta', dias_proximos: $items('Validate Input', 0, 0)[0].json.dias_proximos, total: $items('Filter Proximos Vencer').length, data: $items('Filter Proximos Vencer').map(i => i.json) } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "10",
+        "name": "Respond Consulta",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          144,
+          128
+        ]
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "11",
+        "name": "GS Read For Extension",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          -304,
+          320
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\n\nif (!found) {\n  const err = new Error('Contrato no encontrado para extension');\n  err.name = 'NotFoundError';\n  err.details = { Contrato_ID: idContrato };\n  throw err;\n}\n\nreturn [{\n  json: {\n    ...found.json,\n    Contrato_ID: idContrato,\n    Fecha_Fin: String(req.Nueva_Fecha_Fin),\n    Notificado_Previo: false,\n    Updated_At: req.request_ts,\n  },\n}];"
+        },
+        "id": "12",
+        "name": "Prepare Extension Row",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -80,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "appendOrUpdate",
+          "documentId": {
+            "__rl": true,
+            "value": "={{ $env.GSHEET_CONTRATOS_DOC_ID }}",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [
+              "Contrato_ID"
+            ],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "13",
+        "name": "GS Update Extension",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          144,
+          320
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'extension', message: 'Contrato extendido y Notificado_Previo reseteado', data: $json } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "14",
+        "name": "Respond Extension",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          368,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\nconst safeAction = String(input.action ?? 'unknown').trim().toLowerCase();\nconst correlationId = String(input.correlation_id ?? `ak-f1-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);\nconst logicalExecutionId = String(input.logical_execution_id ?? `${correlationId}:f1:${safeAction}`);\n\nreturn [{\n  json: {\n    schema_version: '1.0.0',\n    event_type: 'contract.ui.action',\n    source_workflow: 'contract-ui-management-v2',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires'),\n    correlation_id: correlationId,\n    logical_execution_id: logicalExecutionId,\n    execution: {\n      n8n_execution_id: String($execution?.id ?? ''),\n      run_type: 'internal_execute_workflow',\n      status: 'queued'\n    },\n    payload: {\n      action: safeAction,\n      run_mode: String(input.run_mode ?? 'manual'),\n      actor: String(input.actor ?? 'ops@adskiller'),\n      tracking_id: String(input.tracking_id ?? ''),\n      Contrato_ID: String(input.Contrato_ID ?? ''),\n      Ad_ID: String(input.Ad_ID ?? ''),\n      Fecha_Fin: String(input.Fecha_Fin ?? ''),\n      Nueva_Fecha_Fin: String(input.Nueva_Fecha_Fin ?? ''),\n      Regex_Anuncio: String(input.Regex_Anuncio ?? ''),\n      request_ts: String(input.requested_at ?? input.request_ts ?? nowIso),\n      requested_at: String(input.requested_at ?? input.request_ts ?? nowIso),\n      today_tz: String(input.today_tz ?? ''),\n      timezone: String(input.timezone ?? 'America/Argentina/Buenos_Aires'),\n      dry_run: Boolean(input.dry_run ?? false),\n      confirm: Boolean(input.confirm ?? false),\n      confirm_token: String(input.confirm_token ?? ''),\n      max_batch_size: Number(input.max_batch_size ?? input.batch_limit ?? 20),\n      batch_limit: Number(input.batch_limit ?? input.max_batch_size ?? 20)\n    },\n    dispatched_at: nowIso\n  }\n}];"
+        },
+        "id": "15",
+        "name": "Build Internal Payload F1->F2",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -528,
+          -304
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "8mlwAxLtJVrwpLhi",
+            "mode": "id"
+          },
+          "options": {
+            "waitForSubWorkflow": true
+          }
+        },
+        "id": "16",
+        "name": "Execute F2 Internal",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          -288,
+          -304
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "const source = $json ?? {};\nreturn [{\n  json: {\n    event: 'internal_chain_dispatch_ok',\n    source_workflow: 'contract-ui-management',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    correlation_id: String(source.correlation_id ?? ''),\n    logical_execution_id: String(source.logical_execution_id ?? ''),\n    status: 'dispatched',\n    timestamp: new Date().toISOString()\n  }\n}];"
+        },
+        "id": "17",
+        "name": "Log F1 Chain Dispatch OK",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -48,
+          -384
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const source = $json ?? {};\nreturn [{\n  json: {\n    event: 'internal_chain_dispatch_error',\n    source_workflow: 'contract-ui-management',\n    target_workflow_id: '8mlwAxLtJVrwpLhi',\n    correlation_id: String(source.correlation_id ?? ''),\n    logical_execution_id: String(source.logical_execution_id ?? ''),\n    status: 'error',\n    error: String(source.error?.message ?? source.message ?? 'unknown_execute_workflow_error'),\n    timestamp: new Date().toISOString()\n  }\n}];"
+        },
+        "id": "18",
+        "name": "Log F1 Chain Dispatch Error",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -48,
+          -224
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: false, error: 'ValidationError', message: 'Input invalido' } }}",
+          "options": {
+            "responseCode": 400
+          }
+        },
+        "id": "valerr400",
+        "name": "Respond Validation Error",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          -304,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "a2-read-baja",
+        "name": "GS Read For Baja",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          -304,
+          528
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst idContrato = String(req.Contrato_ID).trim();\nconst actor = String(req.actor ?? 'ops@adskiller');\nconst reason = String(req.reason ?? 'Cierre manual por operacion').trim();\nconst found = items.find((i) => String(i.json.Contrato_ID ?? '').trim() === idContrato);\nif (!found) { const err = new Error('Contrato no encontrado para baja_manual'); err.name = 'NotFoundError'; err.details = { Contrato_ID: idContrato }; throw err; }\nreturn [{ json: { ...found.json, Contrato_ID: idContrato, Status_Contrato: 'Finalizado', Fecha_Finalizacion: req.request_ts, Updated_At: req.request_ts, Finalizado_By: actor, Finalizado_Reason: reason } }];"
+        },
+        "id": "a2-prepare-baja",
+        "name": "Prepare Baja Row",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -80,
+          528
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "appendOrUpdate",
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [
+              "Contrato_ID"
+            ],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "a2-update-baja",
+        "name": "GS Update Baja",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          144,
+          528
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'baja_manual', message: 'Contrato finalizado manualmente', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "a2-respond-baja",
+        "name": "Respond Baja Manual",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          368,
+          528
+        ]
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "a2-read-ads",
+        "name": "GS Read For Listar Ads",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          -304,
+          704
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $('Normalize Request').first()?.json ?? {};\nconst idContrato = String(\n  req.Contrato_ID || req.contract_id ||\n  req.body?.Contrato_ID || req.body?.contract_id || '').trim();\n\nconst rawJson = $input.first()?.json ?? {};\nconst data = rawJson.body?.data ?? rawJson.data ?? [];\n\nreturn [{\n  json: {\n    contract_id: idContrato,\n    total: data.length,\n    ads: data.map(ad => ({\n      ad_id:         String(ad.id   ?? ''),\n      ad_name:       String(ad.name ?? ''),\n      ad_status:     String(ad.effective_status ?? ad.status ?? 'UNKNOWN').toUpperCase(),\n      campaign_name: String(ad.campaign_name ?? ''),\n    })),\n  }\n}];"
+        },
+        "id": "a2-build-ads",
+        "name": "Build Listar Ads Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          356,
+          704
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'listar_ads', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "a2-respond-ads",
+        "name": "Respond Listar Ads",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          580,
+          704
+        ]
+      },
+      {
+        "id": "extract-regex-listar-ads",
+        "name": "Extract Regex para Listar Ads",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -84,
+          704
+        ],
+        "parameters": {
+          "jsCode": "const req = $('Normalize Request').first()?.json ?? {};\nconst idContrato = String(\n  req.Contrato_ID || req.contract_id ||\n  req.body?.Contrato_ID || req.body?.contract_id || '').trim();\n\nconst allRows = $input.all();\nconst contract = allRows.find(item =>\n  String(item.json.Contrato_ID ?? '').trim() === idContrato\n);\nif (!contract) {\n  return [{ json: { ok: false, error: 'contrato_no_encontrado', contract_id: idContrato } }];\n}\n\nfunction buildRegex(nombreRaw) {\n  if (!nombreRaw || !String(nombreRaw).trim()) return '';\n  const clean = String(nombreRaw)\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, '')\n    .trim();\n  const words = clean.split(/\\s+/).filter(w => w.length >= 4);\n  if (words.length === 0) return clean.replace(/\\s+/g, '');\n  function acc(w) {\n    return w.replace(/a/g,'[a\\u00e1]').replace(/e/g,'[e\\u00e9]')\n             .replace(/i/g,'[i\\u00ed]').replace(/o/g,'[o\\u00f3]')\n             .replace(/u/g,'[u\\u00fa]').replace(/n/g,'[n\\u00f1]');\n  }\n  const patterns = [];\n  if (words.length <= 2) { words.forEach(w => patterns.push(acc(w))); }\n  if (words.length >= 2) {\n    patterns.push(words.map(acc).join('.{0,3}'));\n    if (words.length === 3) patterns.push(acc(words[0]) + '.{0,3}' + acc(words[2]));\n    patterns.push(acc(words[0]) + '.{0,8}' + acc(words[words.length-1].slice(0, 4)));\n    patterns.push(words.join(''));\n  }\n  return [...new Set(patterns)].join('|');\n}\n\nconst cliente = String(contract.json.Cliente ?? '').trim();\nconst regex = buildRegex(cliente);\n\nreturn [{ json: {\n  Contrato_ID:   idContrato,\n  Regex_Anuncio: regex,\n  Cliente:       cliente,\n} }];"
+        }
+      },
+      {
+        "id": "meta-listar-ads-ui",
+        "name": "Meta - Listar Ads (UI)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          136,
+          704
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "http://168.138.125.21:5678/webhook/ak-meta-list-v1",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "pattern",
+                "value": "={{ $json.Regex_Anuncio }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst nowIso = new Date().toISOString();\nconst trackingId = String(req.tracking_id ?? `trk-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);\nconst normalizedAction = String(req.action || '').trim();\nconst dispatchAction = normalizedAction === 'pause_active_preview' ? 'pause_active' : normalizedAction;\nconst maxBatchSize = Number(req.max_batch_size ?? req.batch_limit ?? 0);\nconst contractId = String(req.Contrato_ID ?? '');\nconst adId = String(req.Ad_ID ?? '');\nconst metaPatch = { method: 'PATCH', path: `/v23.0/${adId}`, body: { status: 'PAUSED' }, version: 'v1' };\n\nreturn [{\n  json: {\n    tracking_id: trackingId,\n    correlation_id: String(req.correlation_id),\n    logical_execution_id: `${trackingId}:f1:${dispatchAction}`,\n    action: dispatchAction,\n    run_mode: 'manual',\n    actor: String(req.actor ?? 'ops@adskiller'),\n    requested_at: req.request_ts ?? nowIso,\n    execution_id: String($execution?.id ?? ''),\n    status: 'accepted',\n    Contrato_ID: contractId,\n    Ad_ID: adId,\n    target_contract_id: contractId,\n    target_ad_id: adId,\n    precheck_status: 'UNKNOWN',\n    meta_http_status: null,\n    dry_run: Boolean(req.dry_run ?? false),\n    confirm: Boolean(req.confirm ?? false),\n    confirm_token: String(req.confirm_token ?? ''),\n    max_batch_size: Number.isInteger(maxBatchSize) ? maxBatchSize : 0,\n    batch_limit: Number.isInteger(maxBatchSize) ? maxBatchSize : Number(req.batch_limit ?? 0),\n    reason: String(req.reason ?? ''),\n    timezone: String(req.timezone ?? 'America/Argentina/Buenos_Aires'),\n    meta_patch_method: metaPatch.method,\n    meta_patch_path: metaPatch.path,\n    meta_patch_body: JSON.stringify(metaPatch.body),\n    meta_patch_version: metaPatch.version\n  }\n}];"
+        },
+        "id": "a2-build-tracking",
+        "name": "Build Operation Tracking",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -304,
+          912
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Operations_Log",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "a2-append-oplog",
+        "name": "GS Append Operation Log",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          -80,
+          912
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        },
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: $json.action, data: { accepted: true, tracking_id: $json.tracking_id, correlation_id: $json.correlation_id, status: 'queued', target: { contract_id: $json.Contrato_ID, ad_id: $json.Ad_ID }, meta_patch: { method: $json.meta_patch_method || 'PATCH', path: $json.meta_patch_path || (`/v23.0/${$json.Ad_ID}`), body: { status: 'PAUSED' }, version: $json.meta_patch_version || 'v1' } }, meta: { execution_id: $json.execution_id || $execution.id, actor: $json.actor, timestamp: $json.requested_at } } }}",
+          "options": {
+            "responseCode": 202
+          }
+        },
+        "id": "a2-respond-op",
+        "name": "Respond Operation Accepted",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          144,
+          912
+        ]
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Operations_Log",
+            "mode": "name"
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "a2-read-history",
+        "name": "GS Read Operations History",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          -304,
+          1088
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst page = Number(req.page ?? 1);\nconst pageSize = Number(req.page_size ?? 25);\nconst from = String(req.from ?? '').trim();\nconst to = String(req.to ?? '').trim();\nconst resultFilter = String(req.result ?? '').trim().toLowerCase();\nconst runModeFilter = String(req.run_mode ?? '').trim().toLowerCase();\nconst executionFilter = String(req.execution_id ?? '').trim();\nconst correlationFilter = String(req.correlation_id_filter ?? req.correlation_id_query ?? '').trim();\nconst trackingFilter = String(req.tracking_id ?? '').trim();\nconst parseTs = (v) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d; };\nconst fromDate = from ? parseTs(from) : null;\nconst toDate = to ? parseTs(to) : null;\nlet rows = items.map((i) => i.json || {});\nrows = rows.filter((row) => {\n  const ts = parseTs(row.requested_at ?? row.updated_at ?? row.timestamp ?? row.executed_at ?? '');\n  if (fromDate && (!ts || ts < fromDate)) return false;\n  if (toDate && (!ts || ts > toDate)) return false;\n  if (resultFilter && String(row.status ?? row.result ?? '').toLowerCase() !== resultFilter) return false;\n  if (runModeFilter && String(row.run_mode ?? '').toLowerCase() !== runModeFilter) return false;\n  if (executionFilter && String(row.execution_id ?? '') !== executionFilter) return false;\n  if (correlationFilter && String(row.correlation_id ?? '') !== correlationFilter) return false;\n  if (trackingFilter && String(row.tracking_id ?? '') !== trackingFilter) return false;\n  return true;\n});\nrows.sort((a, b) => String(b.updated_at ?? b.requested_at ?? b.timestamp ?? '').localeCompare(String(a.updated_at ?? a.requested_at ?? a.timestamp ?? '')));\nconst total = rows.length;\nconst start = (page - 1) * pageSize;\nconst paged = rows.slice(start, start + pageSize).map((row) => ({\n  execution_id: String(row.execution_id ?? ''),\n  tracking_id: String(row.tracking_id ?? ''),\n  correlation_id: String(row.correlation_id ?? ''),\n  action: String(row.action ?? ''),\n  run_mode: String(row.run_mode ?? ''),\n  result: String(row.final_status ?? row.status ?? row.result ?? ''),\n  actor: String(row.actor ?? ''),\n  contract_id: String(row.Contrato_ID ?? row.contract_id ?? ''),\n  ad_id: String(row.Ad_ID ?? row.ad_id ?? ''),\n  precheck_status: String(row.precheck_status ?? row.ad_status_meta ?? 'UNKNOWN'),\n  meta_http_status: Number(row.meta_http_status ?? row.pause_status_code ?? row.precheck_status_code ?? 0) || null,\n  pause_attempt: Number(row.pause_attempt ?? row.precheck_attempt ?? 0) || 0,\n  pause_max_attempts: Number(row.pause_max_attempts ?? row.precheck_max_attempts ?? 0) || 0,\n  reason: String(row.pause_reason ?? row.precheck_reason ?? row.error ?? ''),\n  timestamps: {\n    requested_at: String(row.requested_at ?? row.timestamp ?? ''),\n    updated_at: String(row.updated_at ?? row.timestamp ?? row.requested_at ?? ''),\n    executed_at: String(row.executed_at ?? row.updated_at ?? row.timestamp ?? row.requested_at ?? '')\n  },\n  executed_at: String(row.executed_at ?? row.updated_at ?? row.timestamp ?? row.requested_at ?? '')\n}));\nreturn [{ json: { total, page, page_size: pageSize, not_found: Boolean(trackingFilter) && total === 0, items: paged } }];"
+        },
+        "id": "a2-build-history",
+        "name": "Build History Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -80,
+          1088
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'history', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "a2-respond-history",
+        "name": "Respond History",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          144,
+          1088
+        ]
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Contratos",
+            "mode": "name"
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "a2-read-pause-preview",
+        "name": "GS Read For Pause Active Preview",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          -304,
+          1264
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst contractId = String(req.Contrato_ID ?? '').trim();\nconst maxBatchSize = Number(req.max_batch_size ?? req.batch_limit ?? 20);\nconst actor = String(req.actor ?? 'ops@adskiller').trim();\nconst ttlMs = 10 * 60 * 1000;\n\nfunction encodeBase64Url(value) {\n  return Buffer.from(value, 'utf8')\n    .toString('base64')\n    .replace(/\\+/g, '-')\n    .replace(/\\//g, '_')\n    .replace(/=+$/g, '');\n}\n\nconst candidates = items\n  .filter((i) => String(i.json.Contrato_ID ?? '').trim() === contractId)\n  .filter((i) => String(i.json.Status_Contrato ?? '').trim().toLowerCase() === 'activo')\n  .slice(0, maxBatchSize)\n  .map((i) => ({\n    ad_id: String(i.json.Ad_ID ?? ''),\n    ad_name: String(i.json.Ad_Name ?? ''),\n    contract_id: contractId\n  }));\n\nconst nowMs = Date.now();\nconst expiresAt = nowMs + ttlMs;\nconst tokenPayload = {\n  contract_id: contractId,\n  actor,\n  max_batch_size: maxBatchSize,\n  issued_at_epoch_ms: nowMs,\n  expires_at_epoch_ms: expiresAt,\n  candidate_count: candidates.filter((x) => x.ad_id).length\n};\nconst confirmToken = encodeBase64Url(JSON.stringify(tokenPayload));\n\nreturn [{\n  json: {\n    dry_run: true,\n    contract_id: contractId,\n    max_batch_size: maxBatchSize,\n    total_candidates: candidates.length,\n    would_pause: candidates.filter((x) => x.ad_id).length,\n    confirm_token: confirmToken,\n    confirm_token_expires_at: new Date(expiresAt).toISOString(),\n    items: candidates\n  }\n}];"
+        },
+        "id": "a2-build-pause-preview",
+        "name": "Build Pause Active Preview",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -80,
+          1264
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'pause_active', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "a2-respond-pause-preview",
+        "name": "Respond Pause Active Preview",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          144,
+          1264
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "={{$json.payload.action}}",
+                "operation": "in",
+                "value2": "run_now,pause_ad,pause_active"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "a2-if-dispatch",
+        "name": "Should Dispatch F2",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          -80,
+          -304
+        ]
+      },
+      {
+        "id": "search-read",
+        "name": "GS Read For Search",
+        "parameters": {
+          "sheetName": {
+            "mode": "name",
+            "__rl": true,
+            "value": "Contratos"
+          },
+          "documentId": {
+            "mode": "id",
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+          },
+          "authentication": "serviceAccount",
+          "options": {
+            "returnAll": true
+          }
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -80,
+          200
+        ],
+        "typeVersion": 4.5
+      },
+      {
+        "id": "a2-search-influencers",
+        "name": "search-influencers",
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst query = String(req.q ?? '').trim();\nif (!query) {\n  throw new Error('q es obligatorio para influencers_search');\n}\nconst limitValue = Number(req.limit ?? 10);\nconst limit = Math.min(20, Math.max(1, limitValue));\nif (!Number.isInteger(limitValue) || limitValue < 1 || limitValue > 20) {\n  throw new Error('limit debe ser un entero positivo entre 1 y 20');\n}\n\nfunction normalize(value) {\n  return String(value ?? '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();\n}\n\nfunction tokens(value) {\n  return normalize(value).split(' ').filter(Boolean);\n}\n\nfunction overlapScore(left, right) {\n  if (!left.length || !right.length) return 0;\n  const set = new Set(right);\n  let hits = 0;\n  for (const token of left) {\n    if (set.has(token)) hits += 1;\n  }\n  return hits / Math.max(left.length, right.length);\n}\n\nconst queryNorm = normalize(query);\nconst queryTokens = tokens(query);\nconst bestByKey = new Map();\n\nfor (const item of items) {\n  const row = item.json ?? {};\n  const name = String(row.Cliente ?? row.influencer_name ?? row.name ?? row.Ad_Name ?? '').trim();\n  if (!name) continue;\n\n  const channel = String(row.channel ?? row.Channel ?? row.Canal ?? row.notification_channel ?? '').trim();\n  const nameNorm = normalize(name);\n  const channelNorm = normalize(channel);\n  const adNorm = normalize(row.Ad_Name ?? row.Regex_Anuncio ?? '');\n\n  let score = 0;\n  if (nameNorm === queryNorm) {\n    score = 1;\n  } else if (queryNorm && nameNorm.includes(queryNorm)) {\n    score = 0.92;\n  } else if (nameNorm && queryNorm.includes(nameNorm)) {\n    score = 0.84;\n  } else {\n    score = Math.max(\n      overlapScore(queryTokens, tokens(name)),\n      overlapScore(queryTokens, tokens(channelNorm)),\n      overlapScore(queryTokens, tokens(adNorm))\n    );\n  }\n\n  if (channelNorm) {\n    if (channelNorm === queryNorm) {\n      score = Math.max(score, 0.95);\n    } else if (queryNorm && (channelNorm.includes(queryNorm) || queryNorm.includes(channelNorm))) {\n      score = Math.max(score, Math.min(1, score + 0.1));\n    }\n  }\n\n  if (adNorm && queryNorm && (adNorm.includes(queryNorm) || queryNorm.includes(adNorm))) {\n    score = Math.max(score, Math.min(1, score + 0.05));\n  }\n\n  if (score <= 0) continue;\n  const key = `${nameNorm}|${channelNorm}`;\n  const current = bestByKey.get(key);\n  if (!current || score > current.score) {\n    bestByKey.set(key, { name, channel, score });\n  }\n}\n\nconst ranked = [...bestByKey.values()].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name) || a.channel.localeCompare(b.channel));\nconst total = ranked.length;\nconst itemsOut = ranked.slice(0, limit).map((row) => ({ name: row.name, channel: row.channel, score: Number(row.score.toFixed(2)) }));\n\nreturn [{ json: { ok: true, action: 'influencers_search', query, limit, total, items: itemsOut } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "position": [
+          80,
+          200
+        ],
+        "typeVersion": 2
+      },
+      {
+        "id": "a2-respond-search",
+        "name": "Respond Influencers Search",
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}"
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          240,
+          200
+        ],
+        "typeVersion": 1.1
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Operations_Log",
+            "mode": "name"
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "a2-read-status-tracking",
+        "name": "GS Read Operation By Tracking",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          -304,
+          1440
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst trackingId = String(req.tracking_id ?? '').trim();\n\nconst rows = items\n  .map((i) => i.json || {})\n  .filter((row) => String(row.tracking_id ?? '').trim() === trackingId);\n\nif (!rows.length) {\n  return [{\n    json: {\n      tracking_id: trackingId,\n      status: 'not_found',\n      not_found: true,\n      result: null,\n      transitions: [],\n      timestamps: { requested_at: null, updated_at: null },\n      last_update_at: null\n    }\n  }];\n}\n\nrows.sort((a, b) => String(a.updated_at ?? a.requested_at ?? a.timestamp ?? a.executed_at ?? '').localeCompare(String(b.updated_at ?? b.requested_at ?? b.timestamp ?? b.executed_at ?? '')));\nconst latest = rows[rows.length - 1];\nconst rawStatus = String(latest.final_status ?? latest.status ?? latest.result ?? '').trim().toLowerCase();\nconst normalizedStatus = (() => {\n  if (['paused', 'failed', 'already_paused', 'not_found'].includes(rawStatus)) return rawStatus;\n  if (['accepted', 'queued', 'pending'].includes(rawStatus)) return 'queued';\n  if (['processing', 'running', 'in_progress', 'dispatched'].includes(rawStatus)) return 'processing';\n  return rawStatus || 'processing';\n})();\n\nconst transitions = rows.map((row) => ({\n  status: String(row.final_status ?? row.status ?? row.result ?? '').trim().toLowerCase() || 'unknown',\n  at: String(row.updated_at ?? row.requested_at ?? row.timestamp ?? row.executed_at ?? ''),\n  source: String(row.source_workflow ?? row.source ?? ''),\n  meta_http_status: Number(row.meta_http_status ?? row.pause_status_code ?? row.precheck_status_code ?? 0) || null,\n  attempt: Number(row.pause_attempt ?? row.precheck_attempt ?? 0) || 0\n}));\n\nreturn [{\n  json: {\n    tracking_id: trackingId,\n    not_found: false,\n    correlation_id: String(latest.correlation_id ?? ''),\n    contract_id: String(latest.Contrato_ID ?? latest.contract_id ?? ''),\n    ad_id: String(latest.Ad_ID ?? latest.ad_id ?? ''),\n    status: normalizedStatus,\n    result: {\n      precheck_status: String(latest.precheck_status ?? latest.ad_status_meta ?? 'UNKNOWN'),\n      meta_http_status: Number(latest.meta_http_status ?? latest.pause_status_code ?? latest.precheck_status_code ?? 0) || null,\n      pause_attempt: Number(latest.pause_attempt ?? 0) || 0,\n      pause_max_attempts: Number(latest.pause_max_attempts ?? 0) || 0,\n      reason: String(latest.pause_reason ?? latest.precheck_reason ?? '')\n    },\n    timestamps: {\n      requested_at: String(latest.requested_at ?? latest.timestamp ?? ''),\n      updated_at: String(latest.updated_at ?? latest.timestamp ?? latest.requested_at ?? '')\n    },\n    transitions,\n    last_update_at: String(latest.updated_at ?? latest.timestamp ?? latest.requested_at ?? '')\n  }\n}];"
+        },
+        "id": "a2-build-status-tracking",
+        "name": "Build Status By Tracking",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -80,
+          1440
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'status_by_tracking', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "a2-respond-status-tracking",
+        "name": "Respond Status By Tracking",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          144,
+          1440
+        ]
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Alertas",
+            "mode": "name"
+          },
+          "options": {},
+          "authentication": "serviceAccount"
+        },
+        "id": "a2-read-alerts-history",
+        "name": "GS Read Alerts History",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          -304,
+          1248
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const req = $items('Validate Input', 0, 0)[0].json;\nconst page = Number(req.page ?? 1);\nconst pageSize = Number(req.page_size ?? 25);\nconst from = String(req.from ?? '').trim();\nconst to = String(req.to ?? '').trim();\nconst severityFilter = String(req.severity ?? '').trim().toUpperCase();\nconst statusFilter = String(req.status ?? '').trim().toLowerCase();\n\nconst parseTs = (value) => {\n  const date = new Date(value);\n  return Number.isNaN(date.getTime()) ? null : date;\n};\n\nconst fromDate = from ? parseTs(from) : null;\nconst toDate = to ? parseTs(to) : null;\n\nlet rows = items.map((item) => item.json || {});\n\nrows = rows.filter((row) => {\n  const createdAtRaw = String(row.Creada_At ?? row.created_at ?? row.timestamp ?? '').trim();\n  const createdAt = parseTs(createdAtRaw);\n  const severity = String(row.Severidad ?? row.severity ?? '').trim().toUpperCase();\n  const status = String(row.Estado ?? row.status ?? '').trim().toLowerCase();\n\n  if (fromDate && (!createdAt || createdAt < fromDate)) return false;\n  if (toDate && (!createdAt || createdAt > toDate)) return false;\n  if (severityFilter && severity !== severityFilter) return false;\n  if (statusFilter && status !== statusFilter) return false;\n\n  return true;\n});\n\nrows.sort((a, b) => String(b.Creada_At ?? b.created_at ?? '').localeCompare(String(a.Creada_At ?? a.created_at ?? '')));\n\nconst total = rows.length;\nconst start = (page - 1) * pageSize;\n\nconst paged = rows.slice(start, start + pageSize).map((row) => ({\n  alert_id: String(row.Alerta_ID ?? row.alert_id ?? ''),\n  severity: String(row.Severidad ?? row.severity ?? '').toUpperCase(),\n  message: String(row.Motivo ?? row.message ?? ''),\n  status: String(row.Estado ?? row.status ?? ''),\n  created_at: String(row.Creada_At ?? row.created_at ?? ''),\n  contract_id: String(row.Contrato_ID ?? row.contract_id ?? ''),\n  ad_id: String(row.Ad_ID ?? row.ad_id ?? ''),\n  correlation_id: String(row.Correlation_ID ?? row.correlation_id ?? ''),\n  execution_id: String(row.execution_id ?? row.Execution_ID ?? '')\n}));\n\nreturn [{\n  json: {\n    total,\n    page,\n    page_size: pageSize,\n    items: paged\n  }\n}];"
+        },
+        "id": "a2-build-alerts-history",
+        "name": "Build Alerts History Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -80,
+          1248
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, action: 'history_alerts', data: $json, meta: { correlation_id: $items('Validate Input',0,0)[0].json.correlation_id, execution_id: $execution.id, actor: $items('Validate Input',0,0)[0].json.actor, timestamp: $items('Validate Input',0,0)[0].json.request_ts } } }}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "a2-respond-alerts-history",
+        "name": "Respond Alerts History",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          144,
+          1248
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook UI": {
+        "main": [
+          [
+            {
+              "node": "Normalize Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Request": {
+        "main": [
+          [
+            {
+              "node": "Validate Input",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Input": {
+        "main": [
+          [
+            {
+              "node": "Route Action",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond Validation Error",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route Action": {
+        "main": [
+          [
+            {
+              "node": "Prepare Alta Row",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read Contratos",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Extension",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Baja",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Listar Ads",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build Operation Tracking",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read Operations History",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build Operation Tracking",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Pause Active Preview",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build Operation Tracking",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read For Search",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read Operation By Tracking",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GS Read Alerts History",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Alta Row": {
+        "main": [
+          [
+            {
+              "node": "GS Append Alta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Append Alta": {
+        "main": [
+          [
+            {
+              "node": "Respond Alta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read Contratos": {
+        "main": [
+          [
+            {
+              "node": "Filter Proximos Vencer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Proximos Vencer": {
+        "main": [
+          [
+            {
+              "node": "Respond Consulta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read For Extension": {
+        "main": [
+          [
+            {
+              "node": "Prepare Extension Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Extension Row": {
+        "main": [
+          [
+            {
+              "node": "GS Update Extension",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Update Extension": {
+        "main": [
+          [
+            {
+              "node": "Respond Extension",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Internal Payload F1->F2": {
+        "main": [
+          [
+            {
+              "node": "Should Dispatch F2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute F2 Internal": {
+        "main": [
+          [
+            {
+              "node": "Log F1 Chain Dispatch OK",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log F1 Chain Dispatch Error",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Should Dispatch F2": {
+        "main": [
+          [
+            {
+              "node": "Execute F2 Internal",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "GS Read For Baja": {
+        "main": [
+          [
+            {
+              "node": "Prepare Baja Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Baja Row": {
+        "main": [
+          [
+            {
+              "node": "GS Update Baja",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Update Baja": {
+        "main": [
+          [
+            {
+              "node": "Respond Baja Manual",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read For Listar Ads": {
+        "main": [
+          [
+            {
+              "node": "Extract Regex para Listar Ads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Regex para Listar Ads": {
+        "main": [
+          [
+            {
+              "node": "Meta - Listar Ads (UI)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meta - Listar Ads (UI)": {
+        "main": [
+          [
+            {
+              "node": "Build Listar Ads Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Listar Ads Response": {
+        "main": [
+          [
+            {
+              "node": "Respond Listar Ads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Operation Tracking": {
+        "main": [
+          [
+            {
+              "node": "GS Append Operation Log",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Build Internal Payload F1->F2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Append Operation Log": {
+        "main": [
+          [
+            {
+              "node": "Respond Operation Accepted",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond Operation Accepted",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read Operations History": {
+        "main": [
+          [
+            {
+              "node": "Build History Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build History Response": {
+        "main": [
+          [
+            {
+              "node": "Respond History",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read For Pause Active Preview": {
+        "main": [
+          [
+            {
+              "node": "Build Pause Active Preview",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Pause Active Preview": {
+        "main": [
+          [
+            {
+              "node": "Respond Pause Active Preview",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Search Results": {
+        "main": [
+          [
+            {
+              "node": "Respond Search"
+            }
+          ]
+        ]
+      },
+      "GS Read Operation By Tracking": {
+        "main": [
+          [
+            {
+              "node": "Build Status By Tracking",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Status By Tracking": {
+        "main": [
+          [
+            {
+              "node": "Respond Status By Tracking",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GS Read Alerts History": {
+        "main": [
+          [
+            {
+              "node": "Build Alerts History Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Alerts History Response": {
+        "main": [
+          [
+            {
+              "node": "Respond Alerts History",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alexander Villa",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-18T21:36:47.807Z",
+        "id": 475,
+        "workflowId": "cFBr6GavlSWDsUFz",
+        "versionId": "9cd4cd87-6c79-41cd-8e90-9a49ce3144a2",
+        "event": "activated",
+        "userId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      },
+      {
+        "createdAt": "2026-04-18T21:36:47.785Z",
+        "id": 474,
+        "workflowId": "cFBr6GavlSWDsUFz",
+        "versionId": "9cd4cd87-6c79-41cd-8e90-9a49ce3144a2",
+        "event": "deactivated",
+        "userId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      }
+    ]
+  }
+}

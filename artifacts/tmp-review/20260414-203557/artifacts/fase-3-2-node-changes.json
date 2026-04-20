@@ -1,0 +1,42 @@
+﻿{
+    "versionId":  "6738b7fe-1efa-4cc6-b7e3-bc121148dc8d",
+    "validate_input_history_block":  [
+                                         "}",
+                                         "}",
+                                         "}",
+                                         "}",
+                                         "}",
+                                         "const hasCorrelationId = Object.prototype.hasOwnProperty.call(input, \u0027correlation_id\u0027)",
+                                         "const providedCorrelationId = hasCorrelationId ? String(input.correlation_id).trim() : \u0027\u0027;",
+                                         "}",
+                                         "}",
+                                         "}",
+                                         "}",
+                                         "}",
+                                         "}",
+                                         "}",
+                                         "if (input.action === \u0027history\u0027) {",
+                                         "  const pageSize = Number(input.page_size ?? 25);"
+                                     ],
+    "build_history_response":  "const req = $items(\u0027Validate Input\u0027, 0, 0)[0].json;\nconst requestedPage = Number(req.page ?? 1);\nconst requestedPageSize = Number(req.page_size ?? 25);\nconst page = Number.isInteger(requestedPage) \u0026\u0026 requestedPage \u003e 0 ? requestedPage : 1;\nconst pageSize = Number.isInteger(requestedPageSize) \u0026\u0026 requestedPageSize \u003e 0 ? Math.min(requestedPageSize, 100) : 25;\n\nconst from = String(req.from ?? \u0027\u0027).trim();\nconst to = String(req.to ?? \u0027\u0027).trim();\nconst resultFilter = String(req.result ?? \u0027\u0027).trim().toLowerCase();\nconst runModeFilter = String(req.run_mode ?? \u0027\u0027).trim().toLowerCase();\nconst executionFilter = String(req.execution_id ?? \u0027\u0027).trim();\nconst correlationFilter = String(req.correlation_id_filter ?? req.correlation_id_query ?? \u0027\u0027).trim();\n\nconst parseTs = (value) =\u003e {\n  const date = new Date(value);\n  return Number.isNaN(date.getTime()) ? null : date;\n};\n\nconst fromDate = from ? parseTs(from) : null;\nconst toDate = to ? parseTs(to) : null;\nlet rows = items.map((item) =\u003e item.json || {});\n\nrows = rows.filter((row) =\u003e {\n  const ts = parseTs(row.requested_at ?? row.timestamp ?? row.executed_at ?? \u0027\u0027);\n  if (fromDate \u0026\u0026 (!ts || ts \u003c fromDate)) return false;\n  if (toDate \u0026\u0026 (!ts || ts \u003e toDate)) return false;\n\n  const rowResult = String(row.status ?? row.result ?? \u0027\u0027).trim().toLowerCase();\n  const rowRunMode = String(row.run_mode ?? \u0027\u0027).trim().toLowerCase();\n  const rowExecutionId = String(row.execution_id ?? \u0027\u0027).trim();\n  const rowCorrelationId = String(row.correlation_id ?? \u0027\u0027).trim();\n\n  if (resultFilter \u0026\u0026 rowResult !== resultFilter) return false;\n  if (runModeFilter \u0026\u0026 rowRunMode !== runModeFilter) return false;\n  if (executionFilter \u0026\u0026 rowExecutionId !== executionFilter) return false;\n  if (correlationFilter \u0026\u0026 rowCorrelationId !== correlationFilter) return false;\n\n  return true;\n});\n\nrows.sort((a, b) =\u003e String(b.requested_at ?? b.timestamp ?? \u0027\u0027).localeCompare(String(a.requested_at ?? a.timestamp ?? \u0027\u0027)));\n\nconst total = rows.length;\nconst start = (page - 1) * pageSize;\nconst itemsPage = rows.slice(start, start + pageSize).map((row) =\u003e ({\n  execution_id: String(row.execution_id ?? \u0027\u0027),\n  tracking_id: String(row.tracking_id ?? \u0027\u0027),\n  correlation_id: String(row.correlation_id ?? \u0027\u0027),\n  action: String(row.action ?? \u0027\u0027),\n  run_mode: String(row.run_mode ?? \u0027\u0027),\n  result: String(row.status ?? row.result ?? \u0027\u0027),\n  actor: String(row.actor ?? \u0027\u0027),\n  executed_at: String(row.requested_at ?? row.timestamp ?? row.executed_at ?? \u0027\u0027),\n}));\n\nreturn [{\n  json: {\n    page,\n    page_size: pageSize,\n    total,\n    items: itemsPage,\n  },\n}];",
+    "route_action_search_rule":  {
+                                     "conditions":  {
+                                                        "options":  {
+                                                                        "typeValidation":  "strict",
+                                                                        "leftValue":  "",
+                                                                        "caseSensitive":  false
+                                                                    },
+                                                        "conditions":  [
+                                                                           {
+                                                                               "operator":  {
+                                                                                                "operation":  "equals",
+                                                                                                "type":  "string"
+                                                                                            },
+                                                                               "rightValue":  "search",
+                                                                               "leftValue":  "={{ $json.action }}"
+                                                                           }
+                                                                       ],
+                                                        "combinator":  "and"
+                                                    }
+                                 }
+}

@@ -1,0 +1,50 @@
+{
+  "name": "Test Minimal Code",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "test-minimal-code",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ok: true, message: 'works' } }];",
+        "mode": "runOnceForAllItems",
+        "language": "javaScript"
+      },
+      "id": "2",
+      "name": "Simple Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-200, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {"responseCode": 200}
+      },
+      "id": "3",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [0, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {"main": [[{"node": "Simple Code", "type": "main", "index": 0}]]},
+    "Simple Code": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

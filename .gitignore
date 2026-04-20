@@ -1,0 +1,18 @@
+# Frontend local build/deps
+frontend/node_modules/
+frontend/dist/
+
+# Local temp/work artifacts
+temp/
+artifacts/local-cleanup-*/
+
+# Ad-hoc local dumps (root)
+execution_*.json
+executions_*.json
+exec_*.json
+workflow.json
+workflow_clean.json
+workflow_data.json
+workflows_list.json
+meta_mock_workflow.json
+

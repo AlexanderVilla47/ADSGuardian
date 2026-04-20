@@ -1,0 +1,54 @@
+﻿{
+    "execution_id":  "1005",
+    "workflow_id":  "cFBr6GavlSWDsUFz",
+    "status":  "success",
+    "startedAt":  "2026-04-14T03:29:22.968Z",
+    "nodes":  [
+                  {
+                      "node":  "Webhook UI",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Normalize Request",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Validate Input",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Route Action",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "GS Read Operations History",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Build History Response",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Respond History",
+                      "status":  "success"
+                  }
+              ],
+    "request_payload":  {
+                            "page_size":  5,
+                            "to":  "2026-04-15T23:59:59Z",
+                            "action":  "history",
+                            "page":  1,
+                            "run_mode":  "manual",
+                            "from":  "2026-04-10T00:00:00Z",
+                            "correlation_id_filter":  "a21-history-20260413-210754",
+                            "requested_by":  "ops-fase3-2@adskiller"
+                        },
+    "response_snapshot":  {
+                              "page":  1,
+                              "page_size":  5,
+                              "total":  0,
+                              "items":  [
+
+                                        ]
+                          }
+}

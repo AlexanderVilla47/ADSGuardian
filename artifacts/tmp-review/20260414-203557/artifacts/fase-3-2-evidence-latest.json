@@ -1,0 +1,69 @@
+﻿{
+    "execution_id":  "1007",
+    "workflow_id":  "cFBr6GavlSWDsUFz",
+    "status":  "success",
+    "startedAt":  "2026-04-14T03:30:37.294Z",
+    "nodes":  [
+                  {
+                      "node":  "Webhook UI",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Normalize Request",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Validate Input",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Route Action",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "GS Read Operations History",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Build History Response",
+                      "status":  "success"
+                  },
+                  {
+                      "node":  "Respond History",
+                      "status":  "success"
+                  }
+              ],
+    "payload":  {
+                    "page_size":  5,
+                    "requested_by":  "ops-fase3-2@adskiller",
+                    "page":  1,
+                    "action":  "history"
+                },
+    "response_snapshot":  {
+                              "page":  1,
+                              "page_size":  5,
+                              "total":  2,
+                              "items":  [
+                                            {
+                                                "execution_id":  "ak-f2-1776136547490-w1yjnw:f2",
+                                                "tracking_id":  "",
+                                                "correlation_id":  "ak-f2-1776136547490-w1yjnw",
+                                                "action":  "killswitch.execution.summary",
+                                                "run_mode":  "",
+                                                "result":  "success",
+                                                "actor":  "",
+                                                "executed_at":  "2026-04-14T03:15:51.922Z"
+                                            },
+                                            {
+                                                "execution_id":  "ak-f2-1776136547490-w1yjnw:f2",
+                                                "tracking_id":  "",
+                                                "correlation_id":  "ak-f2-1776136547490-w1yjnw",
+                                                "action":  "ops_notification_channel_error",
+                                                "run_mode":  "",
+                                                "result":  "error",
+                                                "actor":  "",
+                                                "executed_at":  "2026-04-14T03:15:47.533Z"
+                                            }
+                                        ]
+                          }
+}

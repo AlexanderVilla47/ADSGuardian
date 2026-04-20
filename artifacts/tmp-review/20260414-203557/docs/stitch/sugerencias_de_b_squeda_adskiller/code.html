@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Search Suggestions - AdsKiller</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#7e5f00",
+                    "on-secondary-fixed": "#320046",
+                    "surface-container-low": "#feeffd",
+                    "inverse-on-surface": "#fbecfa",
+                    "surface-bright": "#fff7fb",
+                    "on-background": "#201922",
+                    "surface-tint": "#9420c3",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#ffdf9a",
+                    "primary-fixed-dim": "#ecb2ff",
+                    "on-surface-variant": "#4f4252",
+                    "on-primary-fixed-variant": "#75009f",
+                    "background": "#fff7fb",
+                    "error": "#ba1a1a",
+                    "primary-fixed": "#f8d8ff",
+                    "error-container": "#ffdad6",
+                    "tertiary": "#614800",
+                    "on-primary-fixed": "#320046",
+                    "on-tertiary-container": "#ffdd93",
+                    "surface-container-high": "#f2e4f1",
+                    "on-primary-container": "#f7d6ff",
+                    "surface-variant": "#ecdeec",
+                    "on-error": "#ffffff",
+                    "outline": "#817284",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container": "#f8eaf7",
+                    "secondary-fixed": "#f8d8ff",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed-dim": "#ecb2ff",
+                    "secondary": "#7d4992",
+                    "inverse-surface": "#362e38",
+                    "surface-container-highest": "#ecdeec",
+                    "on-tertiary-fixed-variant": "#5a4300",
+                    "on-secondary-fixed-variant": "#633178",
+                    "on-tertiary-fixed": "#251a00",
+                    "surface": "#fff7fb",
+                    "on-secondary-container": "#6e3b83",
+                    "inverse-primary": "#ecb2ff",
+                    "on-secondary": "#ffffff",
+                    "on-surface": "#201922",
+                    "on-error-container": "#93000a",
+                    "secondary-container": "#eaaeff",
+                    "tertiary-fixed-dim": "#eac162",
+                    "outline-variant": "#d3c1d4",
+                    "surface-dim": "#e4d6e3",
+                    "primary-container": "#9a28c9",
+                    "primary": "#7c00a9"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fff7fb;
+            color: #201922;
+        }
+        h1, h2, h3 {
+            font-family: 'Manrope', sans-serif;
+        }
+        .glass-header {
+            background: rgba(255, 247, 251, 0.6);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl shadow-sm dark:shadow-none flex items-center justify-between px-6 h-16 w-full">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-black tracking-tight text-purple-700 dark:text-purple-400">AdsKiller</span>
+<div class="hidden md:flex relative items-center group">
+<span class="material-symbols-outlined absolute left-3 text-zinc-400">search</span>
+<input class="bg-surface-container-high border-none rounded-full pl-10 pr-4 py-2 w-80 text-sm focus:ring-2 focus:ring-primary focus:outline-none transition-all" placeholder="Buscar influencers o contratos..." type="text" value="farid"/>
+</div>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-purple-700 dark:text-purple-300 font-bold border-b-2 border-purple-600 px-1 py-4 text-sm font-manrope" href="#">Dashboard</a>
+<a class="text-zinc-500 dark:text-zinc-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors px-1 py-4 text-sm font-manrope" href="#">Contratos</a>
+<a class="text-zinc-500 dark:text-zinc-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors px-1 py-4 text-sm font-manrope" href="#">Explorar</a>
+</nav>
+<div class="flex items-center gap-3">
+<button class="material-symbols-outlined p-2 rounded-full hover:bg-purple-50 transition-colors text-zinc-600">notifications</button>
+<button class="material-symbols-outlined p-2 rounded-full hover:bg-purple-50 transition-colors text-zinc-600">account_circle</button>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 pt-20 bg-zinc-50 dark:bg-zinc-950 flex flex-col gap-2 pr-4 hidden lg:flex">
+<div class="px-6 mb-6">
+<p class="text-xs font-bold text-primary uppercase tracking-widest opacity-60">Influencer Ops</p>
+<h2 class="text-sm font-semibold text-on-background">Operative Core</h2>
+</div>
+<a class="flex items-center gap-3 px-6 py-3 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded-r-full font-semibold transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-inter text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-zinc-600 dark:text-zinc-400 hover:text-purple-500 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-inter text-sm font-medium">Contratos</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-zinc-600 dark:text-zinc-400 hover:text-purple-500 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-inter text-sm font-medium">Historial Operativo</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-zinc-600 dark:text-zinc-400 hover:text-purple-500 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-inter text-sm font-medium">Configuración</span>
+</a>
+</aside>
+<!-- Main Content Canvas -->
+<main class="lg:ml-64 pt-24 px-6 pb-12">
+<div class="max-w-5xl mx-auto">
+<!-- Contextual Warning Banner -->
+<div class="mb-8 p-4 rounded-xl bg-error-container text-on-error-container flex items-center gap-4 border-l-4 border-error shadow-sm">
+<span class="material-symbols-outlined text-2xl">warning</span>
+<div>
+<h4 class="font-bold font-headline text-sm">No match clear</h4>
+<p class="text-xs opacity-90">La búsqueda 'farid' arrojó múltiples resultados ambiguos. Por favor, selecciona una de las coincidencias sugeridas abajo.</p>
+</div>
+</div>
+<div class="mb-6">
+<h1 class="text-3xl font-black font-headline tracking-tight text-on-background">Sugerencias de Búsqueda</h1>
+<p class="text-on-surface-variant font-body">Resultados encontrados para "<span class="font-semibold text-primary">farid</span>"</p>
+</div>
+<!-- Bento-style Match Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Match 1: Farid Dieck -->
+<div class="md:col-span-2 bg-surface-container-lowest p-6 rounded-full border border-outline-variant/15 flex items-center justify-between group hover:shadow-lg transition-shadow">
+<div class="flex items-center gap-5">
+<div class="relative">
+<img alt="Farid Dieck" class="w-16 h-16 rounded-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Close-up portrait of a thoughtful young man with short dark hair in a professional studio setting with soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9sAMq_rFKrKHuip8SV7EThzl9z3TI4ubzQboqU7FAW02mpOz6ejNtFq3dZw9N8fzNXS9ac9Jqq2rxSLeOlS0oZR2xR3gbbB_t9InHpGTIN3hnxOdZnfTPkMjO6nmDGpHQBg4RYChW_HsYfr7x2nBIghMZleKCJlJGBUjZrXOPV_uTG9eVOYcE8w2ajaxe9dtLQDL-ryh2hfi6vhld6uL47ST-la8Uorxl0jDg4VN0V-SVMwTtNj1MPBaYFHYMGH00wU3xw1iJAfk"/>
+<div class="absolute -bottom-1 -right-1 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">94%</div>
+</div>
+<div>
+<h3 class="text-xl font-bold font-headline text-on-background">Farid Dieck</h3>
+<p class="text-sm text-on-surface-variant font-body">Conferencista &amp; Creador de Contenido</p>
+</div>
+</div>
+<a class="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-2.5 rounded-full font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2" href="#">
+                        Ir al perfil
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+<!-- Match 2: Analytics Mini-Card -->
+<div class="bg-surface-container-low p-6 rounded-full border border-outline-variant/15 flex flex-col justify-center items-center text-center">
+<span class="material-symbols-outlined text-primary text-3xl mb-2">person_search</span>
+<span class="text-2xl font-black font-headline text-primary">78%</span>
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-tighter">Match Score</p>
+<h3 class="font-bold text-on-background mt-1">Farid Morales</h3>
+<a class="mt-3 text-primary text-xs font-bold underline decoration-2 underline-offset-4 hover:text-primary-container transition-colors" href="#">Ir al perfil</a>
+</div>
+<!-- Match 3: Farid J. -->
+<div class="bg-surface-container-lowest p-6 rounded-full border border-outline-variant/15 flex items-center justify-between group hover:bg-surface transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-variant rounded-full flex items-center justify-center">
+<span class="text-lg font-black text-on-surface-variant">FJ</span>
+</div>
+<div>
+<h3 class="font-bold font-headline text-on-background">Farid J.</h3>
+<div class="flex items-center gap-1.5">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<p class="text-xs text-on-surface-variant font-semibold">65% coincidencia</p>
+</div>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined">launch</span>
+</button>
+</div>
+<!-- Secondary Result Card -->
+<div class="md:col-span-2 bg-surface-container p-6 rounded-full flex items-center gap-6 overflow-hidden relative">
+<div class="absolute top-0 right-0 p-8 opacity-5">
+<span class="material-symbols-outlined text-9xl">travel_explore</span>
+</div>
+<div class="flex-shrink-0">
+<div class="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-inner">
+<span class="material-symbols-outlined text-primary-container">psychology</span>
+</div>
+</div>
+<div class="relative z-10">
+<p class="text-xs font-bold text-primary mb-1">RECOMENDACIÓN</p>
+<h4 class="font-bold text-lg text-on-background leading-tight">¿Buscas contratos específicos?</h4>
+<p class="text-sm text-on-surface-variant max-w-md">Refina tu búsqueda agregando etiquetas como "Contratos" o "Métricas" junto al nombre.</p>
+</div>
+</div>
+</div>
+<!-- Operational History Placeholder for Context -->
+<div class="mt-12">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-xl font-bold font-headline">Búsquedas Recientes</h2>
+<button class="text-xs font-bold text-primary hover:underline">Limpiar historial</button>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-xl">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-zinc-400">history</span>
+<span class="text-sm font-medium">Contrato #9921 - Influencer X</span>
+</div>
+<span class="text-xs text-zinc-400">Hace 2 horas</span>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-xl">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-zinc-400">history</span>
+<span class="text-sm font-medium">Métricas Q3 Performance</span>
+</div>
+<span class="text-xs text-zinc-400">Ayer</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

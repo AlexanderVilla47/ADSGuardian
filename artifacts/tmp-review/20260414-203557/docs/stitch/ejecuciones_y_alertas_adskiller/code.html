@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#75009f",
+                        "on-secondary-fixed": "#320046",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#9420c3",
+                        "tertiary-fixed": "#ffdf9a",
+                        "surface-bright": "#fff7fb",
+                        "on-tertiary-fixed": "#251a00",
+                        "error-container": "#ffdad6",
+                        "secondary": "#7d4992",
+                        "on-primary": "#ffffff",
+                        "primary-fixed": "#f8d8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#eaaeff",
+                        "on-primary-fixed": "#320046",
+                        "surface-container-low": "#feeffd",
+                        "tertiary-container": "#7e5f00",
+                        "on-secondary-container": "#6e3b83",
+                        "primary": "#7c00a9",
+                        "secondary-fixed-dim": "#ecb2ff",
+                        "background": "#fff7fb",
+                        "secondary-fixed": "#f8d8ff",
+                        "inverse-surface": "#362e38",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#201922",
+                        "on-tertiary-container": "#ffdd93",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#e4d6e3",
+                        "inverse-on-surface": "#fbecfa",
+                        "outline-variant": "#d3c1d4",
+                        "tertiary-fixed-dim": "#eac162",
+                        "on-background": "#201922",
+                        "surface": "#fff7fb",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#ecb2ff",
+                        "primary-fixed-dim": "#ecb2ff",
+                        "primary-container": "#9a28c9",
+                        "surface-container-high": "#f2e4f1",
+                        "on-primary-container": "#f7d6ff",
+                        "outline": "#817284",
+                        "surface-container": "#f8eaf7",
+                        "on-surface-variant": "#4f4252",
+                        "on-secondary-fixed-variant": "#633178",
+                        "surface-variant": "#ecdeec",
+                        "surface-container-highest": "#ecdeec",
+                        "tertiary": "#614800",
+                        "on-tertiary-fixed-variant": "#5a4300"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- SideNavBar Anchor -->
+<aside class="fixed left-0 top-0 h-full w-64 z-50 bg-purple-50 dark:bg-slate-950 flex flex-col py-6 px-4 gap-2 font-manrope text-sm font-medium transition-transform duration-200">
+<div class="mb-8 px-4">
+<h1 class="text-xl font-extrabold text-purple-900 dark:text-purple-100">AdsKiller</h1>
+<p class="text-xs text-on-surface-variant opacity-70">Risk Management</p>
+</div>
+<nav class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">description</span>
+                Contratos
+            </a>
+<a class="flex items-center gap-3 bg-white dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-xl px-4 py-3 shadow-sm transition-all duration-200" href="#">
+<span class="material-symbols-outlined">warning</span>
+                Ejecuciones y Alertas
+            </a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Configuración
+            </a>
+</nav>
+<div class="mt-auto border-t border-outline-variant/10 pt-4">
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-white/80 dark:hover:bg-slate-800 hover:translate-x-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+                Help Center
+            </a>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-64 min-h-screen p-8">
+<!-- Top Navigation Anchor (Desktop Context) -->
+<header class="fixed top-0 left-64 right-0 z-40 bg-white/60 backdrop-blur-md flex justify-between items-center px-8 py-4 shadow-sm border-b border-transparent">
+<div class="flex items-center gap-4">
+<span class="text-2xl font-black text-purple-800">AdsKiller</span>
+<div class="h-6 w-[1px] bg-outline-variant/30 mx-2"></div>
+<h2 class="font-manrope font-bold text-lg text-purple-700">Ejecuciones y Alertas</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">help</span>
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
+<img alt="User avatar" class="w-full h-full object-cover" data-alt="Professional studio headshot of a middle-aged tech executive with clean lighting and neutral grey background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhufD_gXYYwqSZFnqsnxZV9Da6xw_p_oQ984CA7_3m-YSlbyNiE_z6VekF67BXi-44htXBgnKJFncuAqNDavWMFUI6VrpP-q_Zwg7lLMOKVZVxjnPYboECkj6vECtVzyxA2QBRVhkKoywaZDDAv99zCZ1yNX9phM-pjOdDNXCrnjevVUWqTEvXDtIXyYLEZX9iczjqqK3fomrszedPOe9CPQcw2RDYSt20JG59043wr8d570wSoqu2purV0MDhRinb-UMDEHfUacE"/>
+</div>
+</div>
+</header>
+<div class="mt-20">
+<!-- System Health Tonal Bar -->
+<div class="flex gap-4 mb-8">
+<div class="flex-1 bg-surface-container-low rounded-full p-4 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+<span class="text-on-surface font-semibold text-sm">Scheduler Core: Operational</span>
+</div>
+<span class="text-xs text-on-surface-variant bg-white/50 px-3 py-1 rounded-full">Uptime: 99.98%</span>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-full p-4 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+<span class="text-on-surface font-semibold text-sm">API Gateway: Healthy</span>
+</div>
+<span class="text-xs text-on-surface-variant bg-white/50 px-3 py-1 rounded-full">Latency: 42ms</span>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Alerts Panel (Asymmetric Sidebar) -->
+<section class="col-span-12 lg:col-span-4 space-y-6">
+<h3 class="text-xl font-bold font-headline px-2">Active Alerts</h3>
+<!-- Critical Section -->
+<div class="bg-error-container rounded-full p-5 border-l-4 border-error">
+<div class="flex items-center gap-3 mb-3">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">error</span>
+<h4 class="font-bold text-on-error-container">CRITICAL ACTIVE</h4>
+</div>
+<div class="space-y-3">
+<div class="bg-white/40 p-3 rounded-xl">
+<p class="text-sm font-bold text-on-error-container">Invalid API Secret: Meta Ads</p>
+<p class="text-xs text-on-error-container/70 mt-1">Impact: Execution halted for 12 contracts</p>
+</div>
+</div>
+</div>
+<!-- Warning Section -->
+<div class="bg-tertiary-fixed rounded-full p-5 border-l-4 border-tertiary">
+<div class="flex items-center gap-3 mb-3">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">warning</span>
+<h4 class="font-bold text-on-tertiary-fixed">WARN ACTIVE</h4>
+</div>
+<div class="space-y-3">
+<div class="bg-white/40 p-3 rounded-xl">
+<p class="text-sm font-bold text-tertiary">Rate Limit Warning: Google</p>
+<p class="text-xs text-tertiary/70 mt-1">Threshold at 85% utilization</p>
+</div>
+</div>
+</div>
+<!-- Channel Errors -->
+<div class="bg-surface-container-high rounded-full p-6">
+<h4 class="font-bold text-on-surface mb-4">Channel Performance</h4>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-xs font-mono bg-white px-2 py-1 rounded">INSTAGRAM</span>
+<span class="text-sm text-on-surface-variant">Timeout</span>
+</div>
+<span class="text-error font-bold text-sm">4.2% Err</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-xs font-mono bg-white px-2 py-1 rounded">TIKTOK</span>
+<span class="text-sm text-on-surface-variant">Success</span>
+</div>
+<span class="text-emerald-600 font-bold text-sm">99.8% OK</span>
+</div>
+</div>
+</div>
+<!-- Unsupported Channel -->
+<div class="relative overflow-hidden bg-surface-container-lowest rounded-full p-6 shadow-sm border border-outline-variant/10">
+<div class="flex items-center gap-3 text-on-surface-variant opacity-60">
+<span class="material-symbols-outlined">block</span>
+<h4 class="font-bold text-sm uppercase tracking-wider">Unsupported Channel</h4>
+</div>
+<p class="mt-2 text-sm text-on-surface">Connection attempt from <span class="font-mono text-xs bg-surface-container p-1 rounded">TRUTH_SOCIAL_API</span> detected and dropped.</p>
+</div>
+</section>
+<!-- Executions Table Section (Main Area) -->
+<section class="col-span-12 lg:col-span-8">
+<div class="flex justify-between items-center mb-6 px-2">
+<h3 class="text-xl font-bold font-headline">Recent Executions</h3>
+<div class="flex gap-2">
+<button class="bg-surface-container-high text-on-surface-variant px-4 py-2 rounded-xl text-sm font-medium hover:bg-surface-variant transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">filter_list</span> Filter
+                            </button>
+<button class="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">play_arrow</span> Run Manual
+                            </button>
+</div>
+</div>
+<!-- Bento Grid Container for Table -->
+<div class="bg-surface-container-low rounded-full overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-highest/50">
+<th class="px-6 py-4 font-headline font-bold text-xs uppercase tracking-widest text-on-surface-variant">Execution ID</th>
+<th class="px-6 py-4 font-headline font-bold text-xs uppercase tracking-widest text-on-surface-variant">Origin</th>
+<th class="px-6 py-4 font-headline font-bold text-xs uppercase tracking-widest text-on-surface-variant">Result</th>
+<th class="px-6 py-4 font-headline font-bold text-xs uppercase tracking-widest text-on-surface-variant">Channel</th>
+<th class="px-6 py-4 font-headline font-bold text-xs uppercase tracking-widest text-on-surface-variant">Duration</th>
+<th class="px-6 py-4 font-headline font-bold text-xs uppercase tracking-widest text-on-surface-variant">Details</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1: Error -->
+<tr class="hover:bg-white/50 transition-colors">
+<td class="px-6 py-5">
+<div class="text-sm font-bold text-on-surface">EXE-77291</div>
+<div class="text-[10px] font-mono text-on-surface-variant opacity-60">CORR-992-BA</div>
+</td>
+<td class="px-6 py-5">
+<span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-lg font-bold">SCHEDULER</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-error"></div>
+<span class="text-sm font-bold text-error">FAILED</span>
+</div>
+</td>
+<td class="px-6 py-5 text-sm font-medium">Meta Ads</td>
+<td class="px-6 py-5 text-sm">1.2s</td>
+<td class="px-6 py-5">
+<p class="text-xs text-error font-medium truncate max-w-[150px]">Authentication timeout</p>
+</td>
+</tr>
+<!-- Row 2: Success -->
+<tr class="bg-surface-container-lowest/30 hover:bg-white/50 transition-colors">
+<td class="px-6 py-5">
+<div class="text-sm font-bold text-on-surface">EXE-77290</div>
+<div class="text-[10px] font-mono text-on-surface-variant opacity-60">CORR-441-XY</div>
+</td>
+<td class="px-6 py-5">
+<span class="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded-lg font-bold">MANUAL</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+<span class="text-sm font-bold text-emerald-600">SUCCESS</span>
+</div>
+</td>
+<td class="px-6 py-5 text-sm font-medium">TikTok Shop</td>
+<td class="px-6 py-5 text-sm">0.8s</td>
+<td class="px-6 py-5">
+<p class="text-xs text-on-surface-variant">Validated 12 objects</p>
+</td>
+</tr>
+<!-- Row 3: Warning/Success -->
+<tr class="hover:bg-white/50 transition-colors">
+<td class="px-6 py-5">
+<div class="text-sm font-bold text-on-surface">EXE-77289</div>
+<div class="text-[10px] font-mono text-on-surface-variant opacity-60">CORR-112-ZZ</div>
+</td>
+<td class="px-6 py-5">
+<span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-lg font-bold">SCHEDULER</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<span class="text-sm font-bold text-tertiary">PARTIAL</span>
+</div>
+</td>
+<td class="px-6 py-5 text-sm font-medium">Google Ads</td>
+<td class="px-6 py-5 text-sm">2.5s</td>
+<td class="px-6 py-5">
+<p class="text-xs text-on-surface-variant">Soft limit reached</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer / Pagination -->
+<div class="p-6 bg-surface-container-highest/20 flex justify-between items-center">
+<span class="text-xs text-on-surface-variant font-medium">Showing 1-25 of 1,402 executions</span>
+<div class="flex gap-4">
+<button class="text-primary font-bold text-sm flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-lg">chevron_left</span> Previous
+                                </button>
+<button class="text-primary font-bold text-sm flex items-center gap-1 hover:underline">
+                                    Next <span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Additional Context Card -->
+<div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-surface-container-lowest p-6 rounded-full shadow-sm flex items-start gap-4">
+<div class="p-3 bg-primary/10 rounded-xl text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">timer</span>
+</div>
+<div>
+<h4 class="font-bold text-on-surface">Average Duration</h4>
+<p class="text-2xl font-black text-primary">1.14s</p>
+<p class="text-xs text-on-surface-variant">Decreased by 12% since last hour</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-full shadow-sm flex items-start gap-4 border-l-4 border-primary">
+<div class="p-3 bg-secondary/10 rounded-xl text-secondary">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<div>
+<h4 class="font-bold text-on-surface">Execution Reliability</h4>
+<p class="text-2xl font-black text-secondary">98.4%</p>
+<p class="text-xs text-on-surface-variant">Total 12,401 runs today</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Contextual FAB (Only on relevant screens) -->
+<button class="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-primary to-primary-container rounded-full shadow-xl flex items-center justify-center text-white hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-3xl">refresh</span>
+</button>
+</body></html>

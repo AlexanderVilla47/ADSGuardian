@@ -1,0 +1,125 @@
+﻿{
+    "data":  [
+                 {
+                     "id":  "1004",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T03:24:11.848Z",
+                     "stoppedAt":  "2026-04-14T03:24:12.918Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "1003",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T03:23:39.590Z",
+                     "stoppedAt":  "2026-04-14T03:23:40.788Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "986",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T02:29:42.971Z",
+                     "stoppedAt":  "2026-04-14T02:29:44.089Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "977",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T02:24:56.900Z",
+                     "stoppedAt":  "2026-04-14T02:24:59.077Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "976",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T02:16:31.106Z",
+                     "stoppedAt":  "2026-04-14T02:16:32.750Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "975",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T01:58:18.900Z",
+                     "stoppedAt":  "2026-04-14T01:58:20.897Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "974",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T01:55:03.339Z",
+                     "stoppedAt":  "2026-04-14T01:55:03.387Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "973",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T01:54:51.698Z",
+                     "stoppedAt":  "2026-04-14T01:54:51.758Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "972",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T01:32:03.661Z",
+                     "stoppedAt":  "2026-04-14T01:32:03.706Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "971",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-14T01:31:05.975Z",
+                     "stoppedAt":  "2026-04-14T01:31:06.020Z",
+                     "workflowId":  "cFBr6GavlSWDsUFz",
+                     "waitTill":  null
+                 }
+             ],
+    "nextCursor":  "eyJsYXN0SWQiOiI5NzEiLCJsaW1pdCI6MTB9"
+}

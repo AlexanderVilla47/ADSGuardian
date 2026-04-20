@@ -1,0 +1,39 @@
+{
+  "name": "contract-ui-management",
+  "nodes": [
+    {"id": "1", "name": "Webhook UI", "position": [250, 100], "type": "n8n-nodes-base.webhook"},
+    {"id": "2", "name": "Normalize Request", "position": [470, 100], "type": "n8n-nodes-base.code"},
+    {"id": "3", "name": "Validate Input", "position": [690, 300], "type": "n8n-nodes-base.code"},
+    {"id": "4", "name": "Route Action", "position": [910, 300], "type": "n8n-nodes-base.switch"},
+    {"id": "5", "name": "Build Alta Row", "position": [1130, 500], "type": "n8n-nodes-base.code"},
+    {"id": "6", "name": "GS Append Alta", "position": [1350, 500], "type": "n8n-nodes-base.googleSheets"},
+    {"id": "7", "name": "Respond Alta", "position": [1570, 500], "type": "n8n-nodes-base.respondToWebhook"},
+    {"id": "8", "name": "GS Read Contratos", "position": [1130, 700], "type": "n8n-nodes-base.googleSheets"},
+    {"id": "9", "name": "Filter Proximos Vencer", "position": [1350, 700], "type": "n8n-nodes-base.code"},
+    {"id": "10", "name": "Respond Consulta", "position": [1570, 700], "type": "n8n-nodes-base.respondToWebhook"},
+    {"id": "11", "name": "GS Read For Extension", "position": [1130, 900], "type": "n8n-nodes-base.googleSheets"},
+    {"id": "12", "name": "Build Extension Row", "position": [1350, 900], "type": "n8n-nodes-base.code"},
+    {"id": "13", "name": "GS Update Extension", "position": [1570, 900], "type": "n8n-nodes-base.googleSheets"},
+    {"id": "14", "name": "Respond Extension", "position": [1790, 900], "type": "n8n-nodes-base.respondToWebhook"},
+    {"id": "15", "name": "Build Internal Payload F1->F2", "position": [690, 1100], "type": "n8n-nodes-base.code"},
+    {"id": "16", "name": "Execute F2 Internal", "position": [910, 1100], "type": "n8n-nodes-base.executeWorkflow"},
+    {"id": "17", "name": "Log F1 Chain Dispatch OK", "position": [1130, 1100], "type": "n8n-nodes-base.code"},
+    {"id": "18", "name": "Log F1 Chain Dispatch Error", "position": [1130, 1250], "type": "n8n-nodes-base.code"}
+  ],
+  "connections": {
+    "Webhook UI": {"main": [[{"node": "Normalize Request", "type": "main", "index": 0}]]},
+    "Normalize Request": {"main": [[{"node": "Validate Input", "type": "main", "index": 0}]]},
+    "Validate Input": {"main": [[{"node": "Route Action", "type": "main", "index": 0}], [{"node": "Build Internal Payload F1->F2", "type": "main", "index": 0}]]},
+    "Route Action": {"main": [[{"node": "Build Alta Row", "type": "main", "index": 0}], [{"node": "GS Read Contratos", "type": "main", "index": 0}], [{"node": "GS Read For Extension", "type": "main", "index": 0}]]},
+    "Build Alta Row": {"main": [[{"node": "GS Append Alta", "type": "main", "index": 0}]]},
+    "GS Append Alta": {"main": [[{"node": "Respond Alta", "type": "main", "index": 0}]]},
+    "GS Read Contratos": {"main": [[{"node": "Filter Proximos Vencer", "type": "main", "index": 0}]]},
+    "Filter Proximos Vencer": {"main": [[{"node": "Respond Consulta", "type": "main", "index": 0}]]},
+    "GS Read For Extension": {"main": [[{"node": "Build Extension Row", "type": "main", "index": 0}]]},
+    "Build Extension Row": {"main": [[{"node": "GS Update Extension", "type": "main", "index": 0}]]},
+    "GS Update Extension": {"main": [[{"node": "Respond Extension", "type": "main", "index": 0}]]},
+    "Build Internal Payload F1->F2": {"main": [[{"node": "Execute F2 Internal", "type": "main", "index": 0}]]},
+    "Execute F2 Internal": {"main": [[{"node": "Log F1 Chain Dispatch OK", "type": "main", "index": 0}], [{"node": "Log F1 Chain Dispatch Error", "type": "main", "index": 0}]]}
+  },
+  "settings": {"saveExecutionProgress": true, "saveManualExecutions": true, "saveDataErrorExecution": "all", "saveDataSuccessExecution": "all"}
+}

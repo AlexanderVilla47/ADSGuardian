@@ -65,6 +65,29 @@ La operación se rige por timezone **America/Argentina/Buenos_Aires** y por regl
 - Operación manual habilitada para forzar corrida cuando el equipo lo requiera.
 - Monitoreo activo de anuncios vencidos no pausados.
 - Gestión de incidentes priorizando corrección de anuncios en riesgo antes que automatizaciones secundarias.
+- Runbook operativo de acceso/API y testing determinístico del Flujo 3: `docs/runbook-n8n-acceso-y-testing-flujo3.md`.
+- Runbook operativo para fixes/deploys por API REST directa de n8n (sin MCP): `docs/runbook-n8n-api-directa-agentes.md`.
+- Baseline versionado de Flow3 notifications: `workflows/baselines/README.md` y `workflows/baselines/flow3-notifications-v1.0-green.json`.
+- Regresión smoke operativa de Flow3 (4 casos): `scripts/flow3-smoke-regression.ps1` y guía `docs/flow3-smoke-regression.md`.
+- Reglas de alerting operativo para fallos de canal/unsupported: `docs/ops-alerting-flow3.md`.
+- Gate formal de release y rollback para Flow3: `docs/release-criteria-flow3.md`.
+- Contrato de entrada de Flow3 (canales permitidos + invalidos): `docs/flow3-input-contract.md`.
+- Hypercare operativo de Flow3 por 3 dias: `docs/flow3-hypercare-3d.md` con ejecucion diaria `scripts/flow3-hypercare-daily.ps1`.
+- Evidencia de release vigente de Flow3: `docs/release-evidence-flow3-20260412.md`.
+
+### Protocolo operativo de evidencia (`test.json`)
+
+- La evidencia extensa de ejecuciones (inputs, outputs, comentarios y trazas operativas) se centraliza en `test.json`.
+- Antes de solicitar nuevos datos al usuario, revisar primero `test.json` y los acuerdos/memoria vigentes del proyecto.
+- Evitar pedir de nuevo inputs/outputs que ya fueron enviados o documentados en `test.json`.
+- Mantener este protocolo en futuras sesiones para continuidad operativa y menor fricción con el usuario.
+
+### Precedencia de validacion deterministica (obligatoria)
+
+- El veredicto de cada caso se emite solo con la ultima `execution_id` posterior al ultimo FIX/cambio.
+- Queda prohibido mezclar evidencia de `execution_id` historicas para decidir PASS/FAIL.
+- Si esa ultima ejecucion no alcanza el nodo objetivo, el estado obligatorio es `NO EJERCITADO`.
+- Toda fase de testing del flujo AdsKiller debe ejecutar la skill local `adskiller-test-deterministic-workflow` como metodologia base.
 
 ## Riesgos y mitigaciones
 
@@ -109,8 +132,10 @@ La operación se rige por timezone **America/Argentina/Buenos_Aires** y por regl
 | `n8n-mcp-tools-expert` | **Local (proyecto)** | `.agents/skills/n8n-mcp-tools-expert/` | Uso experto de herramientas n8n-mcp (descubrir nodos, validar, plantillas, credenciales, auditoría). |
 | `n8n-workflow-patterns` | **Local (proyecto)** | `.agents/skills/n8n-workflow-patterns/` | Patrones arquitectónicos de workflows n8n (webhook, API, DB, AI, schedules). |
 | `n8n-api-http-robusta` | **Local (proyecto)** | `.agents/skills/n8n-api-http-robusta/` | Integraciones HTTP/APIs en producción (contratos, versionado, idempotencia, retries con jitter, rate-limit). |
+| `n8n-api-direct-ops` | **Local (proyecto)** | `.agents/skills/n8n-api-direct-ops/` | Operación de workflows por API REST directa con `X-N8N-API-KEY` (preflight, backup, PUT mínimo y verify). |
 | `n8n-observability` | **Local (proyecto)** | `.agents/skills/n8n-observability/` | Observabilidad de workflows n8n (correlation IDs, tracing, métricas, SLO y alerting). |
 | `n8n-workflow-testing` | **Local (proyecto)** | `.agents/skills/n8n-workflow-testing/` | Testing de workflows n8n (happy/error paths, mocks, regresión y verificación no funcional). |
+| `adskiller-test-deterministic-workflow` | **Local (proyecto)** | `.agents/skills/adskiller-test-deterministic-workflow/` | Protocolo obligatorio de testing determinístico (DoR, preflight, run one, PASS/FAIL, RED->FIX->GREEN, evidencia y commits por test). |
 | `find-skills` | Global | `~/.agents/skills/find-skills/` | Descubrir e instalar nuevas skills cuando falta capacidad. |
 | `n8n-code-javascript` | Global | `~/.agents/skills/n8n-code-javascript/` | Guía para Code node JavaScript en n8n. |
 | `n8n-code-python` | Global | `~/.agents/skills/n8n-code-python/` | Guía para Code node Python en n8n (beta y limitaciones). |
@@ -143,8 +168,10 @@ La operación se rige por timezone **America/Argentina/Buenos_Aires** y por regl
 - `n8n-workflow-patterns` (**local**) — diseño de arquitectura de workflows.
 - `n8n-mcp-tools-expert` (**local**) — ejecución avanzada con herramientas n8n-mcp.
 - `n8n-api-http-robusta` (**local**) — integración API/HTTP robusta para producción.
+- `n8n-api-direct-ops` (**local**) — fixes/deploys por API REST directa con `X-N8N-API-KEY` (sin MCP como ruta principal).
 - `n8n-observability` (**local**) — trazabilidad, métricas y alertas operativas.
 - `n8n-workflow-testing` (**local**) — estrategia de testing y regresión de flujos n8n.
+- `adskiller-test-deterministic-workflow` (**local**) — metodología fija de ejecución determinística por caso (DoR, preflight, ciclo RED->FIX->GREEN y evidencia mínima).
 - `n8n-node-configuration` (global) — configuración correcta por operación.
 - `n8n-expression-syntax` (global) — expresiones y acceso a datos.
 - `n8n-validation-expert` (global) — bucle validar → corregir.
@@ -163,7 +190,8 @@ La operación se rige por timezone **America/Argentina/Buenos_Aires** y por regl
 ### 1) Cuándo se auto-cargan
 
 - **Por contexto técnico explícito**:
-  - Diseño/implementación n8n → `n8n-workflow-patterns`, `n8n-mcp-tools-expert`, `n8n-api-http-robusta`, `n8n-observability`, `n8n-workflow-testing`, `n8n-node-configuration`, `n8n-expression-syntax`, `n8n-validation-expert`, `n8n-code-javascript`/`n8n-code-python`
+  - Diseño/implementación n8n → `n8n-workflow-patterns`, `n8n-api-direct-ops`, `n8n-api-http-robusta`, `n8n-observability`, `n8n-workflow-testing`, `adskiller-test-deterministic-workflow`, `n8n-node-configuration`, `n8n-expression-syntax`, `n8n-validation-expert`, `n8n-code-javascript`/`n8n-code-python`
+  - Testing operativo AdsKiller (ejecución determinística por caso) → `adskiller-test-deterministic-workflow` + `n8n-workflow-testing`
   - Testing Go/Bubbletea → `go-testing`
   - Creación de skills → `skill-creator`
 - **Por fase SDD explícita**:

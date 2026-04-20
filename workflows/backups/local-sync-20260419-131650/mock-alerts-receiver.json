@@ -1,0 +1,178 @@
+
+
+[
+  {
+    "row_number": 2,
+    "Contrato_ID": "CTR-0001",
+    "Cliente": "Cliente A",
+    "Regex_Anuncio": "promo.*abril.*a",
+    "Ad_ID": "120000000001",
+    "Ad_Name": "Promo Abril - Producto A",
+    "Fecha_Alta": "2026-03-01",
+    "Fecha_Fin": "2026-04-04",
+    "Status_Contrato": "Activo",
+    "Notificado_Previo": false,
+    "Fecha_Notificado_Previo": "",
+    "Fecha_Finalizacion": "2026-04-06T20:02:13.136-03:00",
+    "Updated_At": "2026-04-06T20:02:13.136-03:00",
+    "run_mode": "scheduled",
+    "correlation_id": "ak-1775612592414-q6ppfq",
+    "control_type": "expired",
+    "days_to_end": -3,
+    "timezone": "America/Argentina/Buenos_Aires",
+    "regex_pattern": "promo.*abril.*a",
+    "regexMatchesSheetName": true
+  },
+  {
+    "row_number": 3,
+    "Contrato_ID": "CTR-0002",
+    "Cliente": "Cliente B",
+    "Regex_Anuncio": "promo.*abril.*b",
+    "Ad_ID": "120000000002",
+    "Ad_Name": "Promo Abril - Producto B",
+    "Fecha_Alta": "2026-03-10",
+    "Fecha_Fin": "2026-04-04",
+    "Status_Contrato": "Activo",
+    "Notificado_Previo": false,
+    "Fecha_Notificado_Previo": "",
+    "Fecha_Finalizacion": "2026-04-06T20:02:45.164-03:00",
+    "Updated_At": "2026-04-06T20:02:45.164-03:00",
+    "run_mode": "scheduled",
+    "correlation_id": "ak-1775612592414-q6ppfq",
+    "control_type": "expired",
+    "days_to_end": -3,
+    "timezone": "America/Argentina/Buenos_Aires",
+    "regex_pattern": "promo.*abril.*b",
+    "regexMatchesSheetName": true
+  },
+  {
+    "row_number": 4,
+    "Contrato_ID": "CTR-0003",
+    "Cliente": "Cliente C",
+    "Regex_Anuncio": "always\\s*on",
+    "Ad_ID": "120000000003",
+    "Ad_Name": "Always On Lead Gen",
+    "Fecha_Alta": "2026-03-15",
+    "Fecha_Fin": "2026-04-06",
+    "Status_Contrato": "Activo",
+    "Notificado_Previo": true,
+    "Fecha_Notificado_Previo": "2026-04-04",
+    "Fecha_Finalizacion": "",
+    "Updated_At": "2026-04-05T09:10:00-03:00",
+    "run_mode": "scheduled",
+    "correlation_id": "ak-1775612592414-q6ppfq",
+    "control_type": "expired",
+    "days_to_end": -1,
+    "timezone": "America/Argentina/Buenos_Aires",
+    "regex_pattern": "always\\s*on",
+    "regexMatchesSheetName": true
+  },
+  {
+    "row_number": 5,
+    "Contrato_ID": "CTR-0004",
+    "Cliente": "Cliente D",
+    "Regex_Anuncio": "black\\s*friday",
+    "Ad_ID": "120000000004",
+    "Ad_Name": "Black Friday Teaser",
+    "Fecha_Alta": "2026-03-12",
+    "Fecha_Fin": "2026-04-04",
+    "Status_Contrato": "Activo",
+    "Notificado_Previo": false,
+    "Fecha_Notificado_Previo": "",
+    "Fecha_Finalizacion": "2026-04-06T21:30:04.463-03:00",
+    "Updated_At": "2026-04-06T21:30:04.463-03:00",
+    "run_mode": "scheduled",
+    "correlation_id": "ak-1775612592414-q6ppfq",
+    "control_type": "expired",
+    "days_to_end": -3,
+    "timezone": "America/Argentina/Buenos_Aires",
+    "regex_pattern": "black\\s*friday",
+    "regexMatchesSheetName": true
+  },
+  {
+    "row_number": 6,
+    "Contrato_ID": "CTR-0005",
+    "Cliente": "Cliente E",
+    "Regex_Anuncio": "archived\\s*ad",
+    "Ad_ID": "120000000005",
+    "Ad_Name": "Archived Ad Test",
+    "Fecha_Alta": "2026-03-20",
+    "Fecha_Fin": "2026-04-04",
+    "Status_Contrato": "Activo",
+    "Notificado_Previo": false,
+    "Fecha_Notificado_Previo": "",
+    "Fecha_Finalizacion": "2026-04-04T11:00:00-03:00",
+    "Updated_At": "2026-04-05T09:20:00-03:00",
+    "run_mode": "scheduled",
+    "correlation_id": "ak-1775612592414-q6ppfq",
+    "control_type": "expired",
+    "days_to_end": -3,
+    "timezone": "America/Argentina/Buenos_Aires",
+    "regex_pattern": "archived\\s*ad",
+    "regexMatchesSheetName": true
+  },
+  {
+    "row_number": 7,
+    "Contrato_ID": "CTR-9001",
+    "Cliente": "Cliente Test",
+    "Regex_Anuncio": "promo.*test",
+    "Ad_ID": "12000009999",
+    "Ad_Name": "Promo Test Abril",
+    "Fecha_Alta": "2026-04-06",
+    "Fecha_Fin": "2026-04-08",
+    "Status_Contrato": "Activo",
+    "Notificado_Previo": false,
+    "Fecha_Notificado_Previo": "",
+    "Fecha_Finalizacion": "",
+    "Updated_At": "",
+    "run_mode": "scheduled",
+    "correlation_id": "ak-1775612592414-q6ppfq",
+    "control_type": "preventive",
+    "days_to_end": 1,
+    "timezone": "America/Argentina/Buenos_Aires",
+    "regex_pattern": "promo.*test",
+    "regexMatchesSheetName": true
+  }
+]
+
+   - Output de Payload Alerta Preventiva
+
+   [
+  {
+    "alert_severity": "WARNING",
+    "alert_type": "PREVENTIVE_48H",
+    "message": "Contrato CTR-9001 entra en ventana preventiva de 48h para anuncio 12000009999."
+  }
+]
+   - Output de Sheets - Marcar Notificado_Previo
+
+   no hay output pero si se ejecuto, como imput tenia
+   [
+  {
+    "ok": true
+  }
+]
+
+
+tambien se ejecuto todoo hasta el stop and error
+{
+  "errorMessage": "AdsKiller CRITICAL: anuncio vencido no pausado. Contrato CTR-0001, Ad 120000000001, tipo EXPIRED_NOT_PAUSED_RETRY_EXHAUSTED",
+  "errorDetails": {},
+  "n8nDetails": {
+    "nodeName": "Stop and Error - Escalar Incidente",
+    "nodeType": "n8n-nodes-base.stopAndError",
+    "nodeVersion": 1,
+    "time": "7/4/2026, 10:43:15 p.m.",
+    "n8nVersion": "2.11.3 (Self Hosted)",
+    "binaryDataMode": "filesystem",
+    "stackTrace": [
+      "NodeOperationError: AdsKiller CRITICAL: anuncio vencido no pausado. Contrato CTR-0001, Ad 120000000001, tipo EXPIRED_NOT_PAUSED_RETRY_EXHAUSTED",
+      "    at ExecuteContext.execute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-nodes-base@file+packages+nodes-base_@aws-sdk+credential-providers@3.808.0_asn1.js@5_8da18263ca0574b0db58d4fefd8173ce/node_modules/n8n-nodes-base/nodes/StopAndError/StopAndError.node.ts:92:9)",
+      "    at WorkflowExecute.executeNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1043:31)",
+      "    at WorkflowExecute.runNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1222:22)",
+      "    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1668:38",
+      "    at processTicksAndRejections (node:internal/process/task_queues:103:5)",
+      "    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:2313:11"
+    ]
+  }
+}

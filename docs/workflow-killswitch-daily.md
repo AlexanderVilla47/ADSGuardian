@@ -90,7 +90,9 @@ Reglas aplicadas:
 6. Si está listo para pausar:
    - `Meta - Pausar Ad` ejecuta pausa a nivel Ad,
    - `Evaluar Pausa` aplica retry para `429/500` con política 3x/5m,
-   - si pausa exitosa: `Sheets - Marcar Finalizado` (`Status_Contrato = Finalizado`).
+   - ante pausa 2xx se ejecuta `Meta - Postcheck Estado Ad`,
+   - `Evaluar Postcheck Meta` confirma `effective_status=PAUSED` del mismo Ad,
+   - solo con pausa 2xx + post-check `PAUSED`: `Sheets - Marcar Finalizado` (`Status_Contrato = Finalizado`).
 7. Si se agotan retries o falla no recuperable: `Alerta Crítica - Pausa fallida` + `Stop and Error - Escalar Incidente`.
 
 ---
@@ -103,15 +105,18 @@ Reglas aplicadas:
 - Variables de entorno:
   - `GSHEET_CONTRATOS_ID`
   - `GSHEET_CONTRATOS_TAB` (opcional)
-  - `META_ACCESS_TOKEN`
   - `ALERT_WEBHOOK_URL`
+
+- Credenciales n8n requeridas:
+  - `Google Sheets account` (lectura/escritura)
+  - `Meta Ads API (Bearer)` (`httpHeaderAuth` con header `Authorization: Bearer <token>`)
 
 ## Salidas
 
 - Alertas operativas (`WARNING` preventiva, `CRITICAL` incidente).
 - Estado actualizado en Sheets:
   - preventiva notificada,
-  - contrato finalizado si pausa fue exitosa.
+  - contrato finalizado solo si pausa fue 2xx y post-check devuelve `PAUSED`.
 - Error explícito de ejecución en incidentes críticos (`Stop and Error`).
 
 ---
@@ -122,6 +127,7 @@ Reglas aplicadas:
 
 - Códigos: `429`, `500`.
 - Política: `max 3 intentos`, `wait 5 minutos`.
+- Verificación de configuración: `Wait 5m Precheck Retry.amount=5` y `Wait 5m Pausa Retry.amount=5`.
 
 ## Errores no retryables o funcionales
 
@@ -202,7 +208,7 @@ Este flujo mantiene las reglas de `AGENTS.md`:
 - pre-check `ACTIVE`,
 - regex flexible case-insensitive,
 - preventiva 48h una sola vez,
-- `Status_Contrato => Finalizado` solo tras pausa exitosa,
+- `Status_Contrato => Finalizado` solo tras pausa 2xx + post-check `PAUSED`,
 - retry Meta `429/500` 3 intentos con espera de 5 minutos,
 - alerta crítica ante vencido no pausado.
 

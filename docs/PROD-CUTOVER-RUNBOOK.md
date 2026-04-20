@@ -43,7 +43,7 @@ Incluye:
 | Workflow | Estado actual (mock/testing) | Estado objetivo (producción) | Acción de cutover |
 |---|---|---|---|
 | `contract-ui-management` | Webhook operativo de UI y persistencia en Sheets por env vars (`GSHEET_CONTRATOS_DOC_ID`, `GSHEETS_CREDENTIAL_ID`). Export en repo con `"active": false` (esto no refleja estado real de n8n). | Webhook productivo con credenciales/Sheet de prod, endpoint estable para UI productiva. | Validar doc ID/credencial de prod, probar alta/consulta/extensión, activar workflow en n8n prod. |
-| `contract-guard-daily-killswitch` | Soporta modo `META_MODE=mock` usando `META_SIMULATOR_BASE_URL` (fallback `http://localhost:5678/webhook`). Retry 3 intentos con waits de 5 min. | `META_MODE=prod`, llamadas directas a `https://graph.facebook.com/v20.0/{Ad_ID}` con token prod y alerta operativa real. | Cambiar variables/env de modo prod, validar URLs Meta reales, verificar waits 5m, activar cron y trigger manual. |
+| `contract-guard-daily-killswitch` | Puede estar apuntando a simulador/local o sin credencial Meta asignada. | Nodos Meta apuntando a `https://graph.facebook.com/v20.0/{Ad_ID}` con credencial n8n `httpHeaderAuth`, waits 5m y gating por post-check `PAUSED` antes de `Finalizado`. | Asignar credencial Meta real en n8n, validar URL Graph API, verificar waits 5m y ejecutar smoke P0 con evidencia. |
 | `ops-reporting-alerts` | Recibe payload por webhook y envía a Slack/Telegram según payload. En pruebas suele apuntar a canales sandbox. | Envío a canal operativo real (webhook Slack prod o bot/chat Telegram prod), con evidencias de recepción. | Actualizar origen de payload y canales productivos, ejecutar smoke de INFO/WARN/CRITICAL. |
 | `local-meta-testing-simulator` | Simulador local para escenarios `429/500/400/inactive` vía webhooks `/meta/precheck/:adId` y `/meta/pause/:adId`. | No debe intervenir en tráfico productivo. Debe quedar desactivado/aislado. | Confirmar workflow desactivado en prod y sin referencias activas desde kill-switch. |
 
@@ -55,15 +55,14 @@ Incluye:
 
 | Cambio requerido | Dónde | Valor actual mock/testing | Valor prod esperado | Responsable | Evidencia |
 |---|---|---|---|---|---|
-| Modo Meta en producción | n8n env var `META_MODE` (kill-switch) | `mock` | `prod` | Owner Técnico | Captura de env vars en n8n + ejecución mostrando URL Graph API |
-| Base URL simulador Meta | n8n env var `META_SIMULATOR_BASE_URL` | `http://localhost:5678/webhook` (u otra local) | **No usada** en prod (dejar vacía/no referenciada operativamente) | Owner Técnico | Captura de variable + trazas de ejecución sin URL simulador |
-| Token Meta Ads | n8n env var `META_ACCESS_TOKEN` | token de test/mock | token prod vigente (mínimo privilegio) | Seguridad/Integración | Prueba `precheck` 200 en ad real controlado |
+| Credencial Meta Ads (HTTP Header Auth) | n8n > Credentials | ausente o de test | credencial prod vigente con `Authorization: Bearer <token>` | Seguridad/Integración | Captura de credencial asignada en nodos Meta + precheck 200 en ad real controlado |
+| URL simulador Meta | `local-meta-testing-simulator` / configuración local | activa en pruebas | **No referenciada** por F2 productivo | Owner Técnico | Captura de nodos F2 con URL Graph API y sin endpoints `/webhook/adskiller-local-meta-*` |
 | URL alerta operativa | n8n env var `ALERT_WEBHOOK_URL` | webhook sandbox/mock | webhook productivo de operación | Operación | Mensaje de alerta recibido en canal prod de prueba controlada |
 | Google Sheet contratos (kill-switch) | `GSHEET_CONTRATOS_ID` | Sheet de QA/testing | Sheet productiva | Operación | Update de fila real en hoja prod durante smoke |
 | Tab de contratos | `GSHEET_CONTRATOS_TAB` | `Contratos` (test) | `Contratos` (prod) o tab acordada | Operación | Lectura/escritura correcta en tab objetivo |
 | Google Sheet UI | `GSHEET_CONTRATOS_DOC_ID` (`contract-ui-management`) | doc QA/testing | doc prod | Operación | Alta/consulta/extensión OK en sheet prod |
 | Credencial Google UI | `GSHEETS_CREDENTIAL_ID` (`contract-ui-management`) | credencial testing | credencial prod | Seguridad/Integración | Ejecución UI sin error de auth Google |
-| URLs Meta precheck/pause | Nodos `Meta - Precheck Estado Ad` y `Meta - Pausar Ad` | Resolución a simulador local cuando `META_MODE=mock` | Resolución a `https://graph.facebook.com/v20.0/{Ad_ID}` | Owner Técnico | Captura de execution data con URL final de Graph API |
+| URLs Meta precheck/pause/postcheck | Nodos `Meta - Precheck Estado Ad`, `Meta - Pausar Ad`, `Meta - Postcheck Estado Ad` | simulador/local o mixto | resolución a `https://graph.facebook.com/v20.0/{Ad_ID}` | Owner Técnico | Captura de execution data con URL final de Graph API |
 | Wait retry precheck | Nodo `Wait 5m Precheck Retry` | puede estar reducido en entornos de test (si hubo override manual) | **5 minutos** | Owner Técnico | Captura de configuración del nodo |
 | Wait retry pausa | Nodo `Wait 5m Pausa Retry` | puede estar reducido en entornos de test (si hubo override manual) | **5 minutos** | Owner Técnico | Captura de configuración del nodo |
 | Webhook UI expuesto a frontend prod | `Webhook UI` path `/contract-ui-management` | endpoint de test/staging | endpoint base de n8n prod + path estable | Frontend + Owner Técnico | Request/response 200/201 desde UI prod |
@@ -80,9 +79,6 @@ Incluye:
 
 | Variable | Workflow | Requerida en prod | Notas |
 |---|---|---|---|
-| `META_MODE` | kill-switch | Sí | Debe quedar en `prod` para usar Graph API real. |
-| `META_SIMULATOR_BASE_URL` | kill-switch | No operativa | Solo testing/mock; en prod no debe usarse en ejecución real. |
-| `META_ACCESS_TOKEN` | kill-switch | Sí | Token prod vigente y con permisos mínimos necesarios. |
 | `ALERT_WEBHOOK_URL` | kill-switch | Sí | Canal operativo real para WARNING/CRITICAL. |
 | `GSHEET_CONTRATOS_ID` | kill-switch | Sí | Documento productivo de contratos. |
 | `GSHEET_CONTRATOS_TAB` | kill-switch | Sí | Por defecto `Contratos` si no se define. |
@@ -93,7 +89,7 @@ Incluye:
 
 | Credencial | Uso | Validación mínima |
 |---|---|---|
-| Meta Ads token prod | Precheck + Pause Ad | `GET` precheck 200 y `POST` pausa controlada con respuesta esperada |
+| Meta Ads API (Bearer) | Precheck + Pause Ad + Postcheck | `GET` precheck 200, `POST` pausa 2xx y post-check `effective_status=PAUSED` |
 | Google Sheets cred prod | Lectura/escritura contratos | Alta + update (`Finalizado` o extensión) confirmados en hoja prod |
 | Canal de alertas prod | WARNING/CRITICAL operativas | Recepción efectiva de mensaje de prueba y trazabilidad de `correlation_id` |
 
@@ -108,13 +104,16 @@ Incluye:
    - `https://graph.facebook.com/v20.0/{Ad_ID}`
 2. **`Meta - Pausar Ad`**
    - Verificar resolución de URL a Graph API en prod.
-3. **`Wait 5m Precheck Retry`**
+3. **`Meta - Postcheck Estado Ad`**
+   - Confirmar ejecución inmediatamente después de pausa 2xx.
+   - Confirmar verificación de `effective_status=PAUSED` antes de `Sheets - Marcar Finalizado`.
+4. **`Wait 5m Precheck Retry`**
    - Confirmar `amount=5`, `unit=minutes`.
-4. **`Wait 5m Pausa Retry`**
+5. **`Wait 5m Pausa Retry`**
    - Confirmar `amount=5`, `unit=minutes`.
-5. **`Emitir Alerta Operativa` / alertas críticas**
+6. **`Emitir Alerta Operativa` / alertas críticas**
    - Confirmar `ALERT_WEBHOOK_URL` productiva.
-6. **`Cron Diario 00:01`**
+7. **`Cron Diario 00:01`**
    - Confirmar scheduling activo en prod.
 
 ### `ops-reporting-alerts`
@@ -147,11 +146,10 @@ Incluye:
 ### Fase B — Cambio controlado
 
 1. Desactivar (o asegurar inactivo) `local-meta-testing-simulator` en prod.
-2. Ajustar variables de `contract-guard-daily-killswitch`:
-   - `META_MODE=prod`
-   - `META_ACCESS_TOKEN=<prod>`
-   - `ALERT_WEBHOOK_URL=<prod>`
-   - `GSHEET_*` productivos
+2. Ajustar configuración de `contract-guard-daily-killswitch`:
+   - asignar credencial `Meta Ads API (Bearer)` real en los 3 nodos Meta,
+   - validar `ALERT_WEBHOOK_URL=<prod>`,
+   - validar `GSHEET_*` productivos.
 3. Verificar nodos de wait en 5 minutos (precheck y pausa).
 4. Verificar endpoint UI productivo y conectividad frontend ↔ n8n.
 5. Verificar endpoint reporting y canal de alertas productivo.
@@ -221,10 +219,10 @@ Declarar **NO-GO** si ocurre cualquiera:
 
 1. **Pausar operación productiva**
    - Desactivar `contract-guard-daily-killswitch` (evitar corridas automáticas durante rollback).
-2. **Restaurar variables de testing/mock**
-   - `META_MODE=mock`
-   - `META_SIMULATOR_BASE_URL=<url mock vigente>`
-   - restaurar tokens/webhooks/sheets de entorno de test según backup.
+2. **Restaurar configuración de testing/mock**
+   - reemplazar credencial Meta productiva por credencial de test/mock en los nodos Meta de F2,
+   - restaurar webhooks/sheets de entorno de test según backup,
+   - confirmar que F2 no apunte a endpoints productivos durante rollback.
 3. **Reactivar simulador**
    - Activar `local-meta-testing-simulator` (si aplica para QA).
 4. **Revalidar wiring mock**
@@ -237,7 +235,7 @@ Declarar **NO-GO** si ocurre cualquiera:
 ### Evidencia de rollback
 
 - [ ] Captura de workflow kill-switch desactivado durante rollback.
-- [ ] Captura de `META_MODE=mock` y `META_SIMULATOR_BASE_URL` aplicados.
+- [ ] Captura de credencial Meta mock asignada en nodos F2.
 - [ ] Captura de ejecución manual mock exitosa.
 - [ ] Registro de comunicación de incidente/cierre de ventana.
 
@@ -254,3 +252,29 @@ Declarar **NO-GO** si ocurre cualquiera:
 | On-call | |
 | Resultado final | GO / NO-GO |
 | Observaciones | |
+
+---
+
+## Checkpoint de testing (pendiente)
+
+### Casos cerrados hoy (PASS)
+
+- ✅ Happy path vencido -> pausa -> finalizado en Sheets.
+- ✅ Ruteo `not_actionable` funcionando.
+- ✅ Camino de alerta crítica alcanzado.
+
+### Casos pendientes para próxima sesión
+
+- ⏳ Pause retry -> retry agotado (validación limpia con evidencia).
+- ⏳ Preventiva 48h (`Notificado_Previo`).
+- ⏳ Reset por extensión (UI + killswitch).
+- ⏳ Validación `ops-reporting-alerts` (INFO/WARN/CRITICAL).
+
+### Evidencia mínima requerida por caso
+
+- `execution_id` de n8n.
+- Nodo/salida clave del flujo (rama tomada + payload relevante).
+- Before/after en Google Sheets (estado previo y estado final).
+- En tests mock, los nodos de alerta pueden apuntar a `/webhook/mock/alerts` si el workflow `mock-alerts-receiver` está activo.
+
+**Próximo paso recomendado:** arrancar la próxima sesión ejecutando primero **pause retry -> retry agotado** y cerrar evidencia completa (execution_id + nodo/salida + before/after en Sheets) antes de avanzar con preventiva 48h y reset por extensión.

@@ -1,0 +1,38 @@
+{
+  "name": "contract-ui-management",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Webhook UI",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-1180, 120],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contract-ui-management",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "2",
+      "name": "Normalize Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-960, 120],
+      "parameters": {
+        "jsCode": "return [{json:{ok:true}}];",
+        "mode": "runOnceForAllItems",
+        "language": "javaScript"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook UI": {"main": [[{"node": "Normalize Request", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null
+}

@@ -1,0 +1,1229 @@
+{
+  "updatedAt": "2026-04-19T02:04:21.856Z",
+  "createdAt": "2026-04-06T01:48:20.599Z",
+  "id": "BFHHQwYFfmcpqshb",
+  "name": "AdsKiller - Ops Reporting & Alerts (MVP)",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ops-reporting-alerts",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Normalize_KillSwitchResultWebhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        120
+      ],
+      "webhookId": "ops-reporting-alerts"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "14",
+      "name": "Normalize_InternalExecuteTrigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "﻿const input = $json.body ?? $json;\nconst metricsIn = input.metrics ?? {};\nconst incidents = Array.isArray(input.incidents) ? input.incidents : [];\n\nconst fallbackNotification = {\n  channel: 'both',\n  slack: {\n    webhook_url: '__REDACTED_SLACK_WEBHOOK__'\n  },\n  telegram: {\n    bot_token: '__REDACTED_TELEGRAM_BOT_TOKEN__',\n    chat_id: '__REDACTED_TELEGRAM_CHAT_ID__'\n  }\n};\n\nfunction pickNonEmpty(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    const text = String(value).trim();\n    if (text) return text;\n  }\n  return '';\n}\n\nconst incomingNotification = input.notification ?? {};\nconst incomingChannel = String(incomingNotification.channel ?? '').trim().toLowerCase();\nconst resolvedChannel = incomingChannel || fallbackNotification.channel;\nconst wantsSlack = resolvedChannel === 'slack' || resolvedChannel === 'both';\nconst wantsTelegram = resolvedChannel === 'telegram' || resolvedChannel === 'both';\n\nconst notification = {\n  channel: resolvedChannel,\n  slack: {\n    webhook_url: wantsSlack\n      ? pickNonEmpty(incomingNotification?.slack?.webhook_url, fallbackNotification.slack.webhook_url)\n      : ''\n  },\n  telegram: {\n    bot_token: wantsTelegram\n      ? pickNonEmpty(incomingNotification?.telegram?.bot_token, fallbackNotification.telegram.bot_token)\n      : '',\n    chat_id: wantsTelegram\n      ? pickNonEmpty(incomingNotification?.telegram?.chat_id, fallbackNotification.telegram.chat_id)\n      : ''\n  }\n};\n\nconst metrics = {\n  contracts_evaluated: Number(metricsIn.contracts_evaluated ?? 0),\n  ads_evaluated: Number(metricsIn.ads_evaluated ?? 0),\n  paused_success_count: Number(metricsIn.paused_success_count ?? 0),\n  paused_error_count: Number(metricsIn.paused_error_count ?? 0),\n  expired_unpaused_count: Number(metricsIn.expired_unpaused_count ?? 0),\n  preventive_48h_count: Number(metricsIn.preventive_48h_count ?? 0),\n  duration_ms: Number(metricsIn.duration_ms ?? 0)\n};\n\nconst executionStatus = String(input.execution_status ?? input.status ?? 'unknown').toLowerCase();\nconst isCritical = metrics.expired_unpaused_count > 0;\nconst hasWarnSignals = metrics.preventive_48h_count > 0 || executionStatus !== 'success' || metrics.paused_error_count > 0 || incidents.length > 0;\n\nlet severity = 'INFO';\nif (isCritical) {\n  severity = 'CRITICAL';\n} else if (hasWarnSignals) {\n  severity = 'WARN';\n}\n\nconst correlationId = String(input.correlation_id ?? input.execution_id ?? ('ops-' + Date.now()));\nconst timezone = input.timezone ?? 'America/Argentina/Buenos_Aires';\n\nreturn [{\n  json: {\n    ...input,\n    correlation_id: correlationId,\n    execution_status: executionStatus,\n    timezone,\n    incidents,\n    metrics,\n    notification,\n    derived: {\n      severity,\n      is_critical: isCritical,\n      execution_mode: String(input.execution_mode ?? 'scheduled').toLowerCase(),\n      executed_at: input.executed_at ?? new Date().toISOString()\n    }\n  }\n}];\r\n"
+      },
+      "id": "2",
+      "name": "Normalize_Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.derived.severity }}",
+              "rightValue": "CRITICAL",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "rightType": "string"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "3",
+      "name": "Is_CriticalAlert",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "﻿const m = $json.metrics ?? {};\nconst incidents = Array.isArray($json.incidents) ? $json.incidents : [];\n\nconst pausedOk = Number(m.paused_success_count ?? 0);\nconst pausedErr = Number(m.paused_error_count ?? 0);\nconst contractsReviewed = Number(m.contracts_evaluated ?? 0);\nconst durationSec = (Number(m.duration_ms ?? 0) / 1000).toFixed(1);\n\nfunction uniq(values) {\n  return [...new Set(values.filter(Boolean))];\n}\n\nconst incidentInfluencers = incidents\n  .map((it) => String(it?.influencer ?? '').trim())\n  .filter(Boolean);\nconst contextInfluencers = Array.isArray($json.context?.influencers)\n  ? $json.context.influencers.map((x) => String(x || '').trim())\n  : [];\nconst influencers = uniq([...contextInfluencers, ...incidentInfluencers]);\n\nconst expiredInfluencersCount = influencers.length || Number(m.expired_unpaused_count ?? 0);\nconst influencersInline = influencers.length\n  ? ` (${influencers.map((name) => `${name.replace(/^@/, '')}`).join(', ')})`\n  : '';\n\nconst firstFailure = incidents.find((it) => {\n  const code = String(it?.code ?? '').trim();\n  const type = String(it?.type ?? '').toLowerCase();\n  return code || type.includes('error') || type.includes('fail');\n}) ?? incidents[0] ?? {};\n\nconst failureInfluencer = String(firstFailure.influencer ?? '').trim();\nconst failureInfluencerText = failureInfluencer ? ` (Influencer: ${failureInfluencer.replace(/^@/, '')})` : '';\nconst reasonCode = pausedErr > 0 ? String(firstFailure.code ?? 'UNKNOWN_ERROR') : 'SIN_ERRORES_REPORTADOS';\n\nconst executionId = String($json.execution_id ?? 'N/A');\nconst correlationId = String($json.correlation_id ?? 'N/A');\n\nconst telegramText = [\n  '<b>ADSGuardian: ALERTA CRITICA</b>',\n  '',\n  '<b>Resumen de Accion:</b>',\n  `Ads Pausadas: ${pausedOk}`,\n  `Influencers Vencidos: ${expiredInfluencersCount}${influencersInline}`,\n  '',\n  '<b>Estado de errores:</b>',\n  `Fallas al pausar: ${pausedErr} Ad${pausedErr === 1 ? '' : 's'}${failureInfluencerText}`,\n  `Motivo: ${reasonCode}`,\n  '',\n  '<b>Metricas de sesion:</b>',\n  `- Total contratos revisados: ${contractsReviewed}`,\n  `- Duracion: ${durationSec}s`,\n  '',\n  `Scan ID: <code>${executionId}</code>`,\n  `Correlation ID: <code>${correlationId}</code>`\n].join('\\n');\n\nconst slackPayload = {\n  text: 'ADSGuardian: ALERTA CRITICA',\n  blocks: [\n    { type: 'header', text: { type: 'plain_text', text: 'ADSGuardian: ALERTA CRITICA', emoji: false } },\n    {\n      type: 'section',\n      text: {\n        type: 'mrkdwn',\n        text: [\n          '*Resumen de Accion:*',\n          `Ads Pausadas: ${pausedOk}`,\n          `Influencers Vencidos: ${expiredInfluencersCount}${influencersInline}`\n        ].join('\\n')\n      }\n    },\n    {\n      type: 'section',\n      text: {\n        type: 'mrkdwn',\n        text: [\n          '*Estado de errores:*',\n          `Fallas al pausar: ${pausedErr} Ad${pausedErr === 1 ? '' : 's'}${failureInfluencerText}`,\n          `Motivo: ${reasonCode}`\n        ].join('\\n')\n      }\n    },\n    {\n      type: 'section',\n      text: {\n        type: 'mrkdwn',\n        text: [\n          '*Metricas de sesion:*',\n          `- Total contratos revisados: ${contractsReviewed}`,\n          `- Duracion: ${durationSec}s`\n        ].join('\\n')\n      }\n    },\n    {\n      type: 'context',\n      elements: [\n        { type: 'mrkdwn', text: `Scan ID: \\`${executionId}\\` | Correlation: \\`${correlationId}\\`` }\n      ]\n    }\n  ]\n};\n\nreturn [{\n  json: {\n    ...$json,\n    message_text: telegramText,\n    message_slack: slackPayload,\n    message_telegram: telegramText\n  }\n}];\r\n"
+      },
+      "id": "4",
+      "name": "Build_CriticalMessage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "﻿const m = $json.metrics ?? {};\nconst incidents = Array.isArray($json.incidents) ? $json.incidents : [];\nconst severity = String($json.derived?.severity ?? 'INFO').toUpperCase();\n\nconst executionId = String($json.execution_id ?? 'N/A');\nconst correlationId = String($json.correlation_id ?? 'N/A');\nconst preventiveCount = Number(m.preventive_48h_count ?? 0);\n\nfunction uniq(values) {\n  return [...new Set(values.filter(Boolean))];\n}\n\nconst contextInfluencers = Array.isArray($json.context?.influencers)\n  ? $json.context.influencers.map((x) => String(x || '').trim())\n  : [];\nconst incidentInfluencers = incidents\n  .map((it) => String(it?.influencer ?? '').trim())\n  .filter(Boolean);\nconst influencers = uniq([...contextInfluencers, ...incidentInfluencers]);\n\nconst pausedByInfluencerRaw = Array.isArray($json.context?.paused_by_influencer)\n  ? $json.context.paused_by_influencer\n  : [];\nconst pausedByInfluencer = pausedByInfluencerRaw\n  .map((it) => ({\n    influencer: String(it?.influencer ?? '').trim().replace(/^@/, ''),\n    ads_paused: Number(it?.ads_paused ?? 0)\n  }))\n  .filter((it) => it.influencer && Number.isFinite(it.ads_paused) && it.ads_paused > 0);\nconst pausedSummaryLines = pausedByInfluencer.length\n  ? pausedByInfluencer.map((it) => `- Se pausaron exitosamente ${it.ads_paused} ads del influencer ${it.influencer}`).join('\\n')\n  : '';\n\nconst influencersTelegram = influencers.length\n  ? influencers.map((name) => `- ${name.replace(/^@/, '')}`).join('\\n')\n  : '- Sin detalle de influencers';\n\nconst influencersSlack = influencers.length\n  ? influencers.map((name) => `- ${name.replace(/^@/, '')}`).join('\\n')\n  : '- Sin detalle de influencers';\n\nconst crmUrl = String($json.context?.crm_url ?? $json.context?.sheet_url ?? '').trim();\nconst telegramLinkLine = crmUrl ? `Ver en CRM/Sheet: ${crmUrl}` : 'Ver en CRM/Sheet';\nconst slackLinkLine = crmUrl ? `<${crmUrl}|Ver en CRM/Sheet>` : 'Ver en CRM/Sheet';\n\nlet telegramText;\nlet slackPayload;\n\nif (severity === 'INFO') {\n  if (pausedSummaryLines) {\n    telegramText = [\n      '<b>ADSGuardian: Sistema OK</b>',\n      '',\n      'Estado: Sin novedades.',\n      '',\n      pausedSummaryLines,\n      '',\n      `Scan finalizado | ID: <code>${executionId}</code>`\n    ].join('\\n');\n  } else {\n    telegramText = [\n      '<b>ADSGuardian: Sistema OK</b>',\n      '',\n      'Estado: Sin novedades.',\n      '',\n      'No se detectaron contratos vencidos ni proximos a vencer.',\n      '',\n      `Scan finalizado | ID: <code>${executionId}</code>`\n    ].join('\\n');\n  }\n\n  slackPayload = {\n    text: 'ADSGuardian: Sistema OK',\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: 'ADSGuardian: Sistema OK', emoji: false } },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: pausedSummaryLines\n            ? [\n              'Estado: Sin novedades.',\n              pausedSummaryLines\n            ].join('\\n')\n            : [\n              'Estado: Sin novedades.',\n              'No se detectaron contratos vencidos ni proximos a vencer.'\n            ].join('\\n')\n        }\n      },\n      { type: 'context', elements: [{ type: 'mrkdwn', text: `Scan finalizado | ID: \\`${executionId}\\`` }] }\n    ]\n  };\n} else {\n  const contractsAtRisk = preventiveCount > 0 ? preventiveCount : influencers.length;\n\n  telegramText = [\n    '<b>ADSGuardian: Alerta de Vencimiento (48h)</b>',\n    '',\n    `Contratos proximos a expirar: <b>${contractsAtRisk}</b>`,\n    '',\n    '<b>Influencers en riesgo:</b>',\n    influencersTelegram,\n    '',\n    'Tenes 48 horas para renovar el contrato o actualizar la fecha en el sistema para evitar la pausa automatica.',\n    '',\n    telegramLinkLine,\n    '',\n    `Scan finalizado | ID: <code>${executionId}</code>`,\n    `Correlation ID: <code>${correlationId}</code>`\n  ].join('\\n');\n\n  slackPayload = {\n    text: 'ADSGuardian: Alerta de Vencimiento (48h)',\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: 'ADSGuardian: Alerta de Vencimiento (48h)', emoji: false } },\n      { type: 'section', text: { type: 'mrkdwn', text: `*Contratos proximos a expirar:* ${contractsAtRisk}` } },\n      { type: 'section', text: { type: 'mrkdwn', text: `*Influencers en riesgo:*\\n${influencersSlack}` } },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: 'Tenes 48 horas para renovar el contrato o actualizar la fecha en el sistema para evitar la pausa automatica.'\n        }\n      },\n      { type: 'section', text: { type: 'mrkdwn', text: slackLinkLine } },\n      { type: 'context', elements: [{ type: 'mrkdwn', text: `Scan ID: \\`${executionId}\\` | Correlation: \\`${correlationId}\\`` }] }\n    ]\n  };\n}\n\nreturn [{\n  json: {\n    ...$json,\n    message_text: telegramText,\n    message_slack: slackPayload,\n    message_telegram: telegramText\n  }\n}];\r\n"
+      },
+      "id": "5",
+      "name": "Build_InfoWarnMessage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.notification.slack.webhook_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "6",
+      "name": "Is_SlackChannel",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.notification.slack.webhook_url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.message_slack }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "7",
+      "name": "Send_SlackNotification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        -200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.notification.telegram.bot_token }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "8",
+      "name": "Is_TelegramChannel",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ `https://api.telegram.org/bot${$json.notification.telegram.bot_token}/sendMessage` }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: $json.notification.telegram.chat_id, text: $json.message_telegram, parse_mode: \"HTML\" } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "9",
+      "name": "Send_TelegramNotification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        120
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    event: 'ops_notification_channel_error',\n    channel: String($json.notification?.channel ?? 'unknown').toLowerCase(),\n    severity: $json.derived?.severity ?? 'WARN',\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: 'Fallo de env?o de notificaci?n. MVP sin fallback autom?tico entre canales.',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "10",
+      "name": "Log_ChannelSendFailure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    event: 'ops_notification_sent',\n    channel: 'slack',\n    severity: $json.derived?.severity ?? 'INFO',\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: 'Notificaci?n enviada por Slack.',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "11",
+      "name": "Log_SlackSent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    event: 'ops_notification_sent',\n    channel: 'telegram',\n    severity: $json.derived?.severity ?? 'INFO',\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: 'Notificaci?n enviada por Telegram.',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "12",
+      "name": "Log_TelegramSent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    event: 'ops_notification_channel_unsupported',\n    channel: String($json.notification?.channel ?? 'undefined').toLowerCase(),\n    severity: 'ERROR',\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: 'Canal no soportado. Solo Slack o Telegram en MVP.',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "13",
+      "name": "Log_UnsupportedChannel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        360
+      ]
+    },
+    {
+      "id": "b45c2238-c016-4e99-a52d-92731729b827",
+      "name": "Build OpsLog Row F3",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1680,
+        -120
+      ],
+      "parameters": {
+        "jsCode": "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\n\nconst eventType = String(input.event_type ?? input.event ?? input.action ?? \"ops_notification_event\").trim() || \"ops_notification_event\";\nconst statusRaw = String(input.status ?? input.result ?? \"\").trim();\n\nlet resultValue = statusRaw ? statusRaw.toLowerCase() : \"\";\nif (!resultValue) {\n  if (eventType.includes(\"sent\")) resultValue = \"success\";\n  else if (eventType.includes(\"error\") || eventType.includes(\"unsupported\")) resultValue = \"error\";\n  else resultValue = \"unknown\";\n}\n\nconst executionId = String(\n  input.execution_id\n  ?? input.logical_execution_id\n  ?? input.meta?.execution_id\n  ?? input.execution?.id\n  ?? $execution?.id\n  ?? \"\"\n);\n\nconst channelValue = String(\n  input.channel\n  ?? input.notification?.channel\n  ?? \"\"\n).trim().toLowerCase();\n\nconst severityValue = String(\n  input.severity\n  ?? input.derived?.severity\n  ?? \"\"\n).trim().toUpperCase();\n\nreturn [{\n  json: {\n    execution_id: executionId,\n    correlation_id: String(input.correlation_id ?? \"\"),\n    action: eventType,\n    event_type: eventType,\n    status: resultValue,\n    result: resultValue,\n    channel: channelValue,\n    severity: severityValue,\n    timestamp: String(input.timestamp ?? nowIso),\n    source_workflow: \"ops-reporting-alerts\"\n  }\n}];"
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "db2741a4-fba6-4be4-b291-961bd28cea4f",
+      "name": "GS Append Operations Log F3",
+      "type": "n8n-nodes-base.googleSheets",
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      },
+      "typeVersion": 4.5,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "sheetName": {
+          "mode": "name",
+          "__rl": true,
+          "value": "Operations_Log"
+        },
+        "columns": {
+          "value": {},
+          "mappingMode": "autoMapInputData",
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "matchingColumns": [],
+          "convertFieldsToString": false
+        },
+        "documentId": {
+          "mode": "id",
+          "__rl": true,
+          "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+        },
+        "authentication": "serviceAccount",
+        "options": {},
+        "operation": "append"
+      },
+      "position": [
+        1920,
+        -120
+      ]
+    },
+    {
+      "id": "8d1db5be-b064-4d75-bc88-1b8d2a8f2f7a",
+      "name": "Build Alert Row F3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        -420
+      ],
+      "parameters": {
+        "jsCode": "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\nconst severity = String(input.severity ?? input.derived?.severity ?? 'CRITICAL').trim().toUpperCase() || 'CRITICAL';\nconst eventType = String(input.event_type ?? input.event ?? input.action ?? 'ops_alert_critical').trim() || 'ops_alert_critical';\nconst correlationId = String(input.correlation_id ?? input.execution_id ?? input.logical_execution_id ?? '').trim();\nconst executionId = String(input.execution_id ?? input.logical_execution_id ?? input.meta?.execution_id ?? '').trim();\nconst contractId = String(input.Contrato_ID ?? input.contract_id ?? input.contractId ?? input.contracto_id ?? input.contract ?? '').trim();\nconst adId = String(input.Ad_ID ?? input.ad_id ?? input.adId ?? '').trim();\nconst motive = String(input.message_text ?? input.message ?? input.derived?.reason ?? input.derived?.alert_reason ?? '').trim() || 'CRITICAL: vencidos sin pausar';\nconst createdAt = String(input.timestamp ?? input.created_at ?? input.derived?.executed_at ?? nowIso);\nconst alertId = String(input.alert_id ?? input.Alerta_ID ?? `${correlationId || executionId || 'ops'}-${Date.now()}`);\n\nreturn [{\n  json: {\n    Alerta_ID: alertId,\n    Severidad: severity,\n    Contrato_ID: contractId,\n    Ad_ID: adId,\n    Motivo: motive,\n    Correlation_ID: correlationId,\n    Creada_At: createdAt,\n    Estado: 'Abierta',\n    source_workflow: 'ops-reporting-alerts',\n    event_type: eventType,\n    execution_id: executionId\n  }\n}];"
+      }
+    },
+    {
+      "id": "8ce24a6f-2f4c-4cf8-8d1f-8f4f4a3c4d2e",
+      "name": "GS Append Alertas F3",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        -420
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "BtY3uGIkB5umd39o",
+          "name": "Google Service Account account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "mode": "id",
+          "__rl": true,
+          "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+        },
+        "sheetName": {
+          "mode": "name",
+          "__rl": true,
+          "value": "Alertas"
+        },
+        "columns": {
+          "value": {},
+          "mappingMode": "autoMapInputData",
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "matchingColumns": [],
+          "convertFieldsToString": false
+        },
+        "authentication": "serviceAccount",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Is_TelegramChannel": {
+      "main": [
+        [
+          {
+            "node": "Send_TelegramNotification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log_UnsupportedChannel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send_TelegramNotification": {
+      "main": [
+        [
+          {
+            "node": "Log_TelegramSent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log_ChannelSendFailure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize_InternalExecuteTrigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize_Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build_CriticalMessage": {
+      "main": [
+        [
+          {
+            "node": "Is_SlackChannel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is_TelegramChannel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is_SlackChannel": {
+      "main": [
+        [
+          {
+            "node": "Send_SlackNotification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Normalize_KillSwitchResultWebhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize_Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize_Payload": {
+      "main": [
+        [
+          {
+            "node": "Is_CriticalAlert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is_CriticalAlert": {
+      "main": [
+        [
+          {
+            "node": "Build_CriticalMessage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build_InfoWarnMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build_InfoWarnMessage": {
+      "main": [
+        [
+          {
+            "node": "Is_SlackChannel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is_TelegramChannel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send_SlackNotification": {
+      "main": [
+        [
+          {
+            "node": "Log_SlackSent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log_ChannelSendFailure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log_SlackSent": {
+      "main": [
+        [
+          {
+            "node": "Build OpsLog Row F3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log_TelegramSent": {
+      "main": [
+        [
+          {
+            "node": "Build OpsLog Row F3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log_ChannelSendFailure": {
+      "main": [
+        [
+          {
+            "node": "Build OpsLog Row F3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log_UnsupportedChannel": {
+      "main": [
+        [
+          {
+            "node": "Build OpsLog Row F3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build OpsLog Row F3": {
+      "main": [
+        [
+          {
+            "node": "GS Append Operations Log F3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alert Row F3": {
+      "main": [
+        [
+          {
+            "node": "GS Append Alertas F3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "timezone": "America/Argentina/Buenos_Aires"
+  },
+  "staticData": {},
+  "meta": null,
+  "pinData": {},
+  "versionId": "334f9b9b-296d-4106-a7a0-3dad4e4d687b",
+  "activeVersionId": "334f9b9b-296d-4106-a7a0-3dad4e4d687b",
+  "versionCounter": 116,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-06T01:48:20.601Z",
+      "createdAt": "2026-04-06T01:48:20.601Z",
+      "role": "workflow:owner",
+      "workflowId": "BFHHQwYFfmcpqshb",
+      "projectId": "Z0pgCY9RJ5VJF6JD",
+      "project": {
+        "updatedAt": "2026-03-13T00:12:04.657Z",
+        "createdAt": "2026-03-13T00:09:47.440Z",
+        "id": "Z0pgCY9RJ5VJF6JD",
+        "name": "Alexander Villa <alexandervilla.cuenta@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-19T02:04:21.857Z",
+    "createdAt": "2026-04-19T02:04:21.857Z",
+    "versionId": "334f9b9b-296d-4106-a7a0-3dad4e4d687b",
+    "workflowId": "BFHHQwYFfmcpqshb",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "ops-reporting-alerts",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "id": "1",
+        "name": "Normalize_KillSwitchResultWebhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          120
+        ],
+        "webhookId": "ops-reporting-alerts"
+      },
+      {
+        "parameters": {
+          "inputSource": "passthrough"
+        },
+        "id": "14",
+        "name": "Normalize_InternalExecuteTrigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          0,
+          -120
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "﻿const input = $json.body ?? $json;\nconst metricsIn = input.metrics ?? {};\nconst incidents = Array.isArray(input.incidents) ? input.incidents : [];\n\nconst fallbackNotification = {\n  channel: 'both',\n  slack: {\n    webhook_url: '__REDACTED_SLACK_WEBHOOK__'\n  },\n  telegram: {\n    bot_token: '__REDACTED_TELEGRAM_BOT_TOKEN__',\n    chat_id: '__REDACTED_TELEGRAM_CHAT_ID__'\n  }\n};\n\nfunction pickNonEmpty(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    const text = String(value).trim();\n    if (text) return text;\n  }\n  return '';\n}\n\nconst incomingNotification = input.notification ?? {};\nconst incomingChannel = String(incomingNotification.channel ?? '').trim().toLowerCase();\nconst resolvedChannel = incomingChannel || fallbackNotification.channel;\nconst wantsSlack = resolvedChannel === 'slack' || resolvedChannel === 'both';\nconst wantsTelegram = resolvedChannel === 'telegram' || resolvedChannel === 'both';\n\nconst notification = {\n  channel: resolvedChannel,\n  slack: {\n    webhook_url: wantsSlack\n      ? pickNonEmpty(incomingNotification?.slack?.webhook_url, fallbackNotification.slack.webhook_url)\n      : ''\n  },\n  telegram: {\n    bot_token: wantsTelegram\n      ? pickNonEmpty(incomingNotification?.telegram?.bot_token, fallbackNotification.telegram.bot_token)\n      : '',\n    chat_id: wantsTelegram\n      ? pickNonEmpty(incomingNotification?.telegram?.chat_id, fallbackNotification.telegram.chat_id)\n      : ''\n  }\n};\n\nconst metrics = {\n  contracts_evaluated: Number(metricsIn.contracts_evaluated ?? 0),\n  ads_evaluated: Number(metricsIn.ads_evaluated ?? 0),\n  paused_success_count: Number(metricsIn.paused_success_count ?? 0),\n  paused_error_count: Number(metricsIn.paused_error_count ?? 0),\n  expired_unpaused_count: Number(metricsIn.expired_unpaused_count ?? 0),\n  preventive_48h_count: Number(metricsIn.preventive_48h_count ?? 0),\n  duration_ms: Number(metricsIn.duration_ms ?? 0)\n};\n\nconst executionStatus = String(input.execution_status ?? input.status ?? 'unknown').toLowerCase();\nconst isCritical = metrics.expired_unpaused_count > 0;\nconst hasWarnSignals = metrics.preventive_48h_count > 0 || executionStatus !== 'success' || metrics.paused_error_count > 0 || incidents.length > 0;\n\nlet severity = 'INFO';\nif (isCritical) {\n  severity = 'CRITICAL';\n} else if (hasWarnSignals) {\n  severity = 'WARN';\n}\n\nconst correlationId = String(input.correlation_id ?? input.execution_id ?? ('ops-' + Date.now()));\nconst timezone = input.timezone ?? 'America/Argentina/Buenos_Aires';\n\nreturn [{\n  json: {\n    ...input,\n    correlation_id: correlationId,\n    execution_status: executionStatus,\n    timezone,\n    incidents,\n    metrics,\n    notification,\n    derived: {\n      severity,\n      is_critical: isCritical,\n      execution_mode: String(input.execution_mode ?? 'scheduled').toLowerCase(),\n      executed_at: input.executed_at ?? new Date().toISOString()\n    }\n  }\n}];\r\n"
+        },
+        "id": "2",
+        "name": "Normalize_Payload",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          240,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.derived.severity }}",
+                "rightValue": "CRITICAL",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals",
+                  "rightType": "string"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "3",
+        "name": "Is_CriticalAlert",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          480,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "﻿const m = $json.metrics ?? {};\nconst incidents = Array.isArray($json.incidents) ? $json.incidents : [];\n\nconst pausedOk = Number(m.paused_success_count ?? 0);\nconst pausedErr = Number(m.paused_error_count ?? 0);\nconst contractsReviewed = Number(m.contracts_evaluated ?? 0);\nconst durationSec = (Number(m.duration_ms ?? 0) / 1000).toFixed(1);\n\nfunction uniq(values) {\n  return [...new Set(values.filter(Boolean))];\n}\n\nconst incidentInfluencers = incidents\n  .map((it) => String(it?.influencer ?? '').trim())\n  .filter(Boolean);\nconst contextInfluencers = Array.isArray($json.context?.influencers)\n  ? $json.context.influencers.map((x) => String(x || '').trim())\n  : [];\nconst influencers = uniq([...contextInfluencers, ...incidentInfluencers]);\n\nconst expiredInfluencersCount = influencers.length || Number(m.expired_unpaused_count ?? 0);\nconst influencersInline = influencers.length\n  ? ` (${influencers.map((name) => `${name.replace(/^@/, '')}`).join(', ')})`\n  : '';\n\nconst firstFailure = incidents.find((it) => {\n  const code = String(it?.code ?? '').trim();\n  const type = String(it?.type ?? '').toLowerCase();\n  return code || type.includes('error') || type.includes('fail');\n}) ?? incidents[0] ?? {};\n\nconst failureInfluencer = String(firstFailure.influencer ?? '').trim();\nconst failureInfluencerText = failureInfluencer ? ` (Influencer: ${failureInfluencer.replace(/^@/, '')})` : '';\nconst reasonCode = pausedErr > 0 ? String(firstFailure.code ?? 'UNKNOWN_ERROR') : 'SIN_ERRORES_REPORTADOS';\n\nconst executionId = String($json.execution_id ?? 'N/A');\nconst correlationId = String($json.correlation_id ?? 'N/A');\n\nconst telegramText = [\n  '<b>ADSGuardian: ALERTA CRITICA</b>',\n  '',\n  '<b>Resumen de Accion:</b>',\n  `Ads Pausadas: ${pausedOk}`,\n  `Influencers Vencidos: ${expiredInfluencersCount}${influencersInline}`,\n  '',\n  '<b>Estado de errores:</b>',\n  `Fallas al pausar: ${pausedErr} Ad${pausedErr === 1 ? '' : 's'}${failureInfluencerText}`,\n  `Motivo: ${reasonCode}`,\n  '',\n  '<b>Metricas de sesion:</b>',\n  `- Total contratos revisados: ${contractsReviewed}`,\n  `- Duracion: ${durationSec}s`,\n  '',\n  `Scan ID: <code>${executionId}</code>`,\n  `Correlation ID: <code>${correlationId}</code>`\n].join('\\n');\n\nconst slackPayload = {\n  text: 'ADSGuardian: ALERTA CRITICA',\n  blocks: [\n    { type: 'header', text: { type: 'plain_text', text: 'ADSGuardian: ALERTA CRITICA', emoji: false } },\n    {\n      type: 'section',\n      text: {\n        type: 'mrkdwn',\n        text: [\n          '*Resumen de Accion:*',\n          `Ads Pausadas: ${pausedOk}`,\n          `Influencers Vencidos: ${expiredInfluencersCount}${influencersInline}`\n        ].join('\\n')\n      }\n    },\n    {\n      type: 'section',\n      text: {\n        type: 'mrkdwn',\n        text: [\n          '*Estado de errores:*',\n          `Fallas al pausar: ${pausedErr} Ad${pausedErr === 1 ? '' : 's'}${failureInfluencerText}`,\n          `Motivo: ${reasonCode}`\n        ].join('\\n')\n      }\n    },\n    {\n      type: 'section',\n      text: {\n        type: 'mrkdwn',\n        text: [\n          '*Metricas de sesion:*',\n          `- Total contratos revisados: ${contractsReviewed}`,\n          `- Duracion: ${durationSec}s`\n        ].join('\\n')\n      }\n    },\n    {\n      type: 'context',\n      elements: [\n        { type: 'mrkdwn', text: `Scan ID: \\`${executionId}\\` | Correlation: \\`${correlationId}\\`` }\n      ]\n    }\n  ]\n};\n\nreturn [{\n  json: {\n    ...$json,\n    message_text: telegramText,\n    message_slack: slackPayload,\n    message_telegram: telegramText\n  }\n}];\r\n"
+        },
+        "id": "4",
+        "name": "Build_CriticalMessage",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          720,
+          -240
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "﻿const m = $json.metrics ?? {};\nconst incidents = Array.isArray($json.incidents) ? $json.incidents : [];\nconst severity = String($json.derived?.severity ?? 'INFO').toUpperCase();\n\nconst executionId = String($json.execution_id ?? 'N/A');\nconst correlationId = String($json.correlation_id ?? 'N/A');\nconst preventiveCount = Number(m.preventive_48h_count ?? 0);\n\nfunction uniq(values) {\n  return [...new Set(values.filter(Boolean))];\n}\n\nconst contextInfluencers = Array.isArray($json.context?.influencers)\n  ? $json.context.influencers.map((x) => String(x || '').trim())\n  : [];\nconst incidentInfluencers = incidents\n  .map((it) => String(it?.influencer ?? '').trim())\n  .filter(Boolean);\nconst influencers = uniq([...contextInfluencers, ...incidentInfluencers]);\n\nconst influencersTelegram = influencers.length\n  ? influencers.map((name) => `- ${name.replace(/^@/, '')}`).join('\\n')\n  : '- Sin detalle de influencers';\n\nconst influencersSlack = influencers.length\n  ? influencers.map((name) => `- ${name.replace(/^@/, '')}`).join('\\n')\n  : '- Sin detalle de influencers';\n\nconst crmUrl = String($json.context?.crm_url ?? $json.context?.sheet_url ?? '').trim();\nconst telegramLinkLine = crmUrl ? `Ver en CRM/Sheet: ${crmUrl}` : 'Ver en CRM/Sheet';\nconst slackLinkLine = crmUrl ? `<${crmUrl}|Ver en CRM/Sheet>` : 'Ver en CRM/Sheet';\n\nlet telegramText;\nlet slackPayload;\n\nif (severity === 'INFO') {\n  telegramText = [\n    '<b>ADSGuardian: Sistema OK</b>',\n    '',\n    'Estado: Sin novedades.',\n    '',\n    'No se detectaron contratos vencidos ni proximos a vencer.',\n    '',\n    `Scan finalizado | ID: <code>${executionId}</code>`\n  ].join('\\n');\n\n  slackPayload = {\n    text: 'ADSGuardian: Sistema OK',\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: 'ADSGuardian: Sistema OK', emoji: false } },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: [\n            'Estado: Sin novedades.',\n            'No se detectaron contratos vencidos ni proximos a vencer.'\n          ].join('\\n')\n        }\n      },\n      { type: 'context', elements: [{ type: 'mrkdwn', text: `Scan finalizado | ID: \\`${executionId}\\`` }] }\n    ]\n  };\n} else {\n  const contractsAtRisk = preventiveCount > 0 ? preventiveCount : influencers.length;\n\n  telegramText = [\n    '<b>ADSGuardian: Alerta de Vencimiento (48h)</b>',\n    '',\n    `Contratos proximos a expirar: <b>${contractsAtRisk}</b>`,\n    '',\n    '<b>Influencers en riesgo:</b>',\n    influencersTelegram,\n    '',\n    'Tenes 48 horas para renovar el contrato o actualizar la fecha en el sistema para evitar la pausa automatica.',\n    '',\n    telegramLinkLine,\n    '',\n    `Scan finalizado | ID: <code>${executionId}</code>`,\n    `Correlation ID: <code>${correlationId}</code>`\n  ].join('\\n');\n\n  slackPayload = {\n    text: 'ADSGuardian: Alerta de Vencimiento (48h)',\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: 'ADSGuardian: Alerta de Vencimiento (48h)', emoji: false } },\n      { type: 'section', text: { type: 'mrkdwn', text: `*Contratos proximos a expirar:* ${contractsAtRisk}` } },\n      { type: 'section', text: { type: 'mrkdwn', text: `*Influencers en riesgo:*\\n${influencersSlack}` } },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: 'Tenes 48 horas para renovar el contrato o actualizar la fecha en el sistema para evitar la pausa automatica.'\n        }\n      },\n      { type: 'section', text: { type: 'mrkdwn', text: slackLinkLine } },\n      { type: 'context', elements: [{ type: 'mrkdwn', text: `Scan ID: \\`${executionId}\\` | Correlation: \\`${correlationId}\\`` }] }\n    ]\n  };\n}\n\nreturn [{\n  json: {\n    ...$json,\n    message_text: telegramText,\n    message_slack: slackPayload,\n    message_telegram: telegramText\n  }\n}];\r\n"
+        },
+        "id": "5",
+        "name": "Build_InfoWarnMessage",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          720,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.notification.slack.webhook_url }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "6",
+        "name": "Is_SlackChannel",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          960,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.notification.slack.webhook_url }}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $json.message_slack }}",
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "7",
+        "name": "Send_SlackNotification",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1200,
+          -200
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.notification.telegram.bot_token }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "8",
+        "name": "Is_TelegramChannel",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1200,
+          200
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ `https://api.telegram.org/bot${$json.notification.telegram.bot_token}/sendMessage` }}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ { chat_id: $json.notification.telegram.chat_id, text: $json.message_telegram, parse_mode: \"HTML\" } }}",
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "9",
+        "name": "Send_TelegramNotification",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1440,
+          120
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{\n  json: {\n    event: 'ops_notification_channel_error',\n    channel: String($json.notification?.channel ?? 'unknown').toLowerCase(),\n    severity: $json.derived?.severity ?? 'WARN',\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: 'Fallo de env?o de notificaci?n. MVP sin fallback autom?tico entre canales.',\n    timestamp: new Date().toISOString()\n  }\n}];"
+        },
+        "id": "10",
+        "name": "Log_ChannelSendFailure",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1440,
+          -120
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{\n  json: {\n    event: 'ops_notification_sent',\n    channel: 'slack',\n    severity: $json.derived?.severity ?? 'INFO',\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: 'Notificaci?n enviada por Slack.',\n    timestamp: new Date().toISOString()\n  }\n}];"
+        },
+        "id": "11",
+        "name": "Log_SlackSent",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1440,
+          -360
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{\n  json: {\n    event: 'ops_notification_sent',\n    channel: 'telegram',\n    severity: $json.derived?.severity ?? 'INFO',\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: 'Notificaci?n enviada por Telegram.',\n    timestamp: new Date().toISOString()\n  }\n}];"
+        },
+        "id": "12",
+        "name": "Log_TelegramSent",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1680,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{\n  json: {\n    event: 'ops_notification_channel_unsupported',\n    channel: String($json.notification?.channel ?? 'undefined').toLowerCase(),\n    severity: 'ERROR',\n    correlation_id: $json.correlation_id ?? null,\n    execution_id: $json.execution_id ?? null,\n    message: 'Canal no soportado. Solo Slack o Telegram en MVP.',\n    timestamp: new Date().toISOString()\n  }\n}];"
+        },
+        "id": "13",
+        "name": "Log_UnsupportedChannel",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1440,
+          360
+        ]
+      },
+      {
+        "id": "b45c2238-c016-4e99-a52d-92731729b827",
+        "name": "Build OpsLog Row F3",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1680,
+          -120
+        ],
+        "parameters": {
+          "jsCode": "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\n\nconst eventType = String(input.event_type ?? input.event ?? input.action ?? \"ops_notification_event\").trim() || \"ops_notification_event\";\nconst statusRaw = String(input.status ?? input.result ?? \"\").trim();\n\nlet resultValue = statusRaw ? statusRaw.toLowerCase() : \"\";\nif (!resultValue) {\n  if (eventType.includes(\"sent\")) resultValue = \"success\";\n  else if (eventType.includes(\"error\") || eventType.includes(\"unsupported\")) resultValue = \"error\";\n  else resultValue = \"unknown\";\n}\n\nconst executionId = String(\n  input.execution_id\n  ?? input.logical_execution_id\n  ?? input.meta?.execution_id\n  ?? input.execution?.id\n  ?? $execution?.id\n  ?? \"\"\n);\n\nconst channelValue = String(\n  input.channel\n  ?? input.notification?.channel\n  ?? \"\"\n).trim().toLowerCase();\n\nconst severityValue = String(\n  input.severity\n  ?? input.derived?.severity\n  ?? \"\"\n).trim().toUpperCase();\n\nreturn [{\n  json: {\n    execution_id: executionId,\n    correlation_id: String(input.correlation_id ?? \"\"),\n    action: eventType,\n    event_type: eventType,\n    status: resultValue,\n    result: resultValue,\n    channel: channelValue,\n    severity: severityValue,\n    timestamp: String(input.timestamp ?? nowIso),\n    source_workflow: \"ops-reporting-alerts\"\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "db2741a4-fba6-4be4-b291-961bd28cea4f",
+        "name": "GS Append Operations Log F3",
+        "type": "n8n-nodes-base.googleSheets",
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        },
+        "typeVersion": 4.5,
+        "onError": "continueErrorOutput",
+        "parameters": {
+          "sheetName": {
+            "mode": "name",
+            "__rl": true,
+            "value": "Operations_Log"
+          },
+          "columns": {
+            "value": {},
+            "mappingMode": "autoMapInputData",
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "matchingColumns": [],
+            "convertFieldsToString": false
+          },
+          "documentId": {
+            "mode": "id",
+            "__rl": true,
+            "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+          },
+          "authentication": "serviceAccount",
+          "options": {},
+          "operation": "append"
+        },
+        "position": [
+          1920,
+          -120
+        ]
+      },
+      {
+        "id": "8d1db5be-b064-4d75-bc88-1b8d2a8f2f7a",
+        "name": "Build Alert Row F3",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          960,
+          -420
+        ],
+        "parameters": {
+          "jsCode": "const input = $json ?? {};\nconst nowIso = new Date().toISOString();\nconst severity = String(input.severity ?? input.derived?.severity ?? 'CRITICAL').trim().toUpperCase() || 'CRITICAL';\nconst eventType = String(input.event_type ?? input.event ?? input.action ?? 'ops_alert_critical').trim() || 'ops_alert_critical';\nconst correlationId = String(input.correlation_id ?? input.execution_id ?? input.logical_execution_id ?? '').trim();\nconst executionId = String(input.execution_id ?? input.logical_execution_id ?? input.meta?.execution_id ?? '').trim();\nconst contractId = String(input.Contrato_ID ?? input.contract_id ?? input.contractId ?? input.contracto_id ?? input.contract ?? '').trim();\nconst adId = String(input.Ad_ID ?? input.ad_id ?? input.adId ?? '').trim();\nconst motive = String(input.message_text ?? input.message ?? input.derived?.reason ?? input.derived?.alert_reason ?? '').trim() || 'CRITICAL: vencidos sin pausar';\nconst createdAt = String(input.timestamp ?? input.created_at ?? input.derived?.executed_at ?? nowIso);\nconst alertId = String(input.alert_id ?? input.Alerta_ID ?? `${correlationId || executionId || 'ops'}-${Date.now()}`);\n\nreturn [{\n  json: {\n    Alerta_ID: alertId,\n    Severidad: severity,\n    Contrato_ID: contractId,\n    Ad_ID: adId,\n    Motivo: motive,\n    Correlation_ID: correlationId,\n    Creada_At: createdAt,\n    Estado: 'Abierta',\n    source_workflow: 'ops-reporting-alerts',\n    event_type: eventType,\n    execution_id: executionId\n  }\n}];"
+        }
+      },
+      {
+        "id": "8ce24a6f-2f4c-4cf8-8d1f-8f4f4a3c4d2e",
+        "name": "GS Append Alertas F3",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1200,
+          -420
+        ],
+        "credentials": {
+          "googleApi": {
+            "id": "BtY3uGIkB5umd39o",
+            "name": "Google Service Account account"
+          }
+        },
+        "onError": "continueErrorOutput",
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "mode": "id",
+            "__rl": true,
+            "value": "=1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY"
+          },
+          "sheetName": {
+            "mode": "name",
+            "__rl": true,
+            "value": "Alertas"
+          },
+          "columns": {
+            "value": {},
+            "mappingMode": "autoMapInputData",
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "matchingColumns": [],
+            "convertFieldsToString": false
+          },
+          "authentication": "serviceAccount",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Is_TelegramChannel": {
+        "main": [
+          [
+            {
+              "node": "Send_TelegramNotification",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log_UnsupportedChannel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send_TelegramNotification": {
+        "main": [
+          [
+            {
+              "node": "Log_TelegramSent",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log_ChannelSendFailure",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize_InternalExecuteTrigger": {
+        "main": [
+          [
+            {
+              "node": "Normalize_Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build_CriticalMessage": {
+        "main": [
+          [
+            {
+              "node": "Is_SlackChannel",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Is_TelegramChannel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is_SlackChannel": {
+        "main": [
+          [
+            {
+              "node": "Send_SlackNotification",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Normalize_KillSwitchResultWebhook": {
+        "main": [
+          [
+            {
+              "node": "Normalize_Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize_Payload": {
+        "main": [
+          [
+            {
+              "node": "Is_CriticalAlert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is_CriticalAlert": {
+        "main": [
+          [
+            {
+              "node": "Build_CriticalMessage",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build_InfoWarnMessage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build_InfoWarnMessage": {
+        "main": [
+          [
+            {
+              "node": "Is_SlackChannel",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Is_TelegramChannel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send_SlackNotification": {
+        "main": [
+          [
+            {
+              "node": "Log_SlackSent",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log_ChannelSendFailure",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log_SlackSent": {
+        "main": [
+          [
+            {
+              "node": "Build OpsLog Row F3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log_TelegramSent": {
+        "main": [
+          [
+            {
+              "node": "Build OpsLog Row F3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log_ChannelSendFailure": {
+        "main": [
+          [
+            {
+              "node": "Build OpsLog Row F3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log_UnsupportedChannel": {
+        "main": [
+          [
+            {
+              "node": "Build OpsLog Row F3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build OpsLog Row F3": {
+        "main": [
+          [
+            {
+              "node": "GS Append Operations Log F3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Alert Row F3": {
+        "main": [
+          [
+            {
+              "node": "GS Append Alertas F3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alexander Villa",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-19T02:04:21.913Z",
+        "id": 499,
+        "workflowId": "BFHHQwYFfmcpqshb",
+        "versionId": "334f9b9b-296d-4106-a7a0-3dad4e4d687b",
+        "event": "activated",
+        "userId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      },
+      {
+        "createdAt": "2026-04-19T02:04:21.892Z",
+        "id": 498,
+        "workflowId": "BFHHQwYFfmcpqshb",
+        "versionId": "334f9b9b-296d-4106-a7a0-3dad4e4d687b",
+        "event": "deactivated",
+        "userId": "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+      }
+    ]
+  }
+}

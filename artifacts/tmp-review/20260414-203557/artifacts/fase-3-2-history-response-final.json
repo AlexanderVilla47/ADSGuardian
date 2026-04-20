@@ -1,0 +1,18 @@
+﻿{
+    "ok":  true,
+    "action":  "history",
+    "data":  {
+                 "page":  1,
+                 "page_size":  5,
+                 "total":  0,
+                 "items":  [
+
+                           ]
+             },
+    "meta":  {
+                 "correlation_id":  "ak-ui-1776137363021-xs79su",
+                 "execution_id":  "1005",
+                 "actor":  "ops-fase3-2@adskiller",
+                 "timestamp":  "2026-04-14T03:29:22.987Z"
+             }
+}

@@ -1,0 +1,123 @@
+﻿{
+    "timestamp":  "2026-04-13T13:39:25.2756124-03:00",
+    "removedCandidates":  [
+                              {
+                                  "id":  "rpnGFPo0nDthwzdB",
+                                  "reason":  "Replaced by contract-ui-management-v2 cFBr6GavlSWDsUFz",
+                                  "before":  {
+                                                 "name":  "contract-ui-management",
+                                                 "active":  false,
+                                                 "isArchived":  false,
+                                                 "updatedAt":  "2026-04-13T15:30:30.136Z"
+                                             },
+                                  "backupFile":  "workflows/legacy/contract-ui-management-rpnGFPo0nDthwzdB.json",
+                                  "deactivated":  false,
+                                  "deleted":  true,
+                                  "error":  null
+                              },
+                              {
+                                  "id":  "pRQpzxtljw1l87FA",
+                                  "reason":  "Intermediate v2-clean superseded by cFBr6GavlSWDsUFz",
+                                  "before":  {
+                                                 "name":  "contract-ui-management-v2-clean",
+                                                 "active":  false,
+                                                 "isArchived":  false,
+                                                 "updatedAt":  "2026-04-13T16:23:21.714Z"
+                                             },
+                                  "backupFile":  "workflows/legacy/contract-ui-management-v2-clean-pRQpzxtljw1l87FA.json",
+                                  "deactivated":  false,
+                                  "deleted":  true,
+                                  "error":  null
+                              },
+                              {
+                                  "id":  "kCUaiNxwRxJMVqMg",
+                                  "reason":  "Temporary diagnose workflow; no executions",
+                                  "before":  {
+                                                 "name":  "tmp-diagnose-1776094043",
+                                                 "active":  false,
+                                                 "isArchived":  false,
+                                                 "updatedAt":  "2026-04-13T15:27:26.498Z"
+                                             },
+                                  "backupFile":  "workflows/legacy/tmp-diagnose-1776094043-kCUaiNxwRxJMVqMg.json",
+                                  "deactivated":  false,
+                                  "deleted":  true,
+                                  "error":  null
+                              },
+                              {
+                                  "id":  "OcDla9dvpqVD6GPi",
+                                  "reason":  "Ad-hoc Test Minimal Code; no executions and not referenced",
+                                  "before":  {
+                                                 "name":  "Test Minimal Code",
+                                                 "active":  false,
+                                                 "isArchived":  false,
+                                                 "updatedAt":  "2026-04-13T04:42:24.632Z"
+                                             },
+                                  "backupFile":  "workflows/legacy/Test_Minimal_Code-OcDla9dvpqVD6GPi.json",
+                                  "deactivated":  false,
+                                  "deleted":  true,
+                                  "error":  null
+                              }
+                          ],
+    "remaining":  [
+                      {
+                          "id":  "8mlwAxLtJVrwpLhi",
+                          "name":  "AdsKiller - Contract Guard Daily KillSwitch (MVP)",
+                          "active":  true,
+                          "isArchived":  false
+                      },
+                      {
+                          "id":  "ZRxVKfftZHGN6Rnz",
+                          "name":  "AdsKiller - Contract Guard Daily KillSwitch (MVP)",
+                          "active":  false,
+                          "isArchived":  true
+                      },
+                      {
+                          "id":  "YKJI902TH3uIeJHD",
+                          "name":  "AdsKiller - Mock Alerts Receiver",
+                          "active":  true,
+                          "isArchived":  false
+                      },
+                      {
+                          "id":  "ieZILRoCLEHhdsMU",
+                          "name":  "AdsKiller - Ops Reporting \u0026 Alerts (MVP)",
+                          "active":  false,
+                          "isArchived":  true
+                      },
+                      {
+                          "id":  "63RDOLNdvX1uejg7",
+                          "name":  "AdsKiller - Ops Reporting \u0026 Alerts (MVP)",
+                          "active":  false,
+                          "isArchived":  true
+                      },
+                      {
+                          "id":  "BFHHQwYFfmcpqshb",
+                          "name":  "AdsKiller - Ops Reporting \u0026 Alerts (MVP)",
+                          "active":  true,
+                          "isArchived":  false
+                      },
+                      {
+                          "id":  "cFBr6GavlSWDsUFz",
+                          "name":  "contract-ui-management-v2",
+                          "active":  true,
+                          "isArchived":  false
+                      },
+                      {
+                          "id":  "1EWPDPAhHH8sbirv",
+                          "name":  "Meta Ads Dashboard ETL",
+                          "active":  false,
+                          "isArchived":  true
+                      },
+                      {
+                          "id":  "bxk5NRGxQXkETIuI",
+                          "name":  "Meta Ads Dashboard Webhook",
+                          "active":  false,
+                          "isArchived":  true
+                      },
+                      {
+                          "id":  "gJEXlpZXuFY0vjZn",
+                          "name":  "Prueba",
+                          "active":  false,
+                          "isArchived":  true
+                      }
+                  ]
+}

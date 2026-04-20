@@ -1,0 +1,449 @@
+﻿{
+    "updatedAt":  "2026-04-08T02:25:08.364Z",
+    "createdAt":  "2026-04-06T03:44:21.699Z",
+    "id":  "YKJI902TH3uIeJHD",
+    "name":  "AdsKiller - Mock Alerts Receiver",
+    "description":  null,
+    "active":  true,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "path":  "meta/precheck/:adId",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "28fea687-17ec-4b52-b032-c24db00d2f52",
+                      "name":  "Mock Meta Precheck Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1792,
+                                       -368
+                                   ],
+                      "webhookId":  "adskiller-local-meta-precheck"
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const query = $json.query ?? {};\nconst body = $json.body ?? {};\nconst params = $json.params ?? {};\nfunction pick(...values) {\n  for (const value of values) {\n    if (value !== undefined \u0026\u0026 value !== null \u0026\u0026 String(value).trim() !== \u0027\u0027) return value;\n  }\n  return undefined;\n}\nfunction asNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\nconst adId = String(pick(params.adId, query.ad_id, body.ad_id, \u0027mock_ad_001\u0027)).trim();\nconst scenario = String(pick(query.scenario, body.scenario, \u0027success\u0027)).trim().toLowerCase();\nconst forcedStatus = asNumber(\n  pick(query.statusCode, query.status_code, body.statusCode, body.status_code)\n);\nlet statusCode = 200;\nif (forcedStatus !== null) statusCode = forcedStatus;\nelse if (scenario === \u0027retry429\u0027) statusCode = 429;\nelse if (scenario === \u0027retry500\u0027) statusCode = 500;\nelse if (scenario === \u0027fail400\u0027) statusCode = 400;\nlet effectiveStatus = String(\n  pick(query.effective_status, body.effective_status, \u0027ACTIVE\u0027)\n).trim().toUpperCase();\nif (scenario === \u0027inactive\u0027) effectiveStatus = \u0027PAUSED\u0027;\n// CLAVE: default name que matchea tu regex black\\\\s*friday\nlet name = String(\n  pick(query.name, body.name, \u0027Black Friday Teaser\u0027)\n).trim();\nif (scenario === \u0027name_mismatch\u0027) name = `UNMATCHED_${adId}`;\nconst successBody = {\n  id: adId,\n  name,\n  effective_status: effectiveStatus\n};\nconst errorBody = {\n  error: {\n    message: `Mock Meta precheck scenario=${scenario}`,\n    code: statusCode\n  },\n  ...successBody\n};\nreturn [{\n  json: {\n    statusCode,\n    body: statusCode \u003e= 200 \u0026\u0026 statusCode \u003c 300 ? successBody : errorBody,\n    scenario\n  }\n}];"
+                                     },
+                      "id":  "8f62c25e-302d-4b64-b403-9a429a1cb7ed",
+                      "name":  "Build Precheck Mock Response",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2032,
+                                       -368
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{$json.body}}",
+                                         "options":  {
+                                                         "responseCode":  "={{$json.statusCode}}"
+                                                     }
+                                     },
+                      "id":  "31dbd86e-2140-45c0-8af7-78a769c8927e",
+                      "name":  "Respond Precheck",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       2272,
+                                       -368
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "meta/pause/:adId",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "fa8d2abf-5b3d-4b57-a44e-f637e47674e3",
+                      "name":  "Mock Meta Pause Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1792,
+                                       -128
+                                   ],
+                      "webhookId":  "adskiller-local-meta-pause"
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const query = $json.query ?? {};\nconst body = $json.body ?? {};\nconst params = $json.params ?? {};\nfunction pick(...values) {\n  for (const value of values) {\n    if (value !== undefined \u0026\u0026 value !== null \u0026\u0026 String(value).trim() !== \u0027\u0027) return value;\n  }\n  return undefined;\n}\nfunction asNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\nconst adId = String(pick(params.adId, query.ad_id, body.ad_id, \u0027mock_ad_001\u0027)).trim();\nconst scenario = String(pick(query.scenario, body.scenario, \u0027success\u0027)).trim().toLowerCase();\nconst forcedStatus = asNumber(\n  pick(query.statusCode, query.status_code, body.statusCode, body.status_code)\n);\nlet statusCode = 200;\nif (forcedStatus !== null) statusCode = forcedStatus;\nelse if (scenario === \u0027retry429\u0027) statusCode = 429;\nelse if (scenario === \u0027retry500\u0027) statusCode = 500;\nelse if (scenario === \u0027fail400\u0027) statusCode = 400;\nconst ok = statusCode \u003e= 200 \u0026\u0026 statusCode \u003c 300;\nconst successBody = {\n  success: true,\n  id: adId\n};\nconst errorBody = {\n  success: false,\n  id: adId,\n  error: {\n    message: `Mock Meta pause scenario=${scenario}`,\n    code: statusCode\n  }\n};\nreturn [{\n  json: {\n    statusCode,\n    body: ok ? successBody : errorBody,\n    scenario\n  }\n}];"
+                                     },
+                      "id":  "d91c1db1-39f4-45e8-8d06-01b6923807dd",
+                      "name":  "Build Pause Mock Response",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2032,
+                                       -128
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{$json.body}}",
+                                         "options":  {
+                                                         "responseCode":  "={{$json.statusCode}}"
+                                                     }
+                                     },
+                      "id":  "e41d4c25-2688-4342-ab1e-6fe15ccc8ff6",
+                      "name":  "Respond Pause",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       2272,
+                                       -128
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "mock/alerts",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "8be9da14-4743-41c8-9e20-8e55cef277c3",
+                      "name":  "Mock Alerts Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1792,
+                                       112
+                                   ],
+                      "webhookId":  "adskiller-mock-alerts-receiver"
+                  },
+                  {
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ { ok: true } }}",
+                                         "options":  {
+                                                         "responseCode":  200
+                                                     }
+                                     },
+                      "id":  "15a4674b-3c04-41a7-b295-8529fdcd899a",
+                      "name":  "Respond OK",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       2032,
+                                       112
+                                   ]
+                  }
+              ],
+    "connections":  {
+                        "Mock Meta Precheck Webhook":  {
+                                                           "main":  [
+                                                                        [
+                                                                            {
+                                                                                "node":  "Build Precheck Mock Response",
+                                                                                "type":  "main",
+                                                                                "index":  0
+                                                                            }
+                                                                        ]
+                                                                    ]
+                                                       },
+                        "Build Precheck Mock Response":  {
+                                                             "main":  [
+                                                                          [
+                                                                              {
+                                                                                  "node":  "Respond Precheck",
+                                                                                  "type":  "main",
+                                                                                  "index":  0
+                                                                              }
+                                                                          ]
+                                                                      ]
+                                                         },
+                        "Mock Meta Pause Webhook":  {
+                                                        "main":  [
+                                                                     [
+                                                                         {
+                                                                             "node":  "Build Pause Mock Response",
+                                                                             "type":  "main",
+                                                                             "index":  0
+                                                                         }
+                                                                     ]
+                                                                 ]
+                                                    },
+                        "Build Pause Mock Response":  {
+                                                          "main":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "Respond Pause",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                                      },
+                        "Mock Alerts Webhook":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Respond OK",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate",
+                     "availableInMCP":  false
+                 },
+    "staticData":  null,
+    "meta":  null,
+    "pinData":  {
+
+                },
+    "versionId":  "3121837f-c32c-4ba0-aa33-2ece273629e6",
+    "activeVersionId":  "3121837f-c32c-4ba0-aa33-2ece273629e6",
+    "versionCounter":  26,
+    "triggerCount":  3,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-04-06T03:44:21.702Z",
+                       "createdAt":  "2026-04-06T03:44:21.702Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "YKJI902TH3uIeJHD",
+                       "projectId":  "Z0pgCY9RJ5VJF6JD",
+                       "project":  {
+                                       "updatedAt":  "2026-03-13T00:12:04.657Z",
+                                       "createdAt":  "2026-03-13T00:09:47.440Z",
+                                       "id":  "Z0pgCY9RJ5VJF6JD",
+                                       "name":  "Alexander Villa \u003calexandervilla.cuenta@gmail.com\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  {
+                          "updatedAt":  "2026-04-08T14:51:50.000Z",
+                          "createdAt":  "2026-04-08T02:25:08.365Z",
+                          "versionId":  "3121837f-c32c-4ba0-aa33-2ece273629e6",
+                          "workflowId":  "YKJI902TH3uIeJHD",
+                          "nodes":  [
+                                        {
+                                            "parameters":  {
+                                                               "path":  "meta/precheck/:adId",
+                                                               "responseMode":  "responseNode",
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "28fea687-17ec-4b52-b032-c24db00d2f52",
+                                            "name":  "Mock Meta Precheck Webhook",
+                                            "type":  "n8n-nodes-base.webhook",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             1792,
+                                                             -368
+                                                         ],
+                                            "webhookId":  "adskiller-local-meta-precheck"
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "jsCode":  "const query = $json.query ?? {};\nconst body = $json.body ?? {};\nconst params = $json.params ?? {};\nfunction pick(...values) {\n  for (const value of values) {\n    if (value !== undefined \u0026\u0026 value !== null \u0026\u0026 String(value).trim() !== \u0027\u0027) return value;\n  }\n  return undefined;\n}\nfunction asNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\nconst adId = String(pick(params.adId, query.ad_id, body.ad_id, \u0027mock_ad_001\u0027)).trim();\nconst scenario = String(pick(query.scenario, body.scenario, \u0027success\u0027)).trim().toLowerCase();\nconst forcedStatus = asNumber(\n  pick(query.statusCode, query.status_code, body.statusCode, body.status_code)\n);\nlet statusCode = 200;\nif (forcedStatus !== null) statusCode = forcedStatus;\nelse if (scenario === \u0027retry429\u0027) statusCode = 429;\nelse if (scenario === \u0027retry500\u0027) statusCode = 500;\nelse if (scenario === \u0027fail400\u0027) statusCode = 400;\nlet effectiveStatus = String(\n  pick(query.effective_status, body.effective_status, \u0027ACTIVE\u0027)\n).trim().toUpperCase();\nif (scenario === \u0027inactive\u0027) effectiveStatus = \u0027PAUSED\u0027;\n// CLAVE: default name que matchea tu regex black\\\\s*friday\nlet name = String(\n  pick(query.name, body.name, \u0027Black Friday Teaser\u0027)\n).trim();\nif (scenario === \u0027name_mismatch\u0027) name = `UNMATCHED_${adId}`;\nconst successBody = {\n  id: adId,\n  name,\n  effective_status: effectiveStatus\n};\nconst errorBody = {\n  error: {\n    message: `Mock Meta precheck scenario=${scenario}`,\n    code: statusCode\n  },\n  ...successBody\n};\nreturn [{\n  json: {\n    statusCode,\n    body: statusCode \u003e= 200 \u0026\u0026 statusCode \u003c 300 ? successBody : errorBody,\n    scenario\n  }\n}];"
+                                                           },
+                                            "id":  "8f62c25e-302d-4b64-b403-9a429a1cb7ed",
+                                            "name":  "Build Precheck Mock Response",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             2032,
+                                                             -368
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "respondWith":  "json",
+                                                               "responseBody":  "={{$json.body}}",
+                                                               "options":  {
+                                                                               "responseCode":  "={{$json.statusCode}}"
+                                                                           }
+                                                           },
+                                            "id":  "31dbd86e-2140-45c0-8af7-78a769c8927e",
+                                            "name":  "Respond Precheck",
+                                            "type":  "n8n-nodes-base.respondToWebhook",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             2272,
+                                                             -368
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "httpMethod":  "POST",
+                                                               "path":  "meta/pause/:adId",
+                                                               "responseMode":  "responseNode",
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "fa8d2abf-5b3d-4b57-a44e-f637e47674e3",
+                                            "name":  "Mock Meta Pause Webhook",
+                                            "type":  "n8n-nodes-base.webhook",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             1792,
+                                                             -128
+                                                         ],
+                                            "webhookId":  "adskiller-local-meta-pause"
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "jsCode":  "const query = $json.query ?? {};\nconst body = $json.body ?? {};\nconst params = $json.params ?? {};\nfunction pick(...values) {\n  for (const value of values) {\n    if (value !== undefined \u0026\u0026 value !== null \u0026\u0026 String(value).trim() !== \u0027\u0027) return value;\n  }\n  return undefined;\n}\nfunction asNumber(value) {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n}\nconst adId = String(pick(params.adId, query.ad_id, body.ad_id, \u0027mock_ad_001\u0027)).trim();\nconst scenario = String(pick(query.scenario, body.scenario, \u0027success\u0027)).trim().toLowerCase();\nconst forcedStatus = asNumber(\n  pick(query.statusCode, query.status_code, body.statusCode, body.status_code)\n);\nlet statusCode = 200;\nif (forcedStatus !== null) statusCode = forcedStatus;\nelse if (scenario === \u0027retry429\u0027) statusCode = 429;\nelse if (scenario === \u0027retry500\u0027) statusCode = 500;\nelse if (scenario === \u0027fail400\u0027) statusCode = 400;\nconst ok = statusCode \u003e= 200 \u0026\u0026 statusCode \u003c 300;\nconst successBody = {\n  success: true,\n  id: adId\n};\nconst errorBody = {\n  success: false,\n  id: adId,\n  error: {\n    message: `Mock Meta pause scenario=${scenario}`,\n    code: statusCode\n  }\n};\nreturn [{\n  json: {\n    statusCode,\n    body: ok ? successBody : errorBody,\n    scenario\n  }\n}];"
+                                                           },
+                                            "id":  "d91c1db1-39f4-45e8-8d06-01b6923807dd",
+                                            "name":  "Build Pause Mock Response",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             2032,
+                                                             -128
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "respondWith":  "json",
+                                                               "responseBody":  "={{$json.body}}",
+                                                               "options":  {
+                                                                               "responseCode":  "={{$json.statusCode}}"
+                                                                           }
+                                                           },
+                                            "id":  "e41d4c25-2688-4342-ab1e-6fe15ccc8ff6",
+                                            "name":  "Respond Pause",
+                                            "type":  "n8n-nodes-base.respondToWebhook",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             2272,
+                                                             -128
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "httpMethod":  "POST",
+                                                               "path":  "mock/alerts",
+                                                               "responseMode":  "responseNode",
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "8be9da14-4743-41c8-9e20-8e55cef277c3",
+                                            "name":  "Mock Alerts Webhook",
+                                            "type":  "n8n-nodes-base.webhook",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             1792,
+                                                             112
+                                                         ],
+                                            "webhookId":  "adskiller-mock-alerts-receiver"
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "respondWith":  "json",
+                                                               "responseBody":  "={{ { ok: true } }}",
+                                                               "options":  {
+                                                                               "responseCode":  200
+                                                                           }
+                                                           },
+                                            "id":  "15a4674b-3c04-41a7-b295-8529fdcd899a",
+                                            "name":  "Respond OK",
+                                            "type":  "n8n-nodes-base.respondToWebhook",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             2032,
+                                                             112
+                                                         ]
+                                        }
+                                    ],
+                          "connections":  {
+                                              "Mock Meta Precheck Webhook":  {
+                                                                                 "main":  [
+                                                                                              [
+                                                                                                  {
+                                                                                                      "node":  "Build Precheck Mock Response",
+                                                                                                      "type":  "main",
+                                                                                                      "index":  0
+                                                                                                  }
+                                                                                              ]
+                                                                                          ]
+                                                                             },
+                                              "Build Precheck Mock Response":  {
+                                                                                   "main":  [
+                                                                                                [
+                                                                                                    {
+                                                                                                        "node":  "Respond Precheck",
+                                                                                                        "type":  "main",
+                                                                                                        "index":  0
+                                                                                                    }
+                                                                                                ]
+                                                                                            ]
+                                                                               },
+                                              "Mock Meta Pause Webhook":  {
+                                                                              "main":  [
+                                                                                           [
+                                                                                               {
+                                                                                                   "node":  "Build Pause Mock Response",
+                                                                                                   "type":  "main",
+                                                                                                   "index":  0
+                                                                                               }
+                                                                                           ]
+                                                                                       ]
+                                                                          },
+                                              "Build Pause Mock Response":  {
+                                                                                "main":  [
+                                                                                             [
+                                                                                                 {
+                                                                                                     "node":  "Respond Pause",
+                                                                                                     "type":  "main",
+                                                                                                     "index":  0
+                                                                                                 }
+                                                                                             ]
+                                                                                         ]
+                                                                            },
+                                              "Mock Alerts Webhook":  {
+                                                                          "main":  [
+                                                                                       [
+                                                                                           {
+                                                                                               "node":  "Respond OK",
+                                                                                               "type":  "main",
+                                                                                               "index":  0
+                                                                                           }
+                                                                                       ]
+                                                                                   ]
+                                                                      }
+                                          },
+                          "authors":  "Alexander Villa",
+                          "name":  "Version 3121837f",
+                          "description":  "",
+                          "autosaved":  true,
+                          "workflowPublishHistory":  [
+                                                         {
+                                                             "createdAt":  "2026-04-08T14:51:50.434Z",
+                                                             "id":  75,
+                                                             "workflowId":  "YKJI902TH3uIeJHD",
+                                                             "versionId":  "3121837f-c32c-4ba0-aa33-2ece273629e6",
+                                                             "event":  "activated",
+                                                             "userId":  "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+                                                         }
+                                                     ]
+                      }
+}

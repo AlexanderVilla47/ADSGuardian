@@ -60,6 +60,25 @@ UI Management ──(contratos + extensiones)──> Contratos vigentes
 - **Clasificación de severidad** para operación: `INFO | WARN | ERROR | CRITICAL`.
 - **Métricas mínimas obligatorias** en cada ejecución para monitoreo y auditoría.
 
+### 2.4 Cadena interna `Execute Workflow` (producción)
+
+Se establece como ruta interna primaria para producción:
+
+```text
+F1 contract-ui-management-v2 (cFBr6GavlSWDsUFz)
+  -> Execute Workflow interno
+F2 contract-guard-daily-killswitch (8mlwAxLtJVrwpLhi)
+  -> Execute Workflow interno
+F3 ops-reporting-alerts (BFHHQwYFfmcpqshb)
+```
+
+Reglas operativas de esta cadena:
+
+- F1 construye payload canónico y propaga `correlation_id` + `logical_execution_id` para idempotencia básica.
+- F2 normaliza resumen canónico de resultado antes de disparar F3.
+- F2 y F3 mantienen triggers actuales (manual/scheduler/webhook) como fallback operativo.
+- Errores de encadenamiento interno se registran en logs estructurados con `correlation_id`, `logical_execution_id`, `source_workflow`, `target_workflow_id`, `status` y `timestamp`.
+
 ---
 
 ## 3) Contrato de payload compartido (kill-switch -> reporting)
