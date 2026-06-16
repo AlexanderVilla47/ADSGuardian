@@ -1,6 +1,7 @@
 # Workflow Status (n8n + repo)
 
 Last cleanup: 2026-04-13 (America/Argentina/Buenos_Aires)
+Last sync verification: 2026-06-16 — all canonical files match live n8n (ops-reporting differs only by redacted secrets, by design).
 
 ## Canonical active workflows
 
@@ -8,6 +9,7 @@ Last cleanup: 2026-04-13 (America/Argentina/Buenos_Aires)
 - `8mlwAxLtJVrwpLhi` -> `workflows/contract-guard-daily-killswitch.json`
 - `BFHHQwYFfmcpqshb` -> `workflows/ops-reporting-alerts.json`
 - `YKJI902TH3uIeJHD` -> `workflows/mock-alerts-receiver.json`
+- `JwVHYsLLnoVMgvyI` -> `workflows/meta-api-mock-gsheet.json` (promoted from non-canonical 2026-06-16; uses n8n credential refs, no inline secrets)
 
 ## Non-canonical organization
 

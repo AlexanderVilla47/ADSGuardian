@@ -1,0 +1,1072 @@
+﻿{
+    "updatedAt":  "2026-04-19T19:12:35.708Z",
+    "createdAt":  "2026-04-16T00:41:00.940Z",
+    "id":  "JwVHYsLLnoVMgvyI",
+    "name":  "AdsKiller - Meta API Mock (GSheet-backed)",
+    "description":  null,
+    "active":  true,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "id":  "precheck-webhook",
+                      "name":  "Mock Precheck Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -600,
+                                       -200
+                                   ],
+                      "parameters":  {
+                                         "httpMethod":  "GET",
+                                         "path":  "adskiller-meta-precheck",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "webhookId":  "ak-meta-precheck-v1"
+                  },
+                  {
+                      "id":  "precheck-extract-id",
+                      "name":  "Precheck - Extract Ad ID",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -380,
+                                       -200
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const q = $json.query ?? {};\nconst adId = String(q.ad_id ?? q.adId ?? \"\").trim();\nif (!adId) throw new Error(\"ad_id query param required\");\nreturn [{ json: { adId } }];"
+                                     }
+                  },
+                  {
+                      "id":  "precheck-gs-read",
+                      "name":  "Precheck - GS Read Mock_Ads",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       -160,
+                                       -200
+                                   ],
+                      "parameters":  {
+                                         "authentication":  "serviceAccount",
+                                         "resource":  "sheet",
+                                         "operation":  "read",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                            "mode":  "id"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "Mock_Ads",
+                                                           "mode":  "name"
+                                                       },
+                                         "options":  {
+                                                         "returnAll":  true
+                                                     }
+                                     },
+                      "credentials":  {
+                                          "googleApi":  {
+                                                            "id":  "BtY3uGIkB5umd39o",
+                                                            "name":  "Google Service Account account"
+                                                        }
+                                      }
+                  },
+                  {
+                      "id":  "precheck-build-response",
+                      "name":  "Precheck - Build Response",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       60,
+                                       -200
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const adId = $(\u0027Precheck - Extract Ad ID\u0027).item.json.adId;\nconst rows = $input.all();\n\n// Test patterns\nif (adId.startsWith(\u0027AD-NON-ACTIVE-\u0027)) {\n  return [{ json: { statusCode: 200, body: { id: adId, name: \u0027Test Ad (Non-Active)\u0027,\n    status: \u0027PAUSED\u0027, effective_status: \u0027PAUSED\u0027 } } }];\n}\nif (adId.startsWith(\u0027AD-RETRY-\u0027)) {\n  return [{ json: { statusCode: 200, body: { id: adId, name: \u0027Test Ad (Retry)\u0027,\n    status: \u0027ACTIVE\u0027, effective_status: \u0027ACTIVE\u0027 } } }];\n}\n\n// GSheet lookup\nconst match = rows.find(r =\u003e r.json.ad_id === adId);\nif (!match) {\n  return [{ json: { statusCode: 200, body: { id: adId, name: \u0027Test Ad \u0027 + adId,\n    status: \u0027ACTIVE\u0027, effective_status: \u0027ACTIVE\u0027 } } }];\n}\nconst row = match.json;\nreturn [{ json: { statusCode: 200, body: {\n  id: row.ad_id, name: row.ad_name, status: row.status, effective_status: row.status\n} } }];"
+                                     }
+                  },
+                  {
+                      "id":  "precheck-respond",
+                      "name":  "Precheck - Respond",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       280,
+                                       -200
+                                   ],
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ $json.body }}",
+                                         "options":  {
+                                                         "responseCode":  "={{ $json.statusCode }}"
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "pause-webhook",
+                      "name":  "Mock Pause Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -600,
+                                       100
+                                   ],
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "adskiller-meta-pause",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "webhookId":  "ak-meta-pause-v1"
+                  },
+                  {
+                      "id":  "pause-extract-id",
+                      "name":  "Pause - Extract Ad ID",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -380,
+                                       100
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const body = $json.body ?? $json;\nconst adId = String(body.ad_id ?? body.adId ?? \"\").trim();\nif (!adId) throw new Error(\"ad_id required\");\nreturn [{ json: { adId } }];"
+                                     }
+                  },
+                  {
+                      "id":  "pause-gs-update",
+                      "name":  "Pause - GS Update Status PAUSED",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       60,
+                                       100
+                                   ],
+                      "parameters":  {
+                                         "authentication":  "serviceAccount",
+                                         "resource":  "sheet",
+                                         "operation":  "appendOrUpdate",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                            "mode":  "id"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "Mock_Ads",
+                                                           "mode":  "name"
+                                                       },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "ad_id":  "={{ $(\u0027Pause - Extract Ad ID\u0027).item.json.adId }}",
+                                                                       "status":  "PAUSED"
+                                                                   },
+                                                         "matchingColumns":  [
+                                                                                 "ad_id"
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "id":  "ad_id",
+                                                                            "displayName":  "ad_id",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  true,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "ad_name",
+                                                                            "displayName":  "ad_name",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "status",
+                                                                            "displayName":  "status",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "campaign_name",
+                                                                            "displayName":  "campaign_name",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  false
+                                                                        }
+                                                                    ]
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "credentials":  {
+                                          "googleApi":  {
+                                                            "id":  "BtY3uGIkB5umd39o",
+                                                            "name":  "Google Service Account account"
+                                                        }
+                                      }
+                  },
+                  {
+                      "id":  "pause-build-response",
+                      "name":  "Pause - Build Response",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       280,
+                                       100
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const src = $(\u0027Pause - Extract Ad ID\u0027).item.json;\nconst adId = src.adId;\nconst rows = $input.all();\n\n// AD-RETRY-* returns 429 (rate limit)\nif (adId.startsWith(\u0027AD-RETRY-\u0027)) {\n  return [{ json: { statusCode: 429, body: { error: { message: \u0027Rate limit exceeded\u0027, code: 4 } } } }];\n}\n\n// Normal path: pause success\nreturn [{ json: { statusCode: 200, body: { success: true, id: adId } } }];"
+                                     }
+                  },
+                  {
+                      "id":  "pause-respond",
+                      "name":  "Pause - Respond",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       500,
+                                       100
+                                   ],
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ { success: true, id: $(\u0027Pause - Extract Ad ID\u0027).item.json.adId } }}",
+                                         "options":  {
+                                                         "responseCode":  "={{ $json.statusCode }}"
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "list-webhook",
+                      "name":  "Mock List Ads Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -600,
+                                       400
+                                   ],
+                      "parameters":  {
+                                         "httpMethod":  "GET",
+                                         "path":  "ak-meta-list-v1",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "webhookId":  "ak-meta-list-v1"
+                  },
+                  {
+                      "id":  "list-gs-read-all",
+                      "name":  "List - GS Read All Mock_Ads",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       -380,
+                                       400
+                                   ],
+                      "parameters":  {
+                                         "authentication":  "serviceAccount",
+                                         "resource":  "sheet",
+                                         "operation":  "read",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                            "mode":  "id"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "Mock_Ads",
+                                                           "mode":  "name"
+                                                       },
+                                         "filtersUI":  {
+
+                                                       },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "credentials":  {
+                                          "googleApi":  {
+                                                            "id":  "BtY3uGIkB5umd39o",
+                                                            "name":  "Google Service Account account"
+                                                        }
+                                      }
+                  },
+                  {
+                      "id":  "list-filter-respond",
+                      "name":  "List - Filter by Pattern \u0026 Build Response",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -160,
+                                       400
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const pattern = String($(\u0027Mock List Ads Webhook\u0027).item.json.query?.pattern ?? \u0027\u0027).trim();\nconst allRows = $input.all();\nlet filtered = allRows;\nif (pattern) {\n  try {\n    const regex = new RegExp(pattern, \u0027i\u0027);\n    filtered = allRows.filter(item =\u003e regex.test(item.json.ad_name ?? \u0027\u0027));\n  } catch (e) { filtered = []; }\n}\nconst data = filtered.map(item =\u003e ({ id: item.json.ad_id, name: item.json.ad_name, status: item.json.status, effective_status: item.json.status, campaign_name: item.json.campaign_name ?? \u0027\u0027 }));\nreturn [{ json: { statusCode: 200, body: { data, paging: { cursors: { before: \u0027\u0027, after: \u0027\u0027 } } } } }];"
+                                     }
+                  },
+                  {
+                      "id":  "list-respond",
+                      "name":  "List - Respond",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       60,
+                                       400
+                                   ],
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ $json.body }}",
+                                         "options":  {
+                                                         "responseCode":  "={{ $json.statusCode }}"
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "pause-should-update-gsheet",
+                      "name":  "Pause - Should Update GSheet",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -140,
+                                       100
+                                   ],
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  false,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict"
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "leftValue":  "={{ $json.statusCode }}",
+                                                                                   "rightValue":  200,
+                                                                                   "operator":  {
+                                                                                                    "type":  "number",
+                                                                                                    "operation":  "equals"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        }
+                                     }
+                  }
+              ],
+    "connections":  {
+                        "Mock Precheck Webhook":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Precheck - Extract Ad ID",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  },
+                        "Precheck - Extract Ad ID":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "Precheck - GS Read Mock_Ads",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     },
+                        "Precheck - GS Read Mock_Ads":  {
+                                                            "main":  [
+                                                                         [
+                                                                             {
+                                                                                 "node":  "Precheck - Build Response",
+                                                                                 "type":  "main",
+                                                                                 "index":  0
+                                                                             }
+                                                                         ]
+                                                                     ]
+                                                        },
+                        "Precheck - Build Response":  {
+                                                          "main":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "Precheck - Respond",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                                      },
+                        "Mock Pause Webhook":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Pause - Extract Ad ID",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Pause - Extract Ad ID":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Pause - Build Response",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  },
+                        "Pause - GS Update Status PAUSED":  {
+                                                                "main":  [
+                                                                             [
+                                                                                 {
+                                                                                     "node":  "Pause - Respond",
+                                                                                     "type":  "main",
+                                                                                     "index":  0
+                                                                                 }
+                                                                             ]
+                                                                         ]
+                                                            },
+                        "Pause - Build Response":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Pause - Should Update GSheet",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Mock List Ads Webhook":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "List - GS Read All Mock_Ads",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  },
+                        "List - GS Read All Mock_Ads":  {
+                                                            "main":  [
+                                                                         [
+                                                                             {
+                                                                                 "node":  "List - Filter by Pattern \u0026 Build Response",
+                                                                                 "type":  "main",
+                                                                                 "index":  0
+                                                                             }
+                                                                         ]
+                                                                     ]
+                                                        },
+                        "List - Filter by Pattern \u0026 Build Response":  {
+                                                                               "main":  [
+                                                                                            [
+                                                                                                {
+                                                                                                    "node":  "List - Respond",
+                                                                                                    "type":  "main",
+                                                                                                    "index":  0
+                                                                                                }
+                                                                                            ]
+                                                                                        ]
+                                                                           },
+                        "Pause - Should Update GSheet":  {
+                                                             "main":  [
+                                                                          [
+                                                                              {
+                                                                                  "node":  "Pause - GS Update Status PAUSED",
+                                                                                  "type":  "main",
+                                                                                  "index":  0
+                                                                              }
+                                                                          ],
+                                                                          [
+                                                                              {
+                                                                                  "node":  "Pause - Respond",
+                                                                                  "type":  "main",
+                                                                                  "index":  0
+                                                                              }
+                                                                          ]
+                                                                      ]
+                                                         }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "saveManualExecutions":  true,
+                     "saveDataSuccessExecution":  "all",
+                     "saveDataErrorExecution":  "all",
+                     "callerPolicy":  "workflowsFromSameOwner",
+                     "availableInMCP":  false
+                 },
+    "staticData":  null,
+    "meta":  null,
+    "pinData":  null,
+    "versionId":  "a49ae248-75ab-4644-a6f7-1650e324a887",
+    "activeVersionId":  "a49ae248-75ab-4644-a6f7-1650e324a887",
+    "versionCounter":  60,
+    "triggerCount":  3,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-04-16T00:41:00.941Z",
+                       "createdAt":  "2026-04-16T00:41:00.941Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "JwVHYsLLnoVMgvyI",
+                       "projectId":  "Z0pgCY9RJ5VJF6JD",
+                       "project":  {
+                                       "updatedAt":  "2026-03-13T00:12:04.657Z",
+                                       "createdAt":  "2026-03-13T00:09:47.440Z",
+                                       "id":  "Z0pgCY9RJ5VJF6JD",
+                                       "name":  "Alexander Villa \u003calexandervilla.cuenta@gmail.com\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  {
+                          "updatedAt":  "2026-04-19T19:12:35.709Z",
+                          "createdAt":  "2026-04-19T19:12:35.709Z",
+                          "versionId":  "a49ae248-75ab-4644-a6f7-1650e324a887",
+                          "workflowId":  "JwVHYsLLnoVMgvyI",
+                          "nodes":  [
+                                        {
+                                            "id":  "precheck-webhook",
+                                            "name":  "Mock Precheck Webhook",
+                                            "type":  "n8n-nodes-base.webhook",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             -600,
+                                                             -200
+                                                         ],
+                                            "parameters":  {
+                                                               "httpMethod":  "GET",
+                                                               "path":  "adskiller-meta-precheck",
+                                                               "responseMode":  "responseNode",
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "webhookId":  "ak-meta-precheck-v1"
+                                        },
+                                        {
+                                            "id":  "precheck-extract-id",
+                                            "name":  "Precheck - Extract Ad ID",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             -380,
+                                                             -200
+                                                         ],
+                                            "parameters":  {
+                                                               "jsCode":  "const q = $json.query ?? {};\nconst adId = String(q.ad_id ?? q.adId ?? \"\").trim();\nif (!adId) throw new Error(\"ad_id query param required\");\nreturn [{ json: { adId } }];"
+                                                           }
+                                        },
+                                        {
+                                            "id":  "precheck-gs-read",
+                                            "name":  "Precheck - GS Read Mock_Ads",
+                                            "type":  "n8n-nodes-base.googleSheets",
+                                            "typeVersion":  4.5,
+                                            "position":  [
+                                                             -160,
+                                                             -200
+                                                         ],
+                                            "parameters":  {
+                                                               "authentication":  "serviceAccount",
+                                                               "resource":  "sheet",
+                                                               "operation":  "read",
+                                                               "documentId":  {
+                                                                                  "__rl":  true,
+                                                                                  "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                                                  "mode":  "id"
+                                                                              },
+                                                               "sheetName":  {
+                                                                                 "__rl":  true,
+                                                                                 "value":  "Mock_Ads",
+                                                                                 "mode":  "name"
+                                                                             },
+                                                               "options":  {
+                                                                               "returnAll":  true
+                                                                           }
+                                                           },
+                                            "credentials":  {
+                                                                "googleApi":  {
+                                                                                  "id":  "BtY3uGIkB5umd39o",
+                                                                                  "name":  "Google Service Account account"
+                                                                              }
+                                                            }
+                                        },
+                                        {
+                                            "id":  "precheck-build-response",
+                                            "name":  "Precheck - Build Response",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             60,
+                                                             -200
+                                                         ],
+                                            "parameters":  {
+                                                               "jsCode":  "const adId = $(\u0027Precheck - Extract Ad ID\u0027).item.json.adId;\nconst rows = $input.all();\n\n// Test patterns\nif (adId.startsWith(\u0027AD-NON-ACTIVE-\u0027)) {\n  return [{ json: { statusCode: 200, body: { id: adId, name: \u0027Test Ad (Non-Active)\u0027,\n    status: \u0027PAUSED\u0027, effective_status: \u0027PAUSED\u0027 } } }];\n}\nif (adId.startsWith(\u0027AD-RETRY-\u0027)) {\n  return [{ json: { statusCode: 200, body: { id: adId, name: \u0027Test Ad (Retry)\u0027,\n    status: \u0027ACTIVE\u0027, effective_status: \u0027ACTIVE\u0027 } } }];\n}\n\n// GSheet lookup\nconst match = rows.find(r =\u003e r.json.ad_id === adId);\nif (!match) {\n  return [{ json: { statusCode: 200, body: { id: adId, name: \u0027Test Ad \u0027 + adId,\n    status: \u0027ACTIVE\u0027, effective_status: \u0027ACTIVE\u0027 } } }];\n}\nconst row = match.json;\nreturn [{ json: { statusCode: 200, body: {\n  id: row.ad_id, name: row.ad_name, status: row.status, effective_status: row.status\n} } }];"
+                                                           }
+                                        },
+                                        {
+                                            "id":  "precheck-respond",
+                                            "name":  "Precheck - Respond",
+                                            "type":  "n8n-nodes-base.respondToWebhook",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             280,
+                                                             -200
+                                                         ],
+                                            "parameters":  {
+                                                               "respondWith":  "json",
+                                                               "responseBody":  "={{ $json.body }}",
+                                                               "options":  {
+                                                                               "responseCode":  "={{ $json.statusCode }}"
+                                                                           }
+                                                           }
+                                        },
+                                        {
+                                            "id":  "pause-webhook",
+                                            "name":  "Mock Pause Webhook",
+                                            "type":  "n8n-nodes-base.webhook",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             -600,
+                                                             100
+                                                         ],
+                                            "parameters":  {
+                                                               "httpMethod":  "POST",
+                                                               "path":  "adskiller-meta-pause",
+                                                               "responseMode":  "responseNode",
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "webhookId":  "ak-meta-pause-v1"
+                                        },
+                                        {
+                                            "id":  "pause-extract-id",
+                                            "name":  "Pause - Extract Ad ID",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             -380,
+                                                             100
+                                                         ],
+                                            "parameters":  {
+                                                               "jsCode":  "const body = $json.body ?? $json;\nconst adId = String(body.ad_id ?? body.adId ?? \"\").trim();\nif (!adId) throw new Error(\"ad_id required\");\nreturn [{ json: { adId } }];"
+                                                           }
+                                        },
+                                        {
+                                            "id":  "pause-gs-update",
+                                            "name":  "Pause - GS Update Status PAUSED",
+                                            "type":  "n8n-nodes-base.googleSheets",
+                                            "typeVersion":  4.5,
+                                            "position":  [
+                                                             60,
+                                                             100
+                                                         ],
+                                            "parameters":  {
+                                                               "authentication":  "serviceAccount",
+                                                               "resource":  "sheet",
+                                                               "operation":  "appendOrUpdate",
+                                                               "documentId":  {
+                                                                                  "__rl":  true,
+                                                                                  "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                                                  "mode":  "id"
+                                                                              },
+                                                               "sheetName":  {
+                                                                                 "__rl":  true,
+                                                                                 "value":  "Mock_Ads",
+                                                                                 "mode":  "name"
+                                                                             },
+                                                               "columns":  {
+                                                                               "mappingMode":  "defineBelow",
+                                                                               "value":  {
+                                                                                             "ad_id":  "={{ $(\u0027Pause - Extract Ad ID\u0027).item.json.adId }}",
+                                                                                             "status":  "PAUSED"
+                                                                                         },
+                                                                               "matchingColumns":  [
+                                                                                                       "ad_id"
+                                                                                                   ],
+                                                                               "schema":  [
+                                                                                              {
+                                                                                                  "id":  "ad_id",
+                                                                                                  "displayName":  "ad_id",
+                                                                                                  "required":  false,
+                                                                                                  "defaultMatch":  true,
+                                                                                                  "display":  true,
+                                                                                                  "type":  "string",
+                                                                                                  "canBeUsedToMatch":  true
+                                                                                              },
+                                                                                              {
+                                                                                                  "id":  "ad_name",
+                                                                                                  "displayName":  "ad_name",
+                                                                                                  "required":  false,
+                                                                                                  "defaultMatch":  false,
+                                                                                                  "display":  true,
+                                                                                                  "type":  "string",
+                                                                                                  "canBeUsedToMatch":  false
+                                                                                              },
+                                                                                              {
+                                                                                                  "id":  "status",
+                                                                                                  "displayName":  "status",
+                                                                                                  "required":  false,
+                                                                                                  "defaultMatch":  false,
+                                                                                                  "display":  true,
+                                                                                                  "type":  "string",
+                                                                                                  "canBeUsedToMatch":  false
+                                                                                              },
+                                                                                              {
+                                                                                                  "id":  "campaign_name",
+                                                                                                  "displayName":  "campaign_name",
+                                                                                                  "required":  false,
+                                                                                                  "defaultMatch":  false,
+                                                                                                  "display":  true,
+                                                                                                  "type":  "string",
+                                                                                                  "canBeUsedToMatch":  false
+                                                                                              }
+                                                                                          ]
+                                                                           },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "credentials":  {
+                                                                "googleApi":  {
+                                                                                  "id":  "BtY3uGIkB5umd39o",
+                                                                                  "name":  "Google Service Account account"
+                                                                              }
+                                                            }
+                                        },
+                                        {
+                                            "id":  "pause-build-response",
+                                            "name":  "Pause - Build Response",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             280,
+                                                             100
+                                                         ],
+                                            "parameters":  {
+                                                               "jsCode":  "const src = $(\u0027Pause - Extract Ad ID\u0027).item.json;\nconst adId = src.adId;\nconst rows = $input.all();\n\n// AD-RETRY-* returns 429 (rate limit)\nif (adId.startsWith(\u0027AD-RETRY-\u0027)) {\n  return [{ json: { statusCode: 429, body: { error: { message: \u0027Rate limit exceeded\u0027, code: 4 } } } }];\n}\n\n// Normal path: pause success\nreturn [{ json: { statusCode: 200, body: { success: true, id: adId } } }];"
+                                                           }
+                                        },
+                                        {
+                                            "id":  "pause-respond",
+                                            "name":  "Pause - Respond",
+                                            "type":  "n8n-nodes-base.respondToWebhook",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             500,
+                                                             100
+                                                         ],
+                                            "parameters":  {
+                                                               "respondWith":  "json",
+                                                               "responseBody":  "={{ { success: true, id: $(\u0027Pause - Extract Ad ID\u0027).item.json.adId } }}",
+                                                               "options":  {
+                                                                               "responseCode":  "={{ $json.statusCode }}"
+                                                                           }
+                                                           }
+                                        },
+                                        {
+                                            "id":  "list-webhook",
+                                            "name":  "Mock List Ads Webhook",
+                                            "type":  "n8n-nodes-base.webhook",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             -600,
+                                                             400
+                                                         ],
+                                            "parameters":  {
+                                                               "httpMethod":  "GET",
+                                                               "path":  "ak-meta-list-v1",
+                                                               "responseMode":  "responseNode",
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "webhookId":  "ak-meta-list-v1"
+                                        },
+                                        {
+                                            "id":  "list-gs-read-all",
+                                            "name":  "List - GS Read All Mock_Ads",
+                                            "type":  "n8n-nodes-base.googleSheets",
+                                            "typeVersion":  4.5,
+                                            "position":  [
+                                                             -380,
+                                                             400
+                                                         ],
+                                            "parameters":  {
+                                                               "authentication":  "serviceAccount",
+                                                               "resource":  "sheet",
+                                                               "operation":  "read",
+                                                               "documentId":  {
+                                                                                  "__rl":  true,
+                                                                                  "value":  "1RKQ05Zy6beCwCr_mT95eVSgeOqQTAfTA_9kaYX1XJoY",
+                                                                                  "mode":  "id"
+                                                                              },
+                                                               "sheetName":  {
+                                                                                 "__rl":  true,
+                                                                                 "value":  "Mock_Ads",
+                                                                                 "mode":  "name"
+                                                                             },
+                                                               "filtersUI":  {
+
+                                                                             },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "credentials":  {
+                                                                "googleApi":  {
+                                                                                  "id":  "BtY3uGIkB5umd39o",
+                                                                                  "name":  "Google Service Account account"
+                                                                              }
+                                                            }
+                                        },
+                                        {
+                                            "id":  "list-filter-respond",
+                                            "name":  "List - Filter by Pattern \u0026 Build Response",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             -160,
+                                                             400
+                                                         ],
+                                            "parameters":  {
+                                                               "jsCode":  "const pattern = String($(\u0027Mock List Ads Webhook\u0027).item.json.query?.pattern ?? \u0027\u0027).trim();\nconst allRows = $input.all();\nlet filtered = allRows;\nif (pattern) {\n  try {\n    const regex = new RegExp(pattern, \u0027i\u0027);\n    filtered = allRows.filter(item =\u003e regex.test(item.json.ad_name ?? \u0027\u0027));\n  } catch (e) { filtered = []; }\n}\nconst data = filtered.map(item =\u003e ({ id: item.json.ad_id, name: item.json.ad_name, status: item.json.status, effective_status: item.json.status, campaign_name: item.json.campaign_name ?? \u0027\u0027 }));\nreturn [{ json: { statusCode: 200, body: { data, paging: { cursors: { before: \u0027\u0027, after: \u0027\u0027 } } } } }];"
+                                                           }
+                                        },
+                                        {
+                                            "id":  "list-respond",
+                                            "name":  "List - Respond",
+                                            "type":  "n8n-nodes-base.respondToWebhook",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             60,
+                                                             400
+                                                         ],
+                                            "parameters":  {
+                                                               "respondWith":  "json",
+                                                               "responseBody":  "={{ $json.body }}",
+                                                               "options":  {
+                                                                               "responseCode":  "={{ $json.statusCode }}"
+                                                                           }
+                                                           }
+                                        },
+                                        {
+                                            "id":  "pause-should-update-gsheet",
+                                            "name":  "Pause - Should Update GSheet",
+                                            "type":  "n8n-nodes-base.if",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             -140,
+                                                             100
+                                                         ],
+                                            "parameters":  {
+                                                               "conditions":  {
+                                                                                  "options":  {
+                                                                                                  "caseSensitive":  false,
+                                                                                                  "leftValue":  "",
+                                                                                                  "typeValidation":  "strict"
+                                                                                              },
+                                                                                  "conditions":  [
+                                                                                                     {
+                                                                                                         "leftValue":  "={{ $json.statusCode }}",
+                                                                                                         "rightValue":  200,
+                                                                                                         "operator":  {
+                                                                                                                          "type":  "number",
+                                                                                                                          "operation":  "equals"
+                                                                                                                      }
+                                                                                                     }
+                                                                                                 ],
+                                                                                  "combinator":  "and"
+                                                                              }
+                                                           }
+                                        }
+                                    ],
+                          "connections":  {
+                                              "Mock Precheck Webhook":  {
+                                                                            "main":  [
+                                                                                         [
+                                                                                             {
+                                                                                                 "node":  "Precheck - Extract Ad ID",
+                                                                                                 "type":  "main",
+                                                                                                 "index":  0
+                                                                                             }
+                                                                                         ]
+                                                                                     ]
+                                                                        },
+                                              "Precheck - Extract Ad ID":  {
+                                                                               "main":  [
+                                                                                            [
+                                                                                                {
+                                                                                                    "node":  "Precheck - GS Read Mock_Ads",
+                                                                                                    "type":  "main",
+                                                                                                    "index":  0
+                                                                                                }
+                                                                                            ]
+                                                                                        ]
+                                                                           },
+                                              "Precheck - GS Read Mock_Ads":  {
+                                                                                  "main":  [
+                                                                                               [
+                                                                                                   {
+                                                                                                       "node":  "Precheck - Build Response",
+                                                                                                       "type":  "main",
+                                                                                                       "index":  0
+                                                                                                   }
+                                                                                               ]
+                                                                                           ]
+                                                                              },
+                                              "Precheck - Build Response":  {
+                                                                                "main":  [
+                                                                                             [
+                                                                                                 {
+                                                                                                     "node":  "Precheck - Respond",
+                                                                                                     "type":  "main",
+                                                                                                     "index":  0
+                                                                                                 }
+                                                                                             ]
+                                                                                         ]
+                                                                            },
+                                              "Mock Pause Webhook":  {
+                                                                         "main":  [
+                                                                                      [
+                                                                                          {
+                                                                                              "node":  "Pause - Extract Ad ID",
+                                                                                              "type":  "main",
+                                                                                              "index":  0
+                                                                                          }
+                                                                                      ]
+                                                                                  ]
+                                                                     },
+                                              "Pause - Extract Ad ID":  {
+                                                                            "main":  [
+                                                                                         [
+                                                                                             {
+                                                                                                 "node":  "Pause - Build Response",
+                                                                                                 "type":  "main",
+                                                                                                 "index":  0
+                                                                                             }
+                                                                                         ]
+                                                                                     ]
+                                                                        },
+                                              "Pause - GS Update Status PAUSED":  {
+                                                                                      "main":  [
+                                                                                                   [
+                                                                                                       {
+                                                                                                           "node":  "Pause - Respond",
+                                                                                                           "type":  "main",
+                                                                                                           "index":  0
+                                                                                                       }
+                                                                                                   ]
+                                                                                               ]
+                                                                                  },
+                                              "Pause - Build Response":  {
+                                                                             "main":  [
+                                                                                          [
+                                                                                              {
+                                                                                                  "node":  "Pause - Should Update GSheet",
+                                                                                                  "type":  "main",
+                                                                                                  "index":  0
+                                                                                              }
+                                                                                          ]
+                                                                                      ]
+                                                                         },
+                                              "Mock List Ads Webhook":  {
+                                                                            "main":  [
+                                                                                         [
+                                                                                             {
+                                                                                                 "node":  "List - GS Read All Mock_Ads",
+                                                                                                 "type":  "main",
+                                                                                                 "index":  0
+                                                                                             }
+                                                                                         ]
+                                                                                     ]
+                                                                        },
+                                              "List - GS Read All Mock_Ads":  {
+                                                                                  "main":  [
+                                                                                               [
+                                                                                                   {
+                                                                                                       "node":  "List - Filter by Pattern \u0026 Build Response",
+                                                                                                       "type":  "main",
+                                                                                                       "index":  0
+                                                                                                   }
+                                                                                               ]
+                                                                                           ]
+                                                                              },
+                                              "List - Filter by Pattern \u0026 Build Response":  {
+                                                                                                     "main":  [
+                                                                                                                  [
+                                                                                                                      {
+                                                                                                                          "node":  "List - Respond",
+                                                                                                                          "type":  "main",
+                                                                                                                          "index":  0
+                                                                                                                      }
+                                                                                                                  ]
+                                                                                                              ]
+                                                                                                 },
+                                              "Pause - Should Update GSheet":  {
+                                                                                   "main":  [
+                                                                                                [
+                                                                                                    {
+                                                                                                        "node":  "Pause - GS Update Status PAUSED",
+                                                                                                        "type":  "main",
+                                                                                                        "index":  0
+                                                                                                    }
+                                                                                                ],
+                                                                                                [
+                                                                                                    {
+                                                                                                        "node":  "Pause - Respond",
+                                                                                                        "type":  "main",
+                                                                                                        "index":  0
+                                                                                                    }
+                                                                                                ]
+                                                                                            ]
+                                                                               }
+                                          },
+                          "authors":  "Alexander Villa",
+                          "name":  null,
+                          "description":  null,
+                          "autosaved":  false,
+                          "workflowPublishHistory":  [
+                                                         {
+                                                             "createdAt":  "2026-04-19T19:12:35.770Z",
+                                                             "id":  545,
+                                                             "workflowId":  "JwVHYsLLnoVMgvyI",
+                                                             "versionId":  "a49ae248-75ab-4644-a6f7-1650e324a887",
+                                                             "event":  "activated",
+                                                             "userId":  "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+                                                         },
+                                                         {
+                                                             "createdAt":  "2026-04-19T19:12:35.749Z",
+                                                             "id":  544,
+                                                             "workflowId":  "JwVHYsLLnoVMgvyI",
+                                                             "versionId":  "a49ae248-75ab-4644-a6f7-1650e324a887",
+                                                             "event":  "deactivated",
+                                                             "userId":  "3350874b-f3a7-46b8-bdc1-49a5dbdda144"
+                                                         }
+                                                     ]
+                      }
+}
