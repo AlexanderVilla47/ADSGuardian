@@ -16,3 +16,20 @@ workflow_data.json
 workflows_list.json
 meta_mock_workflow.json
 
+# --- Agent tooling / config (not product) ---
+.agents/
+.atl/
+.claude/
+skills-lock.json
+
+# --- Process / SDD artifacts ---
+openspec/
+test.json
+
+# --- Review / cleanup temp artifacts ---
+artifacts/
+
+# --- Workflow backups, iterations & edits (keep only canonical) ---
+workflows/backups/
+workflows/non-canonical/
+workflows/edits/
